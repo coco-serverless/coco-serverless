@@ -49,9 +49,7 @@ def install_kubectl(ctx, system=False):
     """
     Install the k8s CLI (kubectl)
     """
-    url = "https://dl.k8s.io/release/v{}/bin/linux/amd64/kubectl".format(
-        K8S_VERSION
-    )
+    url = "https://dl.k8s.io/release/v{}/bin/linux/amd64/kubectl".format(K8S_VERSION)
 
     binary_path = _download_binary(url, "kubectl")
 
@@ -139,7 +137,9 @@ def create(ctx):
     # TODO
 
     # Configure flannel
-    run_kubectl_command("apply -f {}".format(join(FLANNEL_INSTALL_DIR, "kube-flannel.yml")))
+    run_kubectl_command(
+        "apply -f {}".format(join(FLANNEL_INSTALL_DIR, "kube-flannel.yml"))
+    )
     wait_for_pods("kube-flannel")
 
 
@@ -148,6 +148,7 @@ def destroy(ctx):
     """
     Destroy a k8s cluster initialised with `inv k8s.create`
     """
+
     def remove_link(dev_name):
         """
         Remove link entries from ip tables

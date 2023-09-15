@@ -1,6 +1,6 @@
 from invoke import task
 from subprocess import run
-from faasmctl.util.env import DEV_PROJ_ROOT
+from tasks.util.env import PROJ_ROOT
 
 
 @task(default=True)
@@ -13,7 +13,7 @@ def format(ctx, check=False):
             'git ls-files -- "*.py"',
             shell=True,
             check=True,
-            cwd=DEV_PROJ_ROOT,
+            cwd=PROJ_ROOT,
             capture_output=True,
         )
         .stdout.decode("utf-8")
@@ -25,11 +25,11 @@ def format(ctx, check=False):
         " ".join(files_to_check),
     ]
     black_cmd = " ".join(black_cmd)
-    run(black_cmd, shell=True, check=True, cwd=DEV_PROJ_ROOT)
+    run(black_cmd, shell=True, check=True, cwd=PROJ_ROOT)
 
     flake8_cmd = [
         "python3 -m flake8",
         " ".join(files_to_check),
     ]
     flake8_cmd = " ".join(flake8_cmd)
-    run(flake8_cmd, shell=True, check=True, cwd=DEV_PROJ_ROOT)
+    run(flake8_cmd, shell=True, check=True, cwd=PROJ_ROOT)
