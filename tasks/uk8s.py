@@ -16,10 +16,8 @@ def install(ctx):
     Install uk8s (requires sudo)
     """
     k8s_major = K8S_VERSION[0:4]
-    install_cmd = (
-        "sudo snap install microk8s --classic --channel={}/stable".format(
-            k8s_major
-        )
+    install_cmd = "sudo snap install microk8s --classic --channel={}/stable".format(
+        k8s_major
     )
     print(install_cmd)
     run(install_cmd, shell=True, check=True)
@@ -72,11 +70,7 @@ def clean_iptables(ctx):
         .split("\n")[:-1]
     )
     if result:
-        print(
-            "Error cleaning uk8s iptables, there are still rules: {}".format(
-                result
-            )
-        )
+        print("Error cleaning uk8s iptables, there are still rules: {}".format(result))
         raise RuntimeError("Error cleaning uk8s iptables")
 
 
