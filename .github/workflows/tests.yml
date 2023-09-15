@@ -1,0 +1,19 @@
+name: "Integration tests"
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+jobs:
+  python-format:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v3
+      # Formatting checks
+      - name: "Code formatting check"
+        run: ./bin/inv_wrapper.sh format-code
