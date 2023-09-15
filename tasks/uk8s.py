@@ -3,11 +3,8 @@ from tasks.util.env import (
     K8S_VERSION,
     UK8S_KUBECONFIG_FILE,
 )
+from tasks.util.uk8s import get_uk8s_kubectl_cmd
 from subprocess import run
-
-
-def get_uk8s_kubectl_cmd():
-    return "microk8s kubectl --kubeconfig={}".format(UK8S_KUBECONFIG_FILE)
 
 
 @task
