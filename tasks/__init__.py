@@ -1,7 +1,9 @@
 from invoke import Collection
 
-from . import k8s
+from . import kubeadm
+from . import uk8s
 
 ns = Collection(
-    k8s,
+    kubeadm,
+    uk8s,
 )
