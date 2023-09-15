@@ -2,5 +2,8 @@
 kubectl
 k9s
 
+# Kubernetes stuff
+.config
+
 # Python-related stuff
 venv
