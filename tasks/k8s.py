@@ -7,6 +7,7 @@ from tasks.util.env import (
     BIN_DIR,
     GLOBAL_BIN_DIR,
     K8S_VERSION,
+    K8S_CONFIG_DIR,
     K9S_VERSION,
 )
 
@@ -85,3 +86,30 @@ def install_k9s(ctx, system=False):
     # Symlink for k9s command globally
     if system:
         _symlink_global_bin(binary_path, "k9s")
+
+
+@task
+def create(ctx, config_dir=K8S_CONFIG_DIR, clean=False):
+    """
+    Create a single-node k8s cluster
+    """
+    if clean:
+        rmtree(config_dir)
+
+    if not exists(config_dir):
+        makedirs(config_dir)
+
+    # Start the cluster
+    kubeadm_config_file = join(config_dir, "kubeadm.conf")
+    kubeadm_cmd = "sudo kubeadm init --config {}".format(kubeadm_config_file)
+    run(kubeadm_cmd, shell=True, check=True)
+
+    # Wait for pods to be ready
+
+
+@task
+def destroy(ctx, config=K8S_CONFIG_DIR):
+    """
+    Destroy a k8s cluster initialised with `inv k8s.create`
+    """
+    kubeadm_cmd = "kubeadm reset -f --cri-socket='{}'".format(CRI_RUNTIME_SOCKET)
