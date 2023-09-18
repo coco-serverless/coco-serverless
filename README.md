@@ -2,6 +2,15 @@
 
 The goal of this project is to deploy Knative on CoCo and run some baseline benchmarks.
 
+All instructions in this repository assume that you have checked-out the source code, and have activated the python virtual environment:
+
+```bash
+source ./bin/workon.sh
+
+# List available tasks
+inv -l
+```
+
 ## Quick Start
 
 First, get the local `k8s` cluster ready with [`microk8s`](./docs/uk8s.md).
