@@ -10,7 +10,8 @@ First, get the local `k8s` cluster ready with [`microk8s`](./docs/uk8s.md).
 inv uk8s.install
 ```
 
-Second, build and install both the operator and the CC runtime. For the operator, we currently pin to version `v0.7.0`.
+Second, install both the operator and the CC runtime from the upstream tag.
+We currently pin to version `v0.7.0` (see the [`COCO_RELEASE_VERSION` variable](https://github.com/csegarragonz/coco-serverless/tree/main/tasks/util/env.py)).
 
 ```bash
 inv operator.install
