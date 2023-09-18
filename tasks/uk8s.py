@@ -3,11 +3,8 @@ from tasks.util.env import (
     K8S_VERSION,
     UK8S_KUBECONFIG_FILE,
 )
+from tasks.util.uk8s import get_uk8s_kubectl_cmd
 from subprocess import run
-
-
-def get_uk8s_kubectl_cmd():
-    return "microk8s kubectl --kubeconfig={}".format(UK8S_KUBECONFIG_FILE)
 
 
 @task
@@ -100,6 +97,7 @@ def credentials(ctx):
     run(config_cmd, shell=True, check=True)
 
     # Check we can access the cluster
+    # TODO: actually wait for nodes to be ready
     cmd = "{} get nodes".format(get_uk8s_kubectl_cmd())
     print(cmd)
     run(cmd, shell=True, check=True)
