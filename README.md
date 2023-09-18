@@ -1,13 +1,27 @@
 # CoCo Serverless
 
-The goal of this project is to run Knative using confidential containes instead than plain Docker containers.
+The goal of this project is to deploy Knative on CoCo and run some baseline benchmarks.
 
 ## Quick Start
 
 First, get the local `k8s` cluster ready with [`microk8s`](./docs/uk8s.md).
 
-Second, build and install both the operator and the CC runtime. For the operator, we currently pin to version `v0.7.0` and we maintain a separate directory with the source code. TODO: don't rely on a local checkout.
+```bash
+inv uk8s.install
+```
+
+Second, build and install both the operator and the CC runtime. For the operator, we currently pin to version `v0.7.0`.
 
 ```bash
 inv operator.install
+inv operator.install-cc-runtime
+```
+
+## Uninstall
+
+In order to uninstall components for debugging purposes, you may un-install the CoCo runtime, and then the operator as follows:
+
+```bash
+inv operator.uninstall-cc-runtime
+inv operator.uninstall
 ```

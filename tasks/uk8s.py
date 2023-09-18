@@ -97,6 +97,7 @@ def credentials(ctx):
     run(config_cmd, shell=True, check=True)
 
     # Check we can access the cluster
+    # TODO: actually wait for nodes to be ready
     cmd = "{} get nodes".format(get_uk8s_kubectl_cmd())
     print(cmd)
     run(cmd, shell=True, check=True)
