@@ -3,9 +3,7 @@ from os.path import join
 from subprocess import run
 from tasks.util.env import APPS_SOURCE_DIR
 
-APP_LIST = {
-    "helloworld-py": join(APPS_SOURCE_DIR, "helloworld-py")
-}
+APP_LIST = {"helloworld-py": join(APPS_SOURCE_DIR, "helloworld-py")}
 
 
 @task
@@ -16,7 +14,9 @@ def build(ctx, app=None, nocache=False):
     if not app:
         app = list(APP_LIST.keys())
     elif app not in APP_LIST:
-        print("Unrecognized app name ({}) must be one in: {}".format(app, APP_LIST.keys()))
+        print(
+            "Unrecognized app name ({}) must be one in: {}".format(app, APP_LIST.keys())
+        )
         raise RuntimeError("Unrecognised app name")
     else:
         app = [app]

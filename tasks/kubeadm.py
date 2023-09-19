@@ -1,11 +1,8 @@
 from invoke import task
-from os.path import join
 from os import getegid, geteuid
 from shutil import rmtree
 from subprocess import run
 from tasks.util.env import (
-    BIN_DIR,
-    GLOBAL_BIN_DIR,
     CRI_RUNTIME_SOCKET,
     FLANNEL_VERSION,
     K8S_ADMIN_FILE,
@@ -32,13 +29,17 @@ def create(ctx):
     # Copy the config file locally and change permissions
     cp_cmd = "sudo cp /etc/kubernetes/admin.conf {}".format(KUBEADM_KUBECONFIG_FILE)
     run(cp_cmd, shell=True, check=True)
-    chown_cmd = "sudo chown {}:{} {}".format(geteuid(), getegid(), KUBEADM_KUBECONFIG_FILE)
+    chown_cmd = "sudo chown {}:{} {}".format(
+        geteuid(), getegid(), KUBEADM_KUBECONFIG_FILE
+    )
     run(chown_cmd, shell=True, check=True)
 
     # Wait for the node to be in ready state
     def get_node_state():
         # We could use a jsonpath format here, but couldn't quite work it out
-        out = run_kubectl_command("get nodes --no-headers", capture_output=True).split(" ")
+        out = run_kubectl_command("get nodes --no-headers", capture_output=True).split(
+            " "
+        )
         out = [_ for _ in out if len(_) > 0]
         return out[1]
 
@@ -61,7 +62,8 @@ def create(ctx):
     run_kubectl_command("label node {} {}".format(node_name, node_label))
 
     # Configure flannel
-    flannel_url = "https://github.com/flannel-io/flannel/releases/download/v{}/kube-flannel.yml".format(FLANNEL_VERSION)
+    flannel_url = "https://github.com/flannel-io/flannel/releases/download"
+    flannel_url += "/v{}/kube-flannel.yml".format(FLANNEL_VERSION)
     run_kubectl_command("apply -f {}".format(flannel_url))
     wait_for_pods_in_ns("kube-flannel", 1)
 

@@ -54,9 +54,7 @@ def install_cc_runtime(ctx, runtime_class="kata-qemu"):
         "kata-qemu-snp",
     ]
     run_class_cmd = "get runtimeclass -o jsonpath='{.items..handler}'"
-    runtime_classes = run_kubectl_command(run_class_cmd, capture_output=True).split(
-        " "
-    )
+    runtime_classes = run_kubectl_command(run_class_cmd, capture_output=True).split(" ")
     while len(expected_runtime_classes) != len(runtime_classes):
         print(
             "Not all expected runtime classes are registered ({} != {})".format(
@@ -64,9 +62,9 @@ def install_cc_runtime(ctx, runtime_class="kata-qemu"):
             )
         )
         sleep(5)
-        runtime_classes = run_kubectl_command(
-            run_class_cmd, capture_output=True
-        ).split(" ")
+        runtime_classes = run_kubectl_command(run_class_cmd, capture_output=True).split(
+            " "
+        )
 
 
 @task

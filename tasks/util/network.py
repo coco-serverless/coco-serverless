@@ -1,14 +1,7 @@
 from os.path import exists, join
 from os import makedirs
 from subprocess import run
-from tasks.util.env import (
-    BIN_DIR,
-    GLOBAL_BIN_DIR,
-    CRI_RUNTIME_SOCKET,
-    FLANNEL_INSTALL_DIR,
-    K8S_VERSION,
-    K8S_ADMIN_FILE,
-)
+from tasks.util.env import BIN_DIR, GLOBAL_BIN_DIR
 
 
 def download_binary(url, binary_name):
