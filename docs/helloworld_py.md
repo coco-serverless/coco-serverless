@@ -23,5 +23,5 @@ curl -X GET ${service_ip}:8080
 To remove the application, you can run:
 
 ```bash
-kubectl deploy -f ./apps/helloworld-py
+kubectl delete -f ./apps/helloworld-py
 ```
