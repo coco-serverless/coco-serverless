@@ -13,6 +13,7 @@ spec:
     metadata:
       labels:
         apps.coco-serverless/name: helloworld-py
+        io.katacontainers.config.pre_attestation.enabled: "false"
     spec:
       runtimeClassName: kata-qemu-sev
       containers:
