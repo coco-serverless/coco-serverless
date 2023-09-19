@@ -16,3 +16,9 @@ Once per node we need to install a full certificate chain. To do so, run:
 sudo mkdir -p /opt/sev
 sudo sevctl export --full /opt/sev/cert_chain.cert
 ```
+
+## Annotations
+
+If you use any kata-specific annotations (like `io.katacontainers.config.pre-attestation.enabled`)
+you need to add them to an allow-list in `/opt/confidential-containers/share/defaults/kata-containers/configuration-<runtime>.toml`
+and maybe in the `/etc/containerd/config.toml`.
