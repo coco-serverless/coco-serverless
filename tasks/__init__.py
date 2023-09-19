@@ -6,6 +6,7 @@ from . import format_code
 from . import kubeadm
 from . import k8s
 from . import k9s
+from . import kbs
 from . import operator
 
 ns = Collection(
@@ -15,5 +16,6 @@ ns = Collection(
     kubeadm,
     k8s,
     k9s,
+    kbs,
     operator,
 )

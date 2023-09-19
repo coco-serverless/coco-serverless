@@ -50,3 +50,8 @@ Lastly, you can completely remove the `k8s` cluster by running:
 ```bash
 inv kubeadm.destroy
 ```
+
+## Further Reading
+
+For further documentation, you may want to check these other documents:
+* [SEV](./docs/sev.md) - speicifc documentation to get the project working with AMD SEV machines.
