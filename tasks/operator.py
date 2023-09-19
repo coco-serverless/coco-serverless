@@ -1,8 +1,8 @@
 from invoke import task
 from os.path import join
 from tasks.util.env import COCO_RELEASE_VERSION
-from tasks.util.uk8s import (
-    run_uk8s_kubectl_cmd,
+from tasks.util.kubeadm import (
+    run_kubectl_command,
     wait_for_pod,
 )
 from time import sleep
@@ -16,19 +16,12 @@ def install(ctx):
     """
     Install the cc-operator on the cluster
     """
-    # Before anything, make sure our k8s node has the worker label
-    node_label = "node.kubernetes.io/worker="
-    kube_cmd = """get nodes -o jsonpath='{.items..status..addresses
-                  [?(@.type==\"Hostname\")].address}'"""
-    node_name = run_uk8s_kubectl_cmd(kube_cmd, capture_output=True)
-    run_uk8s_kubectl_cmd("label node {} {}".format(node_name, node_label))
-
     # Install the operator from the confidential-containers/operator
     # release tag
     operator_url = join(
         OPERATOR_GITHUB_URL, "config", "release?ref=v{}".format(COCO_RELEASE_VERSION)
     )
-    run_uk8s_kubectl_cmd("apply -k {}".format(operator_url))
+    run_kubectl_command("apply -k {}".format(operator_url))
     wait_for_pod(OPERATOR_NAMESPACE, "cc-operator-controller-manager")
 
 
@@ -44,7 +37,7 @@ def install_cc_runtime(ctx, runtime_class="kata-qemu"):
         "ccruntime",
         "default?ref=v{}".format(COCO_RELEASE_VERSION),
     )
-    run_uk8s_kubectl_cmd("create -k {}".format(cc_runtime_url))
+    run_kubectl_command("create -k {}".format(cc_runtime_url))
 
     for pod in ["cc-operator-daemon-install", "cc-operator-pre-install-daemon"]:
         wait_for_pod(OPERATOR_NAMESPACE, pod)
@@ -61,7 +54,7 @@ def install_cc_runtime(ctx, runtime_class="kata-qemu"):
         "kata-qemu-snp",
     ]
     run_class_cmd = "get runtimeclass -o jsonpath='{.items..handler}'"
-    runtime_classes = run_uk8s_kubectl_cmd(run_class_cmd, capture_output=True).split(
+    runtime_classes = run_kubectl_command(run_class_cmd, capture_output=True).split(
         " "
     )
     while len(expected_runtime_classes) != len(runtime_classes):
@@ -71,7 +64,7 @@ def install_cc_runtime(ctx, runtime_class="kata-qemu"):
             )
         )
         sleep(5)
-        runtime_classes = run_uk8s_kubectl_cmd(
+        runtime_classes = run_kubectl_command(
             run_class_cmd, capture_output=True
         ).split(" ")
 
@@ -84,7 +77,7 @@ def uninstall(ctx):
     operator_url = join(
         OPERATOR_GITHUB_URL, "config", "release?ref=v{}".format(COCO_RELEASE_VERSION)
     )
-    run_uk8s_kubectl_cmd("delete -k {}".format(operator_url))
+    run_kubectl_command("delete -k {}".format(operator_url))
 
 
 @task
@@ -96,4 +89,4 @@ def uninstall_cc_runtime(ctx):
         "ccruntime",
         "default?ref=v{}".format(COCO_RELEASE_VERSION),
     )
-    run_uk8s_kubectl_cmd("delete -k {}".format(cc_runtime_url))
+    run_kubectl_command("delete -k {}".format(cc_runtime_url))

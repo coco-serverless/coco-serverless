@@ -11,46 +11,12 @@ from tasks.util.env import (
     K8S_ADMIN_FILE,
     KUBEADM_KUBECONFIG_FILE,
 )
+from tasks.util.kubeadm import (
+    get_node_name,
+    run_kubectl_command,
+    wait_for_pods_in_ns,
+)
 from time import sleep
-
-
-def run_kubectl_command(cmd, capture_output=False):
-    # As long as we don't copy the config file elsewhere we need to use
-    # sudo to read the admin config file
-    k8s_cmd = "kubectl --kubeconfig={} {}".format(KUBEADM_KUBECONFIG_FILE, cmd)
-
-    if capture_output:
-        return run(k8s_cmd, shell=True, capture_output=True).stdout.decode("utf-8").strip()
-
-    run(k8s_cmd, shell=True, check=True)
-
-
-def wait_for_pods(ns=None, expected_num_of_pods=0):
-    """
-    Wait for pods in a namespace to be ready
-    """
-    while True:
-        print("Waiting for pods to be ready...")
-        cmd = [
-            "-n {}".format(ns) if ns else "",
-            "get pods",
-            "-o jsonpath='{..status.conditions[?(@.type==\"Ready\")].status}'",
-        ]
-
-        output = run_kubectl_command(
-            " ".join(cmd),
-            capture_output=True,
-        )
-
-        statuses = [o.strip() for o in output.split(" ") if o.strip()]
-        if expected_num_of_pods > 0 and len(statuses) != expected_num_of_pods:
-            print("Expecting {} pods, have {}".format(expected_num_of_pods, len(statuses)))
-        elif all([s == "True" for s in statuses]):
-            print("All pods ready, continuing...")
-            break
-
-        print("Pods not ready, waiting ({})".format(output))
-        sleep(5)
 
 
 @task
@@ -83,10 +49,21 @@ def create(ctx):
         sleep(3)
         actual_node_state = get_node_state()
 
+    # Untaint the node so that pods can be scheduled on it
+    node_name = get_node_name()
+    for role in ["control-plane"]:
+        node_label = "node-role.kubernetes.io/{}:NoSchedule-".format(role)
+        taint_cmd = "taint nodes {} {}".format(node_name, node_label)
+        run_kubectl_command(taint_cmd)
+
+    # In addition, make sure the node has the worker label (required by CoCo)
+    node_label = "node.kubernetes.io/worker="
+    run_kubectl_command("label node {} {}".format(node_name, node_label))
+
     # Configure flannel
     flannel_url = "https://github.com/flannel-io/flannel/releases/download/v{}/kube-flannel.yml".format(FLANNEL_VERSION)
     run_kubectl_command("apply -f {}".format(flannel_url))
-    wait_for_pods("kube-flannel", 1)
+    wait_for_pods_in_ns("kube-flannel", 1)
 
 
 @task
