@@ -20,6 +20,10 @@ curl -X GET ${service_ip}:8080
 # Hello World!
 ```
 
+By changing the `runtimeClassName` field in the [deployment file](
+../apps/helloworld-py/deployment.yaml) you may experiment with different
+runtimes.
+
 To remove the application, you can run:
 
 ```bash

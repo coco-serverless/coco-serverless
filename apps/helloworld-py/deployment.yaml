@@ -14,7 +14,7 @@ spec:
       labels:
         apps.coco-serverless/name: helloworld-py
     spec:
-      runtimeClassName: kata-qemu
+      runtimeClassName: kata-qemu-sev
       containers:
       - name: helloworld-py
         image: csegarragonz/coco-helloworld-py:latest
