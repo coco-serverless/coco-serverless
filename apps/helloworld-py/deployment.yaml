@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: coco-helloworld-py
+  labels:
+    apps.coco-serverless/name: helloworld-py
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      apps.coco-serverless/name: helloworld-py
+  template:
+    metadata:
+      labels:
+        apps.coco-serverless/name: helloworld-py
+    spec:
+      runtimeClassName: kata-qemu
+      containers:
+      - name: helloworld-py
+        image: csegarragonz/coco-helloworld-py:latest
+        ports:
+        - containerPort: 8080

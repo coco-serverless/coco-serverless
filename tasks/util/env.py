@@ -23,5 +23,15 @@ FLANNEL_INSTALL_DIR = join(GLOBAL_INSTALL_DIR, "flannel")
 
 UK8S_KUBECONFIG_FILE = join(K8S_CONFIG_DIR, "uk8s_kubeconfig")
 
+# Kubeadm config
+
+FLANNEL_VERSION = "0.22.3"
+KUBEADM_KUBECONFIG_FILE = join(K8S_CONFIG_DIR, "kubeadm_kubeconfig")
+
 # CoCo config
+
 COCO_RELEASE_VERSION = "0.7.0"
+
+# Apps config
+
+APPS_SOURCE_DIR = join(PROJ_ROOT, "apps")

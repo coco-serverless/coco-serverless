@@ -13,11 +13,16 @@ inv -l
 
 ## Quick Start
 
-First, get the local `k8s` cluster ready with [`microk8s`](./docs/uk8s.md).
+First, install the kubernetes-related tooling: `kubectl`, `kubeadm`, and `kubelet`:
 
 ```bash
-inv uk8s.install
+inv k8s.install
 ```
+
+Then, deploy a (single-node) kubernetes cluster using one of the supported
+methods:
+* [Kubeadm](./docs/kubeadm)
+* [Microk8s](./docs/uk8s) (TODO, doesn't work)
 
 Second, install both the operator and the CC runtime from the upstream tag.
 We currently pin to version `v0.7.0` (see the [`COCO_RELEASE_VERSION` variable](https://github.com/csegarragonz/coco-serverless/tree/main/tasks/util/env.py)).
