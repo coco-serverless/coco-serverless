@@ -25,7 +25,10 @@ def run_kubectl_command(cmd, capture_output=False):
     run(k8s_cmd, shell=True, check=True)
 
 
-def wait_for_pods(ns=None):
+def wait_for_pods(ns=None, expected_num_of_pods=0):
+    """
+    Wait for pods in a namespace to be ready
+    """
     while True:
         print("Waiting for pods to be ready...")
         cmd = [
@@ -40,7 +43,9 @@ def wait_for_pods(ns=None):
         )
 
         statuses = [o.strip() for o in output.split(" ") if o.strip()]
-        if all([s == "True" for s in statuses]):
+        if expected_num_of_pods > 0 and len(statuses) != expected_num_of_pods:
+            print("Expecting {} pods, have {}".format(expected_num_of_pods, len(statuses)))
+        elif all([s == "True" for s in statuses]):
             print("All pods ready, continuing...")
             break
 
@@ -81,7 +86,7 @@ def create(ctx):
     # Configure flannel
     flannel_url = "https://github.com/flannel-io/flannel/releases/download/v{}/kube-flannel.yml".format(FLANNEL_VERSION)
     run_kubectl_command("apply -f {}".format(flannel_url))
-    wait_for_pods("kube-flannel")
+    wait_for_pods("kube-flannel", 1)
 
 
 @task
