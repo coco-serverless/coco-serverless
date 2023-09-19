@@ -7,7 +7,6 @@ from . import kubeadm
 from . import k8s
 from . import k9s
 from . import operator
-from . import uk8s
 
 ns = Collection(
     apps,
@@ -17,5 +16,4 @@ ns = Collection(
     k8s,
     k9s,
     operator,
-    uk8s,
 )

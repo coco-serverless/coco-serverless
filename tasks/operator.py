@@ -80,6 +80,9 @@ def uninstall(ctx):
 
 @task
 def uninstall_cc_runtime(ctx):
+    """
+    Un-install the CoCo runtimes from the k8s cluster
+    """
     cc_runtime_url = join(
         OPERATOR_GITHUB_URL,
         "config",

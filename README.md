@@ -44,3 +44,9 @@ In order to uninstall components for debugging purposes, you may un-install the 
 inv operator.uninstall-cc-runtime
 inv operator.uninstall
 ```
+
+Lastly, you can completely remove the `k8s` cluster by running:
+
+```bash
+inv kubeadm.destroy
+```
