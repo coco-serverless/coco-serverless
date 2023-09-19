@@ -1,5 +1,7 @@
 # Installed binaries
+kubeadm
 kubectl
+kubelet
 k9s
 
 # Kubernetes stuff

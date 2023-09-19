@@ -13,10 +13,16 @@ inv -l
 
 ## Quick Start
 
-First, get the local `k8s` cluster ready with [`microk8s`](./docs/uk8s.md).
+First, install the kubernetes-related tooling: `kubectl`, `kubeadm`, and `kubelet`:
 
 ```bash
-inv uk8s.install
+inv k8s.install
+```
+
+then, deploy a (single-node) kubernetes cluster using `kubeadm`:
+
+```bash
+inv kubeadm.create
 ```
 
 Second, install both the operator and the CC runtime from the upstream tag.
@@ -27,6 +33,9 @@ inv operator.install
 inv operator.install-cc-runtime
 ```
 
+Then, you are ready to run one of the supported apps:
+* [Hello World! (Py)](./docs/helloworld_py.md) - simple HTTP server running in Python to test CoCo and Kata.
+
 ## Uninstall
 
 In order to uninstall components for debugging purposes, you may un-install the CoCo runtime, and then the operator as follows:
@@ -34,4 +43,10 @@ In order to uninstall components for debugging purposes, you may un-install the 
 ```bash
 inv operator.uninstall-cc-runtime
 inv operator.uninstall
+```
+
+Lastly, you can completely remove the `k8s` cluster by running:
+
+```bash
+inv kubeadm.destroy
 ```

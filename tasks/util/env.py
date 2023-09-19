@@ -6,13 +6,14 @@ BIN_DIR = join(PROJ_ROOT, "bin")
 GLOBAL_BIN_DIR = "/usr/local/bin"
 # See csegarragonz/coco-serverless#3
 GLOBAL_INSTALL_DIR = "/opt"
+CONF_FILES_DIR = join(PROJ_ROOT, "conf-files")
 
 # K8s Config
 
 K8S_VERSION = "1.28.2"
 K9S_VERSION = "0.27.1"
 K8S_CONFIG_DIR = join(PROJ_ROOT, ".config")
-K8S_ADMIN_FILE = join(K8S_CONFIG_DIR, "kubeadm.conf")
+K8S_ADMIN_FILE = join(CONF_FILES_DIR, "kubeadm.conf")
 # TODO: consider copying this file elsewhere
 K8S_CONFIG_FILE = "/etc/kubernetes/admin.conf"
 # This value is hardcoded in ./.config/kubeadm.conf
@@ -23,5 +24,15 @@ FLANNEL_INSTALL_DIR = join(GLOBAL_INSTALL_DIR, "flannel")
 
 UK8S_KUBECONFIG_FILE = join(K8S_CONFIG_DIR, "uk8s_kubeconfig")
 
+# Kubeadm config
+
+FLANNEL_VERSION = "0.22.3"
+KUBEADM_KUBECONFIG_FILE = join(K8S_CONFIG_DIR, "kubeadm_kubeconfig")
+
 # CoCo config
+
 COCO_RELEASE_VERSION = "0.7.0"
+
+# Apps config
+
+APPS_SOURCE_DIR = join(PROJ_ROOT, "apps")
