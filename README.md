@@ -33,6 +33,9 @@ inv operator.install
 inv operator.install-cc-runtime
 ```
 
+Then, you are ready to run one of the supported apps:
+* [Hello World! (Py)](./docs/helloworld_py.md) - simple HTTP server running in Python to test CoCo and Kata.
+
 ## Uninstall
 
 In order to uninstall components for debugging purposes, you may un-install the CoCo runtime, and then the operator as follows:
