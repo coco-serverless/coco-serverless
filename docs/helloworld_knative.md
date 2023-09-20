@@ -14,18 +14,14 @@ request:
 
 ```bash
 # Figure out the URL using the following command
-kubectl get ksvc helloworld-knative  --output=custom-columns=NAME:.metadata.name,URL:.status.url
+service_url=$(kubectl get ksvc helloworld-knative  --output=custom-columns=URL:.status.url --no-headers)
 
-curl URL
+curl ${service_url}
 # Hello World!
 ```
-
-By changing the `runtimeClassName` field in the [deployment file](
-../apps/helloworld-py/deployment.yaml) you may experiment with different
-runtimes.
 
 To remove the application, you can run:
 
 ```bash
-kubectl delete -f ./apps/helloworld-py
+kubectl delete -f ./apps/helloworld-knative
 ```

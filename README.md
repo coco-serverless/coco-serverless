@@ -35,6 +35,13 @@ inv operator.install-cc-runtime
 
 Then, you are ready to run one of the supported apps:
 * [Hello World! (Py)](./docs/helloworld_py.md) - simple HTTP server running in Python to test CoCo and Kata.
+* [Hello World! (Knative)](./docs/helloworld_knative.md) - same app as before, but invoked over Knatvie.
+
+If your app uses Knative, you will have to install it first:
+
+```bash
+inv knative.install
+```
 
 ## Uninstall
 
@@ -54,4 +61,5 @@ inv kubeadm.destroy
 ## Further Reading
 
 For further documentation, you may want to check these other documents:
+* [Knative](./docs/knative.md) - documentation about Knative, our serverless runtime of choice.
 * [SEV](./docs/sev.md) - speicifc documentation to get the project working with AMD SEV machines.

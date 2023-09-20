@@ -1,7 +1,8 @@
 from invoke import task
 from os.path import join
-from subprocess import CalledProcessError
+from tasks.util.env import CONF_FILES_DIR
 from tasks.util.kubeadm import run_kubectl_command, wait_for_pods_in_ns
+from time import sleep
 
 KNATIVE_VERSION = "1.11.0"
 
@@ -16,7 +17,21 @@ KOURIER_BASE_URL = "https://github.com/knative/net-kourier/releases/download"
 KOURIER_BASE_URL += "/knative-v{}".format(KNATIVE_VERSION)
 
 
-def install_metalb():
+def install_metallb():
+    """
+    Install the MetalLB load balancer
+    """
+    # First deploy the load balancer
+    metalb_version = "0.13.11"
+    metalb_url = "https://raw.githubusercontent.com/metallb/metallb/"
+    metalb_url += "v{}/config/manifests/metallb-native.yaml".format(metalb_version)
+    kube_cmd = "apply -f {}".format(metalb_url)
+    run_kubectl_command(kube_cmd)
+    wait_for_pods_in_ns("metallb-system", 2)
+
+    # Second, configure the IP address pool and L2 advertisement
+    metallb_conf_file = join(CONF_FILES_DIR, "metallb_config.yaml")
+    run_kubectl_command("apply -f {}".format(metallb_conf_file))
 
 
 @task
@@ -28,7 +43,7 @@ def install(ctx):
     https://knative.dev/docs/install/yaml-install/serving/install-serving-with-yaml
     """
     # Knative requires a functional LoadBalancer, so we use MetaLB
-    install_metalb()
+    install_metallb()
 
     # Create the knative CRDs
     kube_cmd = "apply -f {}".format(join(KNATIVE_BASE_URL, "serving-crds.yaml"))
@@ -50,7 +65,8 @@ def install(ctx):
         "patch configmap/config-network",
         "--namespace {}".format(KNATIVE_NAMESPACE),
         "--type merge",
-        "--patch '{\"data\":{\"ingress-class\":\"kourier.ingress.networking.knative.dev\"}}'",
+        "--patch",
+        '\'{"data":{"ingress-class":"kourier.ingress.networking.knative.dev"}}\'',
     ]
     kube_cmd = " ".join(kube_cmd)
     run_kubectl_command(kube_cmd)
@@ -60,11 +76,28 @@ def install(ctx):
     wait_for_pods_in_ns(KOURIER_NAMESPACE, 1)
 
     # Deploy a DNS
-    kube_cmd = "apply -f {}".format(join(KNATIVE_BASE_URL, "serving-default-domain.yaml"))
+    kube_cmd = "apply -f {}".format(
+        join(KNATIVE_BASE_URL, "serving-default-domain.yaml")
+    )
     run_kubectl_command(kube_cmd)
 
-    # TODO: kourier deploys a load-balancer, but this probably doesn't work
-    # for our single-node setting?
+    # Get Knative's external IP
+    ip_cmd = [
+        "--namespace {}".format(KOURIER_NAMESPACE),
+        "kourier-system get service kourier",
+        "-o jsonpath='{.status.loadBalancer.ingress[0].ip}'",
+    ]
+    ip_cmd = " ".join(ip_cmd)
+    expected_ip_len = 4
+    actual_ip = run_kubectl_command(ip_cmd)
+    actual_ip_len = len(actual_ip.split("."))
+    while actual_ip_len != expected_ip_len:
+        print("Waiting for kourier external IP to be assigned by the LB...")
+        sleep(3)
+        actual_ip = run_kubectl_command(ip_cmd)
+        actual_ip_len = len(actual_ip.split("."))
+
+    print("Succesfully deployed Knative! The external IP is: {}".format(actual_ip))
 
 
 @task
@@ -76,23 +109,25 @@ def uninstall(ctx):
     reverse order
     """
     # Delete DNS services
-    kube_cmd = "delete -f {}".format(join(KNATIVE_BASE_URL, "serving-default-domain.yaml"))
+    kube_cmd = "delete -f {}".format(
+        join(KNATIVE_BASE_URL, "serving-default-domain.yaml")
+    )
     run_kubectl_command(kube_cmd)
 
     # Delete networking layer
     kube_cmd = "delete -f {}".format(join(KOURIER_BASE_URL, "kourier.yaml"))
     run_kubectl_command(kube_cmd)
 
-    # Delete serving components
-    kube_cmd = "delete -f {}".format(join(KNATIVE_BASE_URL, "serving-core.yaml"))
-    try:
-        # This deletion is a bit flaky, so survive a death
-        run_kubectl_command(kube_cmd)
-    except CalledProcessError:
-        print("WARNING: failed at removing some of the core serving components")
+    # Then delete all components in the kourier-system namespace (if any left)
+    kube_cmd = "delete all --all -n {}".format(KOURIER_NAMESPACE)
+    run_kubectl_command(kube_cmd)
+    run_kubectl_command("delete namespace {}".format(KOURIER_NAMESPACE))
+
+    # Delete all components in the knative-serving namespace
+    kube_cmd = "delete all --all -n {}".format(KNATIVE_NAMESPACE)
+    run_kubectl_command(kube_cmd)
+    run_kubectl_command("delete namespace {}".format(KNATIVE_NAMESPACE))
 
     # Delete CRDs
     kube_cmd = "delete -f {}".format(join(KNATIVE_BASE_URL, "serving-crds.yaml"))
     run_kubectl_command(kube_cmd)
-
-    # Finally wait until the namespace is not there anymore
