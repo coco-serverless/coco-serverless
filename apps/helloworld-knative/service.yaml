@@ -1,0 +1,14 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: helloworld-knative
+spec:
+  template:
+    spec:
+      containers:
+        - image: csegarragonz/coco-helloworld-py:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: TARGET
+              value: "World"
