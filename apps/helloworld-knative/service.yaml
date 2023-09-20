@@ -2,9 +2,19 @@ apiVersion: serving.knative.dev/v1
 kind: Service
 metadata:
   name: helloworld-knative
+  annotations:
+    "features.knative.dev/podspec-runtimeclassname": "enabled"
+# ServiceSpec
 spec:
+  # ConfigurationSpec (or RevisionTemplateSpec?)
   template:
+    metadata:
+      labels:
+        apps.coco-serverless/name: helloworld-py
+          # io.katacontainers.config.pre_attestation.enabled: "false"
+    # RevisionSpec (or PodSpec?)
     spec:
+      runtimeClassName: kata-qemu
       containers:
         - image: csegarragonz/coco-helloworld-py:latest
           ports:
