@@ -40,8 +40,7 @@ def cli(ctx):
     run(docker_cmd, shell=True, check=True, cwd=PROJ_ROOT)
 
 
-@task
-def configure_devmapper_snapshotter(ctx):
+def configure_devmapper_snapshotter():
     """
     Configure the devmapper snapshotter in containerd's config file
     """

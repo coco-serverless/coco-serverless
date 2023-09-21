@@ -25,7 +25,7 @@ You also need all the kubernetes-related tooling: `kubectl`, `kubeadm`, and
 `kubelet`:
 
 ```bash
-inv k8s.install
+inv k8s.install [--clean]
 ```
 
 ## Quick Start
