@@ -4,4 +4,8 @@ metadata:
   name:  config-features
   namespace:  knative-serving
 data:
+  kubernetes.podspec-volumes-emptydir: "enabled"
+  kubernetes.podspec-persistent-volume-claim: "enabled"
+  kubernetes.podspec-persistent-volume-claim-write: "enabled"
   kubernetes.podspec-runtimeclassname: "enabled"
+  kubernetes.containerspec-addcapabilities: "enabled"

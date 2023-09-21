@@ -11,15 +11,26 @@ source ./bin/workon.sh
 inv -l
 ```
 
-## Quick Start
+## Pre-Requisites
 
-First, install the kubernetes-related tooling: `kubectl`, `kubeadm`, and `kubelet`:
+You will need CoCo's fork of containerd built and running. To this extent you
+may run:
+
+```bash
+inv containerd.build
+inv containerd.install
+```
+
+You also need all the kubernetes-related tooling: `kubectl`, `kubeadm`, and
+`kubelet`:
 
 ```bash
 inv k8s.install
 ```
 
-then, deploy a (single-node) kubernetes cluster using `kubeadm`:
+## Quick Start
+
+Deploy a (single-node) kubernetes cluster using `kubeadm`:
 
 ```bash
 inv kubeadm.create

@@ -75,6 +75,10 @@ def install(ctx):
     wait_for_pods_in_ns(KNATIVE_NAMESPACE, 5)
     wait_for_pods_in_ns(KOURIER_NAMESPACE, 1)
 
+    # Update the Serving's ConfigMap to support running CoCo
+    knative_configmap = join(CONF_FILES_DIR, "knative_config.yaml")
+    run_kubectl_command("apply -f {}".format(knative_configmap))
+
     # Deploy a DNS
     kube_cmd = "apply -f {}".format(
         join(KNATIVE_BASE_URL, "serving-default-domain.yaml")
@@ -84,7 +88,7 @@ def install(ctx):
     # Get Knative's external IP
     ip_cmd = [
         "--namespace {}".format(KOURIER_NAMESPACE),
-        "kourier-system get service kourier",
+        "get service kourier",
         "-o jsonpath='{.status.loadBalancer.ingress[0].ip}'",
     ]
     ip_cmd = " ".join(ip_cmd)
