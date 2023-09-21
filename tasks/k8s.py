@@ -56,7 +56,11 @@ def install_crictl():
 
     # Copy the binary and symlink
     circtl_binary_path = join(BIN_DIR, circtl_binary)
-    run("cp {} {}".format(join(work_dir, circtl_binary), circtl_binary_path), shell=True, check=True)
+    run(
+        "cp {} {}".format(join(work_dir, circtl_binary), circtl_binary_path),
+        shell=True,
+        check=True,
+    )
     symlink_global_bin(circtl_binary_path, circtl_binary)
 
 
@@ -88,7 +92,11 @@ def configure_kubelet_service(clean=False):
     # Copy service file into place
     service_file = join(CONF_FILES_DIR, "kubelet.service")
     systemd_service_file = "/etc/systemd/system/kubelet.service"
-    run("sudo cp {} {}".format(service_file, systemd_service_file), shell=True, check=True)
+    run(
+        "sudo cp {} {}".format(service_file, systemd_service_file),
+        shell=True,
+        check=True,
+    )
 
 
 @task

@@ -60,19 +60,37 @@ def configure_devmapper_snapshotter():
     run("sudo truncate -s 10G {}".format(meta_file), shell=True, check=True)
 
     # Allocate loop devices
-    data_dev = run("sudo losetup --find --show {}".format(data_file),
-                   shell=True,
-                   capture_output=True).stdout.decode("utf-8").strip()
-    meta_dev = run("sudo losetup --find --show {}".format(meta_file),
-                   shell=True,
-                   capture_output=True).stdout.decode("utf-8").strip()
+    data_dev = (
+        run(
+            "sudo losetup --find --show {}".format(data_file),
+            shell=True,
+            capture_output=True,
+        )
+        .stdout.decode("utf-8")
+        .strip()
+    )
+    meta_dev = (
+        run(
+            "sudo losetup --find --show {}".format(meta_file),
+            shell=True,
+            capture_output=True,
+        )
+        .stdout.decode("utf-8")
+        .strip()
+    )
 
     # Define thin-pool parameters:
     # https://www.kernel.org/doc/Documentation/device-mapper/thin-provisioning.txt
     sector_size = 512
-    data_size = int(run("sudo blockdev --getsize64 -q {}".format(data_dev),
-                        shell=True,
-                        capture_output=True).stdout.decode("utf-8").strip())
+    data_size = int(
+        run(
+            "sudo blockdev --getsize64 -q {}".format(data_dev),
+            shell=True,
+            capture_output=True,
+        )
+        .stdout.decode("utf-8")
+        .strip()
+    )
     data_block_size = 128
     low_water_mark = 32768
 
@@ -100,14 +118,16 @@ def configure_devmapper_snapshotter():
     }
 
     conf_file = toml_load(CONTAINERD_CONFIG_FILE)
-    conf_file['plugins']['io.containerd.snapshotter.v1.devmapper'] = devmapper_conf
+    conf_file["plugins"]["io.containerd.snapshotter.v1.devmapper"] = devmapper_conf
 
     tmp_conf = "/tmp/containerd_config.toml"
     with open(tmp_conf, "w") as fh:
         toml_dump(conf_file, fh)
 
     # Finally, copy in place
-    run("sudo cp {} {}".format(tmp_conf, CONTAINERD_CONFIG_FILE), shell=True, check=True)
+    run(
+        "sudo cp {} {}".format(tmp_conf, CONTAINERD_CONFIG_FILE), shell=True, check=True
+    )
 
 
 @task
@@ -151,8 +171,7 @@ def install(ctx):
     cni_dir = "/etc/cni/net.d"
     run("sudo mkdir -p {}".format(cni_dir), shell=True, check=True)
     cp_cmd = "sudo cp {} {}".format(
-        join(CONF_FILES_DIR, cni_conf_file),
-        join(cni_dir, cni_conf_file)
+        join(CONF_FILES_DIR, cni_conf_file), join(cni_dir, cni_conf_file)
     )
     run(cp_cmd, shell=True, check=True)
 

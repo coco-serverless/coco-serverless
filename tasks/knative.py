@@ -93,12 +93,12 @@ def install(ctx):
     ]
     ip_cmd = " ".join(ip_cmd)
     expected_ip_len = 4
-    actual_ip = run_kubectl_command(ip_cmd)
+    actual_ip = run_kubectl_command(ip_cmd, capture_output=True)
     actual_ip_len = len(actual_ip.split("."))
     while actual_ip_len != expected_ip_len:
         print("Waiting for kourier external IP to be assigned by the LB...")
         sleep(3)
-        actual_ip = run_kubectl_command(ip_cmd)
+        actual_ip = run_kubectl_command(ip_cmd, capture_output=True)
         actual_ip_len = len(actual_ip.split("."))
 
     print("Succesfully deployed Knative! The external IP is: {}".format(actual_ip))
