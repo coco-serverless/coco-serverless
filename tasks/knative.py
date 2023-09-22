@@ -76,14 +76,9 @@ def install(ctx):
     wait_for_pods_in_ns(KOURIER_NAMESPACE, 1)
 
     # Update the Serving's ConfigMap to support running CoCo
+    # TODO: make sure we flush out the config file before merging
     knative_configmap = join(CONF_FILES_DIR, "knative_config.yaml")
     run_kubectl_command("apply -f {}".format(knative_configmap))
-
-    # Deploy a DNS
-    kube_cmd = "apply -f {}".format(
-        join(KNATIVE_BASE_URL, "serving-default-domain.yaml")
-    )
-    run_kubectl_command(kube_cmd)
 
     # Get Knative's external IP
     ip_cmd = [
@@ -100,6 +95,12 @@ def install(ctx):
         sleep(3)
         actual_ip = run_kubectl_command(ip_cmd, capture_output=True)
         actual_ip_len = len(actual_ip.split("."))
+
+    # Deploy a DNS
+#     kube_cmd = "apply -f {}".format(
+#         join(KNATIVE_BASE_URL, "serving-default-domain.yaml")
+#     )
+#     run_kubectl_command(kube_cmd)
 
     print("Succesfully deployed Knative! The external IP is: {}".format(actual_ip))
 
@@ -121,11 +122,6 @@ def uninstall(ctx):
     # Delete networking layer
     kube_cmd = "delete -f {}".format(join(KOURIER_BASE_URL, "kourier.yaml"))
     run_kubectl_command(kube_cmd)
-
-    # Then delete all components in the kourier-system namespace (if any left)
-    kube_cmd = "delete all --all -n {}".format(KOURIER_NAMESPACE)
-    run_kubectl_command(kube_cmd)
-    run_kubectl_command("delete namespace {}".format(KOURIER_NAMESPACE))
 
     # Delete all components in the knative-serving namespace
     kube_cmd = "delete all --all -n {}".format(KNATIVE_NAMESPACE)

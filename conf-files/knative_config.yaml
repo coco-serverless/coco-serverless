@@ -9,3 +9,4 @@ data:
   kubernetes.podspec-persistent-volume-claim-write: "enabled"
   kubernetes.podspec-runtimeclassname: "enabled"
   kubernetes.containerspec-addcapabilities: "enabled"
+  registries-skipping-tag-resolving: docker.io
