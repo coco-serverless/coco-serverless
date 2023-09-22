@@ -9,12 +9,45 @@ KNATIVE_VERSION = "1.11.0"
 # Namespaces
 KNATIVE_NAMESPACE = "knative-serving"
 KOURIER_NAMESPACE = "kourier-system"
+ISTIO_NAMESPACE = "istio-system"
 
 # URLs
 KNATIVE_BASE_URL = "https://github.com/knative/serving/releases/download"
 KNATIVE_BASE_URL += "/knative-v{}".format(KNATIVE_VERSION)
 KOURIER_BASE_URL = "https://github.com/knative/net-kourier/releases/download"
 KOURIER_BASE_URL += "/knative-v{}".format(KNATIVE_VERSION)
+
+
+def install_kourier():
+    kube_cmd = "apply -f {}".format(join(KOURIER_BASE_URL, "kourier.yaml"))
+    run_kubectl_command(kube_cmd)
+
+    # Configure Knative Serving to use Kourier
+    kube_cmd = [
+        "patch configmap/config-network",
+        "--namespace {}".format(KNATIVE_NAMESPACE),
+        "--type merge",
+        "--patch",
+        '\'{"data":{"ingress-class":"kourier.ingress.networking.knative.dev"}}\'',
+    ]
+    kube_cmd = " ".join(kube_cmd)
+    run_kubectl_command(kube_cmd)
+
+    # Wait for all components to be ready
+    wait_for_pods_in_ns(KNATIVE_NAMESPACE, 5)
+    wait_for_pods_in_ns(KOURIER_NAMESPACE, 1)
+
+
+def install_istio():
+    istio_base_url = "https://github.com/knative/net-istio/releases/download/knative-v{}".format(KNATIVE_VERSION)
+    istio_url = join(istio_base_url, "istio.yaml")
+    kube_cmd = "apply -l knative.dev/crd-install=true -f {}".format(istio_url)
+    run_kubectl_command(kube_cmd)
+
+    run_kubectl_command("apply -f {}".format(istio_url))
+    run_kubectl_command("apply -f {}".format(join(istio_base_url, "net-istio.yaml")))
+    wait_for_pods_in_ns(KNATIVE_NAMESPACE, 6)
+    wait_for_pods_in_ns(ISTIO_NAMESPACE, 6)
 
 
 def install_metallb():
@@ -42,6 +75,8 @@ def install(ctx):
     Steps here follow closely the Knative docs:
     https://knative.dev/docs/install/yaml-install/serving/install-serving-with-yaml
     """
+    net_layer = "kourier"
+
     # Knative requires a functional LoadBalancer, so we use MetaLB
     install_metallb()
 
@@ -57,23 +92,14 @@ def install(ctx):
     wait_for_pods_in_ns(KNATIVE_NAMESPACE, 4)
 
     # Install a networking layer (we pick the default, Kourier)
-    kube_cmd = "apply -f {}".format(join(KOURIER_BASE_URL, "kourier.yaml"))
-    run_kubectl_command(kube_cmd)
-
-    # Configure Knative Serving to use Kourier
-    kube_cmd = [
-        "patch configmap/config-network",
-        "--namespace {}".format(KNATIVE_NAMESPACE),
-        "--type merge",
-        "--patch",
-        '\'{"data":{"ingress-class":"kourier.ingress.networking.knative.dev"}}\'',
-    ]
-    kube_cmd = " ".join(kube_cmd)
-    run_kubectl_command(kube_cmd)
-
-    # Wait for all components to be ready
-    wait_for_pods_in_ns(KNATIVE_NAMESPACE, 5)
-    wait_for_pods_in_ns(KOURIER_NAMESPACE, 1)
+    if net_layer == "istio":
+        net_layer_ns = ISTIO_NAMESPACE  # KOURIER_NAMESPACE
+        net_layer_service_name = "istio-ingressgateway"  # kourier
+        install_istio()
+    elif net_layer == "kourier":
+        net_layer_ns = KOURIER_NAMESPACE
+        net_layer_service_name = "kourier"
+        install_kourier()
 
     # Update the Serving's ConfigMap to support running CoCo
     # TODO: make sure we flush out the config file before merging
@@ -82,8 +108,8 @@ def install(ctx):
 
     # Get Knative's external IP
     ip_cmd = [
-        "--namespace {}".format(KOURIER_NAMESPACE),
-        "get service kourier",
+        "--namespace {}".format(net_layer_ns),
+        "get service {}".format(net_layer_service_name),
         "-o jsonpath='{.status.loadBalancer.ingress[0].ip}'",
     ]
     ip_cmd = " ".join(ip_cmd)
@@ -97,10 +123,11 @@ def install(ctx):
         actual_ip_len = len(actual_ip.split("."))
 
     # Deploy a DNS
-#     kube_cmd = "apply -f {}".format(
-#         join(KNATIVE_BASE_URL, "serving-default-domain.yaml")
-#     )
-#     run_kubectl_command(kube_cmd)
+    kube_cmd = "apply -f {}".format(
+        join(KNATIVE_BASE_URL, "serving-default-domain.yaml")
+    )
+    run_kubectl_command(kube_cmd)
+    wait_for_pods_in_ns(KNATIVE_NAMESPACE, 7)
 
     print("Succesfully deployed Knative! The external IP is: {}".format(actual_ip))
 

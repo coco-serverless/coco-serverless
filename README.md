@@ -28,6 +28,12 @@ You also need all the kubernetes-related tooling: `kubectl`, `kubeadm`, and
 inv k8s.install [--clean]
 ```
 
+You may also want to install `k9s`, a kubernetes monitoring tool:
+
+```bash
+inv k9s.install
+```
+
 ## Quick Start
 
 Deploy a (single-node) kubernetes cluster using `kubeadm`:
