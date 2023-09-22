@@ -127,7 +127,10 @@ def install(ctx):
         join(KNATIVE_BASE_URL, "serving-default-domain.yaml")
     )
     run_kubectl_command(kube_cmd)
-    wait_for_pods_in_ns(KNATIVE_NAMESPACE, 7)
+    if net_layer == "istio":
+        wait_for_pods_in_ns(KNATIVE_NAMESPACE, 7)
+    elif net_layer == "kourier":
+        wait_for_pods_in_ns(KNATIVE_NAMESPACE, 6)
 
     print("Succesfully deployed Knative! The external IP is: {}".format(actual_ip))
 
