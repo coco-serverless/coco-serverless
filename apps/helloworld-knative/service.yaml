@@ -2,11 +2,25 @@ apiVersion: serving.knative.dev/v1
 kind: Service
 metadata:
   name: helloworld-knative
+    #   annotations:
+    #     "features.knative.dev/podspec-volumes-emptydir": "enabled"
+    #     "features.knative.dev/podspec-persistent-volume-claim": "enabled"
+    #     "features.knative.dev/podspec-persistent-volume-claim-write": "enabled"
+    #     "features.knative.dev/podspec-runtimeclassname": "enabled"
 spec:
+  # ConfigurationSpec (or RevisionTemplateSpec?)
   template:
+    metadata:
+      labels:
+        apps.coco-serverless/name: helloworld-py
+          # io.katacontainers.config.pre_attestation.enabled: "false"
     spec:
+      # runtimeClassName: kata-qemu
       containers:
-        - image: csegarragonz/coco-helloworld-py:latest
+        # - image: ghcr.io/knative/helloworld-go:latest
+        # - image: csegarragonz/coco-helloworld-py:latest
+        # - image: csegarragonz/coco-helloworld-py:latest
+        - image: csegarragonz/coco-helloworld-py@sha256:af0fec55e9aed9a259e8da9dcaa28ab3fc1277dc8db4b8883265f98272cef11d
           ports:
             - containerPort: 8080
           env:

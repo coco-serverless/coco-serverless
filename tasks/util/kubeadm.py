@@ -14,7 +14,7 @@ def run_kubectl_command(cmd, capture_output=False):
     run(k8s_cmd, shell=True, check=True)
 
 
-def wait_for_pods_in_ns(ns=None, expected_num_of_pods=0):
+def wait_for_pods_in_ns(ns=None, expected_num_of_pods=0, label=None):
     """
     Wait for pods in a namespace to be ready
     """
@@ -23,6 +23,7 @@ def wait_for_pods_in_ns(ns=None, expected_num_of_pods=0):
         cmd = [
             "-n {}".format(ns) if ns else "",
             "get pods",
+            "-l {}".format(label) if label else "",
             "-o jsonpath='{..status.conditions[?(@.type==\"Ready\")].status}'",
         ]
 

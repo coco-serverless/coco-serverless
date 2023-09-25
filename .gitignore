@@ -1,4 +1,5 @@
 # Installed binaries
+crictl
 kubeadm
 kubectl
 kubelet
