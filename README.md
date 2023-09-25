@@ -11,15 +11,32 @@ source ./bin/workon.sh
 inv -l
 ```
 
-## Quick Start
+## Pre-Requisites
 
-First, install the kubernetes-related tooling: `kubectl`, `kubeadm`, and `kubelet`:
+You will need CoCo's fork of containerd built and running. To this extent you
+may run:
 
 ```bash
-inv k8s.install
+inv containerd.build
+inv containerd.install
 ```
 
-then, deploy a (single-node) kubernetes cluster using `kubeadm`:
+You also need all the kubernetes-related tooling: `kubectl`, `kubeadm`, and
+`kubelet`:
+
+```bash
+inv k8s.install [--clean]
+```
+
+You may also want to install `k9s`, a kubernetes monitoring tool:
+
+```bash
+inv k9s.install
+```
+
+## Quick Start
+
+Deploy a (single-node) kubernetes cluster using `kubeadm`:
 
 ```bash
 inv kubeadm.create
@@ -61,5 +78,6 @@ inv kubeadm.destroy
 ## Further Reading
 
 For further documentation, you may want to check these other documents:
+* [K8s](./docs/k8s.md) - documentation about configuring a single-node Kubernetes cluster.
 * [Knative](./docs/knative.md) - documentation about Knative, our serverless runtime of choice.
 * [SEV](./docs/sev.md) - speicifc documentation to get the project working with AMD SEV machines.
