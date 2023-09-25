@@ -48,7 +48,10 @@ def configure_devmapper_snapshotter():
     pool_name = "containerd-pool"
 
     # First, remove the device if it already exists
-    run("sudo dmsetup remove --force {}".format(pool_name), shell=True, check=True)
+    try:
+        run("sudo dmsetup remove --force {}".format(pool_name), shell=True, check=True)
+    except CalledProcessError:
+        print("Ignoring errors when removing device if it doesn't exist...")
 
     # Create data and metadata files
     makedirs(data_dir, exist_ok=True)

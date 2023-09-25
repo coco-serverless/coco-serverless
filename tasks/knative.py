@@ -22,6 +22,10 @@ def install_kourier():
     kube_cmd = "apply -f {}".format(join(KOURIER_BASE_URL, "kourier.yaml"))
     run_kubectl_command(kube_cmd)
 
+    # Wait for all components to be ready
+    wait_for_pods_in_ns(KNATIVE_NAMESPACE, label="app=net-kourier-controller")
+    wait_for_pods_in_ns(KOURIER_NAMESPACE, label="app=3scale-kourier-gateway")
+
     # Configure Knative Serving to use Kourier
     kube_cmd = [
         "patch configmap/config-network",
@@ -33,13 +37,13 @@ def install_kourier():
     kube_cmd = " ".join(kube_cmd)
     run_kubectl_command(kube_cmd)
 
-    # Wait for all components to be ready
-    wait_for_pods_in_ns(KNATIVE_NAMESPACE, 5)
-    wait_for_pods_in_ns(KOURIER_NAMESPACE, 1)
-
 
 def install_istio():
-    istio_base_url = "https://github.com/knative/net-istio/releases/download/knative-v{}".format(KNATIVE_VERSION)
+    istio_base_url = (
+        "https://github.com/knative/net-istio/releases/download/knative-v{}".format(
+            KNATIVE_VERSION
+        )
+    )
     istio_url = join(istio_base_url, "istio.yaml")
     kube_cmd = "apply -l knative.dev/crd-install=true -f {}".format(istio_url)
     run_kubectl_command(kube_cmd)
@@ -60,7 +64,8 @@ def install_metallb():
     metalb_url += "v{}/config/manifests/metallb-native.yaml".format(metalb_version)
     kube_cmd = "apply -f {}".format(metalb_url)
     run_kubectl_command(kube_cmd)
-    wait_for_pods_in_ns("metallb-system", 2)
+    wait_for_pods_in_ns("metallb-system", label="component=controller")
+    wait_for_pods_in_ns("metallb-system", label="component=speaker")
 
     # Second, configure the IP address pool and L2 advertisement
     metallb_conf_file = join(CONF_FILES_DIR, "metallb_config.yaml")
@@ -89,12 +94,15 @@ def install(ctx):
     run_kubectl_command(kube_cmd)
 
     # Wait for the core components to be ready
-    wait_for_pods_in_ns(KNATIVE_NAMESPACE, 4)
+    wait_for_pods_in_ns(KNATIVE_NAMESPACE, label="app=activator")
+    wait_for_pods_in_ns(KNATIVE_NAMESPACE, label="app=autoscaler")
+    wait_for_pods_in_ns(KNATIVE_NAMESPACE, label="app=controller")
+    wait_for_pods_in_ns(KNATIVE_NAMESPACE, label="app=webhook")
 
-    # Install a networking layer (we pick the default, Kourier)
+    # Install a networking layer
     if net_layer == "istio":
-        net_layer_ns = ISTIO_NAMESPACE  # KOURIER_NAMESPACE
-        net_layer_service_name = "istio-ingressgateway"  # kourier
+        net_layer_ns = ISTIO_NAMESPACE
+        net_layer_service_name = "istio-ingressgateway"
         install_istio()
     elif net_layer == "kourier":
         net_layer_ns = KOURIER_NAMESPACE
@@ -127,10 +135,7 @@ def install(ctx):
         join(KNATIVE_BASE_URL, "serving-default-domain.yaml")
     )
     run_kubectl_command(kube_cmd)
-    if net_layer == "istio":
-        wait_for_pods_in_ns(KNATIVE_NAMESPACE, 7)
-    elif net_layer == "kourier":
-        wait_for_pods_in_ns(KNATIVE_NAMESPACE, 6)
+    wait_for_pods_in_ns(KNATIVE_NAMESPACE, label="app=default-domain")
 
     print("Succesfully deployed Knative! The external IP is: {}".format(actual_ip))
 

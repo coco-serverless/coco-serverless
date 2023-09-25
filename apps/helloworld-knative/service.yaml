@@ -19,6 +19,7 @@ spec:
       containers:
         # - image: ghcr.io/knative/helloworld-go:latest
         # - image: csegarragonz/coco-helloworld-py:latest
+        # - image: csegarragonz/coco-helloworld-py:latest
         - image: csegarragonz/coco-helloworld-py@sha256:af0fec55e9aed9a259e8da9dcaa28ab3fc1277dc8db4b8883265f98272cef11d
           ports:
             - containerPort: 8080

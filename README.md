@@ -78,5 +78,6 @@ inv kubeadm.destroy
 ## Further Reading
 
 For further documentation, you may want to check these other documents:
+* [K8s](./docs/k8s.md) - documentation about configuring a single-node Kubernetes cluster.
 * [Knative](./docs/knative.md) - documentation about Knative, our serverless runtime of choice.
 * [SEV](./docs/sev.md) - speicifc documentation to get the project working with AMD SEV machines.
