@@ -10,6 +10,13 @@ CONTAINERD_SOURCE_CHECKOUT = join(PROJ_ROOT, "..", "containerd")
 CONTAINERD_CONFIG_FILE = "/etc/containerd/config.toml"
 
 
+def restart_containerd():
+    """
+    Utility function to gracefully restart the containerd service
+    """
+    run("sudo service containerd restart", shell=True, check=True)
+
+
 @task
 def build(ctx):
     """
@@ -46,6 +53,10 @@ def configure_devmapper_snapshotter():
     """
     data_dir = "/var/lib/containerd/devmapper"
     pool_name = "containerd-pool"
+
+    # --------------------------
+    # Thin Pool device configuration
+    # --------------------------
 
     # First, remove the device if it already exists
     try:
@@ -113,6 +124,10 @@ def configure_devmapper_snapshotter():
     dmsetup_cmd = " ".join(dmsetup_cmd)
     run(dmsetup_cmd, shell=True, check=True)
 
+    # --------------------------
+    # Update containerd's config file to use the devmapper snapshotter
+    # --------------------------
+
     devmapper_conf = {
         "root_path": data_dir,
         "pool_name": pool_name,
@@ -120,17 +135,48 @@ def configure_devmapper_snapshotter():
         "discard_blocks": True,
     }
 
+    # First, configure the snapshotter
     conf_file = toml_load(CONTAINERD_CONFIG_FILE)
     conf_file["plugins"]["io.containerd.snapshotter.v1.devmapper"] = devmapper_conf
 
+    # Second, make containerd actually use the devmapper snapshotter
+    # TODO: update when we figure out exactly which part to modify
+
+    # Dump the TOML contents to a temporary file (can't sudo-write)
     tmp_conf = "/tmp/containerd_config.toml"
     with open(tmp_conf, "w") as fh:
         toml_dump(conf_file, fh)
 
-    # Finally, copy in place
+    # sudo-copy the TOML file in place
     run(
         "sudo cp {} {}".format(tmp_conf, CONTAINERD_CONFIG_FILE), shell=True, check=True
     )
+
+
+@task
+def set_log_level(ctx, log_level):
+    """
+    Set containerd's log level, must be one in: info, debug
+    """
+    allowed_log_levels = ["info", "debug"]
+    if log_level not in allowed_log_levels:
+        print("Unsupported log level '{}'. Must be one in: {}".format(log_level, allowed_log_levels))
+        return
+
+    conf_file = toml_load(CONTAINERD_CONFIG_FILE)
+    conf_file["debug"]["level"] = log_level
+
+    # Dump the TOML contents to a temporary file (can't sudo-write)
+    tmp_conf = "/tmp/containerd_config.toml"
+    with open(tmp_conf, "w") as fh:
+        toml_dump(conf_file, fh)
+
+    # sudo-copy the TOML file in place
+    run(
+        "sudo cp {} {}".format(tmp_conf, CONTAINERD_CONFIG_FILE), shell=True, check=True
+    )
+
+    restart_containerd()
 
 
 @task
@@ -187,4 +233,4 @@ def install(ctx):
     configure_devmapper_snapshotter()
 
     # Restart containerd service
-    run("sudo service containerd restart", shell=True, check=True)
+    restart_containerd()

@@ -32,6 +32,10 @@ KUBEADM_KUBECONFIG_FILE = join(K8S_CONFIG_DIR, "kubeadm_kubeconfig")
 # CoCo config
 
 COCO_RELEASE_VERSION = "0.7.0"
+COCO_ROOT = join("/opt", "confidential-containers")
+
+# Kata config
+KATA_CONFIG_DIR = join(COCO_ROOT, "share", "defaults", "kata-containers")
 
 # Apps config
 
