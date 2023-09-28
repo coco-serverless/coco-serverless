@@ -79,5 +79,6 @@ inv kubeadm.destroy
 
 For further documentation, you may want to check these other documents:
 * [K8s](./docs/k8s.md) - documentation about configuring a single-node Kubernetes cluster.
+* [Kata](./docs/kata.md) - instructions to build our custom Kata fork and `initrd` images.
 * [Knative](./docs/knative.md) - documentation about Knative, our serverless runtime of choice.
 * [SEV](./docs/sev.md) - speicifc documentation to get the project working with AMD SEV machines.

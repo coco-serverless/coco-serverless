@@ -160,7 +160,11 @@ def set_log_level(ctx, log_level):
     """
     allowed_log_levels = ["info", "debug"]
     if log_level not in allowed_log_levels:
-        print("Unsupported log level '{}'. Must be one in: {}".format(log_level, allowed_log_levels))
+        print(
+            "Unsupported log level '{}'. Must be one in: {}".format(
+                log_level, allowed_log_levels
+            )
+        )
         return
 
     conf_file = toml_load(CONTAINERD_CONFIG_FILE)

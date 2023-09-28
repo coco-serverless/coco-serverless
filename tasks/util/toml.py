@@ -60,9 +60,7 @@ def update_toml(toml_path, updates_toml, requires_root=True):
             toml_dump(conf_file, fh)
 
         # sudo-copy the TOML file in place
-        run(
-            "sudo cp {} {}".format(tmp_conf, toml_path), shell=True, check=True
-        )
+        run("sudo cp {} {}".format(tmp_conf, toml_path), shell=True, check=True)
     else:
         with open(toml_path, "w") as fh:
             toml_dump(conf_file, fh)

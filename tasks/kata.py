@@ -3,7 +3,7 @@ from os import makedirs
 from os.path import dirname, join
 from subprocess import run
 from tasks.util.env import KATA_CONFIG_DIR, KATA_IMG_DIR, PROJ_ROOT
-from tasks.util.toml import read_value_from_toml, update_toml
+from tasks.util.toml import update_toml
 
 KATA_RUNTIMES = ["qemu", "qemu-sev"]
 KATA_SOURCE_DIR = join(PROJ_ROOT, "..", "kata-containers")
@@ -17,7 +17,11 @@ def set_log_level(ctx, log_level):
     """
     allowed_log_levels = ["info", "debug"]
     if log_level not in allowed_log_levels:
-        print("Unsupported log level '{}'. Must be one in: {}".format(log_level, allowed_log_levels))
+        print(
+            "Unsupported log level '{}'. Must be one in: {}".format(
+                log_level, allowed_log_levels
+            )
+        )
         return
 
     enable_debug = str(log_level == "debug").lower()
@@ -34,7 +38,9 @@ def set_log_level(ctx, log_level):
 
         [runtime]
         enable_debug = {enable_debug}
-        """.format(enable_debug=enable_debug)
+        """.format(
+            enable_debug=enable_debug
+        )
         update_toml(conf_file_path, updated_toml_str)
 
 
@@ -86,16 +92,9 @@ def replace_agent(ctx, agent_source_dir=KATA_AGENT_SOURCE_DIR):
 
     # Pack the initrd again
     initrd_builder_path = join(
-        KATA_SOURCE_DIR,
-        "tools",
-        "osbuilder",
-        "initrd-builder",
-        "initrd_builder.sh"
+        KATA_SOURCE_DIR, "tools", "osbuilder", "initrd-builder", "initrd_builder.sh"
     )
-    new_initrd_path = join(
-        dirname(initrd_path),
-        "kata-containers-initrd-sev-csg.img"
-    )
+    new_initrd_path = join(dirname(initrd_path), "kata-containers-initrd-sev-csg.img")
     work_env = {"AGENT_INIT": "yes"}
     initrd_pack_cmd = "env && sudo {} -o {} {}".format(
         initrd_builder_path,
@@ -108,5 +107,7 @@ def replace_agent(ctx, agent_source_dir=KATA_AGENT_SOURCE_DIR):
     updated_toml_str = """
     [hypervisor.qemu]
     initrd = "{new_initrd_path}"
-    """.format(new_initrd_path=new_initrd_path)
+    """.format(
+        new_initrd_path=new_initrd_path
+    )
     update_toml(conf_file_path, updated_toml_str)
