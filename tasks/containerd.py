@@ -3,7 +3,7 @@ from os import makedirs
 from os.path import join
 from subprocess import CalledProcessError, run
 from tasks.util.env import CONF_FILES_DIR, PROJ_ROOT
-from toml import load as toml_load, dump as toml_dump
+from tasks.util.toml import update_toml
 
 CONTAINERD_IMAGE_TAG = "containerd-build"
 CONTAINERD_SOURCE_CHECKOUT = join(PROJ_ROOT, "..", "containerd")
@@ -128,29 +128,19 @@ def configure_devmapper_snapshotter():
     # Update containerd's config file to use the devmapper snapshotter
     # --------------------------
 
-    devmapper_conf = {
-        "root_path": data_dir,
-        "pool_name": pool_name,
-        "base_image_size": "8192MB",
-        "discard_blocks": True,
-    }
-
-    # First, configure the snapshotter
-    conf_file = toml_load(CONTAINERD_CONFIG_FILE)
-    conf_file["plugins"]["io.containerd.snapshotter.v1.devmapper"] = devmapper_conf
-
-    # Second, make containerd actually use the devmapper snapshotter
-    # TODO: update when we figure out exactly which part to modify
-
-    # Dump the TOML contents to a temporary file (can't sudo-write)
-    tmp_conf = "/tmp/containerd_config.toml"
-    with open(tmp_conf, "w") as fh:
-        toml_dump(conf_file, fh)
-
-    # sudo-copy the TOML file in place
-    run(
-        "sudo cp {} {}".format(tmp_conf, CONTAINERD_CONFIG_FILE), shell=True, check=True
+    # Note: we currently don't use the devmapper snapshot, so this just
+    # _configures_ it (but doesn't select it as snapshotter)
+    updated_toml_str = """
+    [plugins."io.containerd.snapshotter.v1.devmapper"]
+    root_path = "{root_path}"
+    pool_name = "{pool_name}"
+    base_image_size = "8192MB"
+    discard_blocks = true
+    """.format(
+        root_path=data_dir,
+        pool_name=pool_name
     )
+    update_toml(CONTAINERD_CONFIG_FILE, updated_toml_str)
 
 
 @task
@@ -167,18 +157,13 @@ def set_log_level(ctx, log_level):
         )
         return
 
-    conf_file = toml_load(CONTAINERD_CONFIG_FILE)
-    conf_file["debug"]["level"] = log_level
-
-    # Dump the TOML contents to a temporary file (can't sudo-write)
-    tmp_conf = "/tmp/containerd_config.toml"
-    with open(tmp_conf, "w") as fh:
-        toml_dump(conf_file, fh)
-
-    # sudo-copy the TOML file in place
-    run(
-        "sudo cp {} {}".format(tmp_conf, CONTAINERD_CONFIG_FILE), shell=True, check=True
+    updated_toml_str = """
+    [debug]
+    level = {log_level}
+    """.format(
+        log_level=log_level
     )
+    update_toml(CONTAINERD_CONFIG_FILE, updated_toml_str)
 
     restart_containerd()
 
