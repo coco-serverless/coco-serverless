@@ -28,3 +28,9 @@ inv kubeadm.destroy
 inv kubeadm.create
 inv knative.install
 ```
+
+## Knative on CoCo
+
+To run Knative on CoCo, we need to enable two feature flags when configuring
+Knative. Check out the [`ConfigMap`](../conf-files/knative_config.yaml) for
+more details.
