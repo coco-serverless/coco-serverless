@@ -16,6 +16,8 @@ spec:
         io.katacontainers.config.pre_attestation.enabled: "false"
     spec:
       runtimeClassName: kata-qemu-sev
+      securityContext:
+        runAsUser: 1000
       containers:
         # - image: ghcr.io/knative/helloworld-go:latest
         # - image: csegarragonz/coco-helloworld-py:latest

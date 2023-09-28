@@ -7,6 +7,7 @@ data:
   kubernetes.podspec-volumes-emptydir: "enabled"
   kubernetes.podspec-persistent-volume-claim: "enabled"
   kubernetes.podspec-persistent-volume-claim-write: "enabled"
-  kubernetes.podspec-runtimeclassname: "enabled"
   kubernetes.containerspec-addcapabilities: "enabled"
   registries-skipping-tag-resolving: docker.io
+  kubernetes.podspec-runtimeclassname: "enabled"
+  kubernetes.podspec-securitycontext: "enabled"

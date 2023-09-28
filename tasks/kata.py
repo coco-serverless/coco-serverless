@@ -110,11 +110,3 @@ def replace_agent(ctx, agent_source_dir=KATA_AGENT_SOURCE_DIR):
     initrd = "{new_initrd_path}"
     """.format(new_initrd_path=new_initrd_path)
     update_toml(conf_file_path, updated_toml_str)
-
-
-@task
-def clean_guest_images(ctx):
-    """
-    Clean the docker images uses in the guest from k8s cache
-    """
-    pass
