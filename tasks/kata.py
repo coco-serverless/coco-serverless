@@ -84,7 +84,8 @@ def replace_agent(ctx, agent_source_dir=KATA_AGENT_SOURCE_DIR):
     cp_cmd = "sudo cp {} {}".format(agent_host_path, agent_initrd_path)
     run(cp_cmd, shell=True, check=True)
 
-    # For debugging purposes, try to manually copy the agent to /init too
+    # We also need to manually copy the agent to <root_fs>/sbin/init (note that
+    # <root_fs>/init is a symlink to <root_fs>/sbin/init)
     alt_agent_initrd_path = join(workdir, "sbin", "init")
     run("sudo rm {}".format(alt_agent_initrd_path), shell=True, check=True)
     cp_cmd = "sudo cp {} {}".format(agent_host_path, alt_agent_initrd_path)
