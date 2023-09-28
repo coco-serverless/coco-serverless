@@ -50,6 +50,15 @@ inv operator.install
 inv operator.install-cc-runtime
 ```
 
+Third, update the `initrd` file to include our patched `kata-agent`:
+
+```bash
+inv kata.replace-agent
+```
+
+if it is the first time, you will have to manually build the agent following
+[these instructions](./docs/kata.md#replacing-the-kata-agent).
+
 Then, you are ready to run one of the supported apps:
 * [Hello World! (Py)](./docs/helloworld_py.md) - simple HTTP server running in Python to test CoCo and Kata.
 * [Hello World! (Knative)](./docs/helloworld_knative.md) - same app as before, but invoked over Knatvie.
@@ -79,5 +88,7 @@ inv kubeadm.destroy
 
 For further documentation, you may want to check these other documents:
 * [K8s](./docs/k8s.md) - documentation about configuring a single-node Kubernetes cluster.
+* [Kata](./docs/kata.md) - instructions to build our custom Kata fork and `initrd` images.
 * [Knative](./docs/knative.md) - documentation about Knative, our serverless runtime of choice.
 * [SEV](./docs/sev.md) - speicifc documentation to get the project working with AMD SEV machines.
+* [Troubleshooting](./docs/troubleshooting.md) - tips to debug when things go sideways.

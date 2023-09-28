@@ -19,5 +19,6 @@ spec:
       containers:
       - name: helloworld-py
         image: csegarragonz/coco-helloworld-py:latest
+          imagePullPolicy: Always
         ports:
         - containerPort: 8080
