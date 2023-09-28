@@ -137,8 +137,7 @@ def configure_devmapper_snapshotter():
     base_image_size = "8192MB"
     discard_blocks = true
     """.format(
-        root_path=data_dir,
-        pool_name=pool_name
+        root_path=data_dir, pool_name=pool_name
     )
     update_toml(CONTAINERD_CONFIG_FILE, updated_toml_str)
 

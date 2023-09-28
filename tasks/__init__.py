@@ -1,6 +1,7 @@
 from invoke import Collection
 
 from . import apps
+from . import coco
 from . import containerd
 from . import format_code
 from . import k8s
@@ -13,6 +14,7 @@ from . import operator
 
 ns = Collection(
     apps,
+    coco,
     containerd,
     format_code,
     k8s,

@@ -3,6 +3,13 @@
 This application runs the same `Hello World!` sample than [`helloworld-py`](
 ./helloworld_py.md), but through Knative Serving.
 
+This sample application does not use any attestation or image encryption, so
+you should disable it by running:
+
+```bash
+inv coco.disable-attestation
+```
+
 To deploy it, you may run:
 
 ```bash
