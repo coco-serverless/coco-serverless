@@ -3,7 +3,7 @@ from os.path import join
 from tasks.util.env import COCO_RELEASE_VERSION
 from tasks.util.kubeadm import (
     run_kubectl_command,
-    wait_for_pod,
+    wait_for_pods_in_ns,
 )
 from time import sleep
 
@@ -22,7 +22,11 @@ def install(ctx):
         OPERATOR_GITHUB_URL, "config", "release?ref=v{}".format(COCO_RELEASE_VERSION)
     )
     run_kubectl_command("apply -k {}".format(operator_url))
-    wait_for_pod(OPERATOR_NAMESPACE, "cc-operator-controller-manager")
+    wait_for_pods_in_ns(
+        OPERATOR_NAMESPACE,
+        expected_num_of_pods=1,
+        label="control-plane=controller-manager",
+    )
 
 
 @task
@@ -39,8 +43,11 @@ def install_cc_runtime(ctx, runtime_class="kata-qemu"):
     )
     run_kubectl_command("create -k {}".format(cc_runtime_url))
 
-    for pod in ["cc-operator-daemon-install", "cc-operator-pre-install-daemon"]:
-        wait_for_pod(OPERATOR_NAMESPACE, pod)
+    for pod_label in [
+        "name=cc-operator-pre-install-daemon",
+        "name=cc-operator-daemon-install",
+    ]:
+        wait_for_pods_in_ns(OPERATOR_NAMESPACE, expected_num_of_pods=1, label=pod_label)
 
     # We check that the registered runtime classes are the same ones
     # we expect. We deliberately hardcode the following list

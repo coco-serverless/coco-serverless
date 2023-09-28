@@ -45,32 +45,6 @@ def wait_for_pods_in_ns(ns=None, expected_num_of_pods=0, label=None):
         sleep(5)
 
 
-def wait_for_pod(ns, pod_name):
-    """
-    Wait for pod by name and namespace
-    """
-    while True:
-        print("Waiting for pod {} (ns: {})...".format(pod_name, ns))
-        cmd = [
-            "-n {}".format(ns) if ns else "",
-            "get pods",
-            "-o jsonpath='{..status.conditions[?(@.type==\"Ready\")].status}'",
-        ]
-
-        output = run_kubectl_command(
-            " ".join(cmd),
-            capture_output=True,
-        )
-
-        statuses = [o.strip() for o in output.split(" ") if o.strip()]
-        if len(statuses) > 0 and all([s == "True" for s in statuses]):
-            print("All pods ready, continuing...")
-            break
-
-        print("Pods not ready, waiting ({})".format(output))
-        sleep(5)
-
-
 def get_node_name():
     cmd = "get nodes -o jsonpath="
     cmd += "'{.items..status..addresses[?(@.type==\"Hostname\")].address}'"

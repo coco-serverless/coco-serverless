@@ -3,11 +3,18 @@ from os import makedirs
 from os.path import join
 from subprocess import CalledProcessError, run
 from tasks.util.env import CONF_FILES_DIR, PROJ_ROOT
-from toml import load as toml_load, dump as toml_dump
+from tasks.util.toml import update_toml
 
 CONTAINERD_IMAGE_TAG = "containerd-build"
 CONTAINERD_SOURCE_CHECKOUT = join(PROJ_ROOT, "..", "containerd")
 CONTAINERD_CONFIG_FILE = "/etc/containerd/config.toml"
+
+
+def restart_containerd():
+    """
+    Utility function to gracefully restart the containerd service
+    """
+    run("sudo service containerd restart", shell=True, check=True)
 
 
 @task
@@ -46,6 +53,10 @@ def configure_devmapper_snapshotter():
     """
     data_dir = "/var/lib/containerd/devmapper"
     pool_name = "containerd-pool"
+
+    # --------------------------
+    # Thin Pool device configuration
+    # --------------------------
 
     # First, remove the device if it already exists
     try:
@@ -113,24 +124,47 @@ def configure_devmapper_snapshotter():
     dmsetup_cmd = " ".join(dmsetup_cmd)
     run(dmsetup_cmd, shell=True, check=True)
 
-    devmapper_conf = {
-        "root_path": data_dir,
-        "pool_name": pool_name,
-        "base_image_size": "8192MB",
-        "discard_blocks": True,
-    }
+    # --------------------------
+    # Update containerd's config file to use the devmapper snapshotter
+    # --------------------------
 
-    conf_file = toml_load(CONTAINERD_CONFIG_FILE)
-    conf_file["plugins"]["io.containerd.snapshotter.v1.devmapper"] = devmapper_conf
-
-    tmp_conf = "/tmp/containerd_config.toml"
-    with open(tmp_conf, "w") as fh:
-        toml_dump(conf_file, fh)
-
-    # Finally, copy in place
-    run(
-        "sudo cp {} {}".format(tmp_conf, CONTAINERD_CONFIG_FILE), shell=True, check=True
+    # Note: we currently don't use the devmapper snapshot, so this just
+    # _configures_ it (but doesn't select it as snapshotter)
+    updated_toml_str = """
+    [plugins."io.containerd.snapshotter.v1.devmapper"]
+    root_path = "{root_path}"
+    pool_name = "{pool_name}"
+    base_image_size = "8192MB"
+    discard_blocks = true
+    """.format(
+        root_path=data_dir, pool_name=pool_name
     )
+    update_toml(CONTAINERD_CONFIG_FILE, updated_toml_str)
+
+
+@task
+def set_log_level(ctx, log_level):
+    """
+    Set containerd's log level, must be one in: info, debug
+    """
+    allowed_log_levels = ["info", "debug"]
+    if log_level not in allowed_log_levels:
+        print(
+            "Unsupported log level '{}'. Must be one in: {}".format(
+                log_level, allowed_log_levels
+            )
+        )
+        return
+
+    updated_toml_str = """
+    [debug]
+    level = {log_level}
+    """.format(
+        log_level=log_level
+    )
+    update_toml(CONTAINERD_CONFIG_FILE, updated_toml_str)
+
+    restart_containerd()
 
 
 @task
@@ -187,4 +221,4 @@ def install(ctx):
     configure_devmapper_snapshotter()
 
     # Restart containerd service
-    run("sudo service containerd restart", shell=True, check=True)
+    restart_containerd()
