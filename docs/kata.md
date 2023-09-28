@@ -30,7 +30,7 @@ First, from our Kata fork, rebuild the `kata-agent` binary:
 cd ../kata-containers
 ./csg-bin/cli.sh
 cd src/agent
-make LIBC=gnu
+make
 exit
 cd -
 ```
