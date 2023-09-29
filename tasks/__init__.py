@@ -11,6 +11,7 @@ from . import kbs
 from . import knative
 from . import kubeadm
 from . import operator
+from . import sev
 
 ns = Collection(
     apps,
@@ -24,4 +25,5 @@ ns = Collection(
     knative,
     kubeadm,
     operator,
+    sev,
 )
