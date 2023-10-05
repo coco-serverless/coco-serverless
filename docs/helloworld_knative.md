@@ -7,7 +7,7 @@ This sample application does not use any attestation or image encryption, so
 you should disable it by running:
 
 ```bash
-inv coco.disable-attestation
+inv coco.guest-attestation --mode off
 ```
 
 To deploy it, you may run:
