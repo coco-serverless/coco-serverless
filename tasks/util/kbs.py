@@ -1,8 +1,12 @@
+from os import makedirs
+from os.path import join
 from pymysql import connect as mysql_connect
 from pymysql.cursors import DictCursor
 from subprocess import run
+from tasks.util.env import PROJ_ROOT
 
 KBS_PORT = 44444
+SIMPLE_KBS_DIR = join(PROJ_ROOT, "..", "simple-kbs")
 
 
 def connect_to_kbs_db():
@@ -38,3 +42,21 @@ def get_kbs_url():
     idx = ip_cmd_out.index("src") + 1
     kbs_url = ip_cmd_out[idx]
     return kbs_url
+
+
+def create_kbs_resource(resource_path, resource_contents):
+    """
+    Create a KBS resource for the kata-agent to consume
+
+    KBS resources are stored in a `resources` directory in the same **working
+    directory** from which we call the KBS binary. This value can be checked
+    in the simple KBS' docker-compose.yml file. The `resource_path` argument is
+    a relative directory from the base `resources` directory.
+    """
+    # WARNING: this resource path depends on the KBS' `server` service working
+    # directory
+    kbs_resource_path = join(SIMPLE_KBS_DIR, "resources")
+    makedirs(kbs_resource_path, exist_ok=True)
+
+    with open(join(kbs_resource_path, resource_path), "w") as fh:
+        fh.write(resource_contents)

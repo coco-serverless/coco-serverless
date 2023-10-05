@@ -1,13 +1,11 @@
 from base64 import b64encode
 from invoke import task
 from json import loads as json_loads
-from os.path import exists, join
+from os.path import exists
 from subprocess import run
-from tasks.util.env import PROJ_ROOT
-from tasks.util.kbs import connect_to_kbs_db
+from tasks.util.kbs import SIMPLE_KBS_DIR, create_kbs_resource, connect_to_kbs_db
 from tasks.util.sev import get_launch_digest
 
-SIMPLE_KBS_DIR = join(PROJ_ROOT, "..", "simple-kbs")
 SIMPLE_KBS_DEFAULT_POLICY = "/usr/local/bin/default_policy.json"
 
 
@@ -91,14 +89,23 @@ def provision_launch_digest(ctx):
             # TODO: update explanation when i understand what is going on
             policy_id = 10
             secret_id = 10
+            # TODO: is this necessary?
             secret_name = "default/security-policy/test"
             sql = "INSERT INTO secrets VALUES({}, ".format(secret_id)
             sql += "'{}', 'secret-value', {})".format(secret_name, policy_id)
             cursor.execute(sql)
-            # TODO: also secret name?
-            resource_type = "default/security-policy/test"
-            sql = "INSERT INTO resources VALUES(NULL, NULL, '{}', NULL, {})".format(resource_type, policy_id)
-            cursor.execute(sql)
+
+            # Resources
+            # This resource must exist in {SIMPLE_KBS_BIN_DIR}/resources/
+            resource_path = "foo_bar.txt"
+            create_kbs_resource(resource_path, "baz")
+            # TODO: this is necessary. but why? seems to be hardcoded somewhere
+            resource_type = ["default/security-policy/test", "default/credential/test"]
+            for resource in resource_type:
+                sql = "INSERT INTO resources VALUES(NULL, NULL, '{}', '{}', {})".format(resource, resource_path, policy_id)
+                cursor.execute(sql)
+
+            # Policy
             sql = "INSERT INTO policy VALUES ({}, ".format(policy_id)
             sql += "'[\"{}\"]', '[]', 0, 0, '[]', now(), NULL, 1)".format(ld_b64)
             cursor.execute(sql)
