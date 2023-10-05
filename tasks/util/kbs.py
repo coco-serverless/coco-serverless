@@ -1,6 +1,27 @@
+from pymysql import connect as mysql_connect
+from pymysql.cursors import DictCursor
 from subprocess import run
 
 KBS_PORT = 44444
+
+
+def connect_to_kbs_db():
+    """
+    Get a working MySQL connection to the KBS DB
+    """
+    # Get the database IP
+    docker_cmd = "docker network inspect simple-kbs_default | jq -r "
+    docker_cmd += "'.[].Containers[] | select(.Name | test(\"simple-kbs[_-]db.*\")).IPv4Address'"
+    db_ip = run(docker_cmd, shell=True, capture_output=True).stdout.decode("utf-8").strip()[:-3]
+
+    # Connect to the database
+    connection = mysql_connect(host=db_ip,
+                               user='kbsuser',
+                               password='kbspassword',
+                               database='simple_kbs',
+                               cursorclass=DictCursor)
+
+    return connection
 
 
 def get_kbs_url():

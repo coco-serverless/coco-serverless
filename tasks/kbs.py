@@ -1,11 +1,10 @@
 from base64 import b64encode
 from invoke import task
-from json import dumps as json_dumps, loads as json_loads
+from json import loads as json_loads
 from os.path import exists, join
-from pymysql import connect as mysql_connect
-from pymysql.cursors import DictCursor
 from subprocess import run
 from tasks.util.env import PROJ_ROOT
+from tasks.util.kbs import connect_to_kbs_db
 from tasks.util.sev import get_launch_digest
 
 SIMPLE_KBS_DIR = join(PROJ_ROOT, "..", "simple-kbs")
@@ -55,6 +54,21 @@ def get_policy_json():
 
 
 @task
+def clear_db(ctx):
+    """
+    Clear the contents of the KBS DB
+    """
+    connection = connect_to_kbs_db()
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute("DELETE from policy")
+            cursor.execute("DELETE from resources")
+            cursor.execute("DELETE from secrets")
+
+        connection.commit()
+
+
+@task
 def provision_launch_digest(ctx):
     """
     Provision the KBS with the launch digest for the current node
@@ -63,24 +77,30 @@ def provision_launch_digest(ctx):
     ld = get_launch_digest("sev")
     ld_b64 = b64encode(ld).decode()
 
-    # Get the database IP
-    docker_cmd = "docker network inspect simple-kbs_default | jq -r "
-    docker_cmd += "'.[].Containers[] | select(.Name | test(\"simple-kbs[_-]db.*\")).IPv4Address'"
-    db_ip = run(docker_cmd, shell=True, capture_output=True).stdout.decode("utf-8").strip()[:-3]
-
-    # Connect to the database
-    connection = mysql_connect(host=db_ip,
-                               user='kbsuser',
-                               password='kbspassword',
-                               database='simple_kbs',
-                               cursorclass=DictCursor)
-
+    # Create a new record
+    connection = connect_to_kbs_db()
     with connection:
         with connection.cursor() as cursor:
-            # Create a new record
-            sql = "INSERT INTO policy VALUES (10, "
+            # Annoyingly, the only way we can force the kata-agent to check
+            # the launch measurement against our measured value is to create
+            # a placeholder secret that has an associated policy that only
+            # allows our launch digest (and no other). By enabling signature
+            # verification, the kata-agennt will be triggered to consume the
+            # secret and, as a consequence, apply the policy
+            # NOTE: the kata-agent will pull _all_ policies
+            # TODO: update explanation when i understand what is going on
+            policy_id = 10
+            secret_id = 10
+            secret_name = "default/security-policy/test"
+            sql = "INSERT INTO secrets VALUES({}, ".format(secret_id)
+            sql += "'{}', 'secret-value', {})".format(secret_name, policy_id)
+            cursor.execute(sql)
+            # TODO: also secret name?
+            resource_type = "default/security-policy/test"
+            sql = "INSERT INTO resources VALUES(NULL, NULL, '{}', NULL, {})".format(resource_type, policy_id)
+            cursor.execute(sql)
+            sql = "INSERT INTO policy VALUES ({}, ".format(policy_id)
             sql += "'[\"{}\"]', '[]', 0, 0, '[]', now(), NULL, 1)".format(ld_b64)
-            print(sql)
             cursor.execute(sql)
 
         connection.commit()
