@@ -29,7 +29,7 @@ the digest.
 
 First, we need to set `guest_pre_attestation` so that the Kata Shim opens a
 secure channel between the PSP and the KBS at boot time. We will later use this
-hannel to validate firmware and software measurements from inside the guest:
+channel to validate firmware and software measurements from inside the guest:
 
 ```bash
 inv coco.guest-attestation --mode on
@@ -56,6 +56,9 @@ inv kbs.provision-launch-digest --signature-policy none
 this method will generate launch digests from the data in the Kata configuration
 files (i.e. `/opt/confidential-containers/share/defaults/kata-containers/configuration-*.toml`
 if installed by the operator), and include them in the KBS.
+
+If you don't want to sign and/or encrypt your container images, you may jump
+straight to [running the application](#run-the-application).
 
 ## Signed Container Images
 
