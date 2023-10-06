@@ -15,23 +15,26 @@ def merge_dicts_recursively(dict_a, dict_b):
     """
     # If A is not a dict return
     if not isinstance(dict_a, dict):
-        print("hello?")
+        raise RuntimeError("Unreachable: A should be a dict!")
         return
 
     if not isinstance(dict_b, dict):
-        print("world?")
+        raise RuntimeError("Unreachable: B should be a dict!")
         return
 
     for k in dict_b:
         if k in dict_a:
-            # If dict_a[k] is not a dict, it means we have reached a leaf of
-            # A, shared with B. In this case we always copy the subtree from B
-            # (irrespective of whether it is a subtree or not)
-            if not isinstance(dict_a[k], dict):
+            if isinstance(dict_a[k], dict) and isinstance(dict_b[k], dict):
+                # If an entry is a tree in both TOMLs, recurse
+                merge_dicts_recursively(dict_a[k], dict_b[k])
+            elif not isinstance(dict_a[k], dict):
+                # If dict_a[k] is not a dict, it means we have reached a leaf
+                # of A, shared with B. In this case we always copy the subtree
+                # from B (irrespective of whether it is a subtree or not)
                 dict_a[k] = dict_b[k]
-                return
-
-            merge_dicts_recursively(dict_a[k], dict_b[k])
+            else:
+                # This situation should be unreachable
+                raise RuntimeError("Unreachable!")
         else:
             # If the key is not in the to-be merged dict, we want to copy all
             # the sub-tree

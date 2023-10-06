@@ -158,7 +158,7 @@ def set_log_level(ctx, log_level):
 
     updated_toml_str = """
     [debug]
-    level = {log_level}
+    level = "{log_level}"
     """.format(
         log_level=log_level
     )

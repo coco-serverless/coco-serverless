@@ -1,5 +1,6 @@
 ansible>=8.4.0
 black>=23.9.1
 invoke>=2.1.0
+pymysql>=1.1.0
 python-language-server[all]
 sev-snp-measure>=0.0.7

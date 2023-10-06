@@ -43,7 +43,8 @@ inv kubeadm.create
 ```
 
 Second, install both the operator and the CC runtime from the upstream tag.
-We currently pin to version `v0.7.0` (see the [`COCO_RELEASE_VERSION` variable](https://github.com/csegarragonz/coco-serverless/tree/main/tasks/util/env.py)).
+We currently pin to version `v0.7.0` (see the [`COCO_RELEASE_VERSION` variable](
+https://github.com/csegarragonz/coco-serverless/tree/main/tasks/util/env.py)).
 
 ```bash
 inv operator.install
@@ -62,6 +63,7 @@ if it is the first time, you will have to manually build the agent following
 Then, you are ready to run one of the supported apps:
 * [Hello World! (Py)](./docs/helloworld_py.md) - simple HTTP server running in Python to test CoCo and Kata.
 * [Hello World! (Knative)](./docs/helloworld_knative.md) - same app as before, but invoked over Knatvie.
+* [Hello Attested World! (Knative + Attestation)](./docs/helloworld_knative_attestation.md) -
 
 If your app uses Knative, you will have to install it first:
 
