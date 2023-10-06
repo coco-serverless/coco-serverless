@@ -7,6 +7,10 @@ from tasks.util.env import PROJ_ROOT
 
 KBS_PORT = 44444
 SIMPLE_KBS_DIR = join(PROJ_ROOT, "..", "simple-kbs")
+# WARNING: this resource path depends on the KBS' `server` service working
+# directory. The server expects the `resources` directory to be in:
+# /<working_dir>/resources
+SIMPLE_KBS_RESOURCE_PATH = join(SIMPLE_KBS_DIR, "resources")
 
 
 def connect_to_kbs_db():
@@ -53,10 +57,7 @@ def create_kbs_resource(resource_path, resource_contents):
     in the simple KBS' docker-compose.yml file. The `resource_path` argument is
     a relative directory from the base `resources` directory.
     """
-    # WARNING: this resource path depends on the KBS' `server` service working
-    # directory
-    kbs_resource_path = join(SIMPLE_KBS_DIR, "resources")
-    makedirs(kbs_resource_path, exist_ok=True)
+    makedirs(SIMPLE_KBS_RESOURCE_PATH, exist_ok=True)
 
-    with open(join(kbs_resource_path, resource_path), "w") as fh:
+    with open(join(SIMPLE_KBS_RESOURCE_PATH, resource_path), "w") as fh:
         fh.write(resource_contents)

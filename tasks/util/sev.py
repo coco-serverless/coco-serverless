@@ -51,7 +51,12 @@ def get_launch_digest(mode):
         # command passed to QEMU when launching the VM. In order to get it,
         # we must run the exact same VM once, without guest attestation and
         # record the measurement
+        # For reference, this is the command used to get the right command
+        # line parameters (only one CoCo running):
+        # qemu_proc=$(ps aux | grep qemu | grep append)
+        # echo ${qemu_proc} | sed "s|.*-append \(.*$\)|\1|g" | sed "s| -.*$||"
         # TODO: method to get the right append
+        # TODO: note that the log level and other things are present, and so is the kbs uri
         append="""tsc=reliable no_timer_check rcupdate.rcu_expedited=1 i8042.direct=1 i8042.dumbkbd=1 i8042.nopnp=1 i8042.noaux=1 noreplace-smp reboot=k cryptomgr.notests net.ifnames=0 pci=lastbus=0 console=hvc0 console=hvc1 debug panic=1 nr_cpus=1 selinux=0 agent.aa_kbc_params=online_sev_kbc::10.160.40.149:44444 scsi_mod.scan=none agent.log=debug agent.debug_console agent.debug_console_vport=1026 agent.config_file=/etc/agent-config.toml agent.enable_signature_verification=true""",
         vmm_type=VMMType.QEMU,
     )

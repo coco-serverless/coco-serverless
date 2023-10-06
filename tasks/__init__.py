@@ -3,6 +3,7 @@ from invoke import Collection
 from . import apps
 from . import coco
 from . import containerd
+from . import cosign
 from . import format_code
 from . import k8s
 from . import k9s
@@ -17,6 +18,7 @@ ns = Collection(
     apps,
     coco,
     containerd,
+    cosign,
     format_code,
     k8s,
     k9s,
