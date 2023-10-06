@@ -17,7 +17,9 @@ def guest_attestation(ctx, mode="off"):
     updated_toml_str = """
     [hypervisor.qemu]
     guest_pre_attestation = {att_val}
-    """.format(att_val=att_val)
+    """.format(
+        att_val=att_val
+    )
     update_toml(conf_file_path, updated_toml_str)
 
     # We also update the KBS URI if pre_attestation is enabled
@@ -27,7 +29,9 @@ def guest_attestation(ctx, mode="off"):
         updated_toml_str = """
         [hypervisor.qemu]
         guest_pre_attestation_kbs_uri = "{kbs_url}:{kbs_port}"
-        """.format(kbs_url=get_kbs_url(), kbs_port=KBS_PORT)
+        """.format(
+            kbs_url=get_kbs_url(), kbs_port=KBS_PORT
+        )
         update_toml(conf_file_path, updated_toml_str)
 
 
@@ -41,17 +45,23 @@ def signature_verification(ctx, mode="off"):
 
     # We need to update the kernel parameters, which is a string, so we are
     # particularly careful
-    original_kernel_params = read_value_from_toml(conf_file_path, "hypervisor.qemu.kernel_params")
+    original_kernel_params = read_value_from_toml(
+        conf_file_path, "hypervisor.qemu.kernel_params"
+    )
     # Whenever I learn regex, this will be less hacky
     pattern = "enable_signature_verification="
     value_beg = original_kernel_params.find(pattern) + len(pattern)
     value_end = original_kernel_params.find(" ", value_beg)
-    updated_kernel_params = (original_kernel_params[:value_beg]
-                             + att_val
-                             + original_kernel_params[value_end:])
+    updated_kernel_params = (
+        original_kernel_params[:value_beg]
+        + att_val
+        + original_kernel_params[value_end:]
+    )
 
     updated_toml_str = """
     [hypervisor.qemu]
     kernel_params = "{updated_kernel_params}"
-    """.format(updated_kernel_params=updated_kernel_params)
+    """.format(
+        updated_kernel_params=updated_kernel_params
+    )
     update_toml(conf_file_path, updated_toml_str)

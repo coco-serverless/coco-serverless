@@ -30,7 +30,12 @@ def cli(ctx):
     """
     # Make sure the KBS is running
     check_kbs_dir()
-    run("docker compose up -d --no-recreate cli", shell=True, check=True, cwd=SIMPLE_KBS_DIR)
+    run(
+        "docker compose up -d --no-recreate cli",
+        shell=True,
+        check=True,
+        cwd=SIMPLE_KBS_DIR,
+    )
     run("docker compose exec -it cli bash", shell=True, check=True, cwd=SIMPLE_KBS_DIR)
 
 
@@ -73,7 +78,9 @@ def provision_launch_digest(ctx, signature_policy):
     Provision the KBS with the launch digest for the current node
     """
     if signature_policy not in ALLOWED_SIGNATURE_POLICIES:
-        print("--signature-policy must be one in: {}".format(ALLOWED_SIGNATURE_POLICIES))
+        print(
+            "--signature-policy must be one in: {}".format(ALLOWED_SIGNATURE_POLICIES)
+        )
         raise RuntimeError("Disallowed signature policy: {}".format(signature_policy))
 
     # First, add our launch digest to the KBS policy
@@ -114,7 +121,9 @@ def provision_launch_digest(ctx, signature_policy):
 
             # Create the resource (containing the signature policy) in the KBS
             sql = "INSERT INTO resources VALUES(NULL, NULL, "
-            sql += "'{}', '{}', {})".format(SIGNATURE_POLICY_STRING_ID, resource_path, policy_id)
+            sql += "'{}', '{}', {})".format(
+                SIGNATURE_POLICY_STRING_ID, resource_path, policy_id
+            )
             cursor.execute(sql)
 
             # We associate the signature policy to a digest policy, meaning

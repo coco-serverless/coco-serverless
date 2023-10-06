@@ -19,15 +19,23 @@ def connect_to_kbs_db():
     """
     # Get the database IP
     docker_cmd = "docker network inspect simple-kbs_default | jq -r "
-    docker_cmd += "'.[].Containers[] | select(.Name | test(\"simple-kbs[_-]db.*\")).IPv4Address'"
-    db_ip = run(docker_cmd, shell=True, capture_output=True).stdout.decode("utf-8").strip()[:-3]
+    docker_cmd += (
+        "'.[].Containers[] | select(.Name | test(\"simple-kbs[_-]db.*\")).IPv4Address'"
+    )
+    db_ip = (
+        run(docker_cmd, shell=True, capture_output=True)
+        .stdout.decode("utf-8")
+        .strip()[:-3]
+    )
 
     # Connect to the database
-    connection = mysql_connect(host=db_ip,
-                               user='kbsuser',
-                               password='kbspassword',
-                               database='simple_kbs',
-                               cursorclass=DictCursor)
+    connection = mysql_connect(
+        host=db_ip,
+        user="kbsuser",
+        password="kbspassword",
+        database="simple_kbs",
+        cursorclass=DictCursor,
+    )
 
     return connection
 
@@ -42,7 +50,12 @@ def get_kbs_url():
     reached both from the host and the guest
     """
     ip_cmd = "ip -o route get to 8.8.8.8"
-    ip_cmd_out = run(ip_cmd, shell=True, capture_output=True).stdout.decode("utf-8").strip().split(" ")
+    ip_cmd_out = (
+        run(ip_cmd, shell=True, capture_output=True)
+        .stdout.decode("utf-8")
+        .strip()
+        .split(" ")
+    )
     idx = ip_cmd_out.index("src") + 1
     kbs_url = ip_cmd_out[idx]
     return kbs_url
