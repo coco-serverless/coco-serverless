@@ -76,6 +76,23 @@ def clear_db(ctx):
 def provision_launch_digest(ctx, signature_policy):
     """
     Provision the KBS with the launch digest for the current node
+
+    In order to make the Kata Agent validate the FW launch digest measurement
+    we need to enable signature verification. Signature verification has an
+    associated resource that contains the verification policy. By associating
+    this resource to a launch digest policy (beware of the `policy` term
+    overloading, but these are KBS terms), we force the Kata Agent to also
+    enforce the launch digest policy.
+
+    We support different kinds of signature verification policies, and only
+    one kind of launch digest policy.
+
+    For signature verification, we have the NONE policy, that accepts all
+    images.
+
+    For launch digest, we manually generate the measure digest, and include it
+    in the policy. If the FW digest is not exactly the one in the policy, boot
+    fails.
     """
     if signature_policy not in ALLOWED_SIGNATURE_POLICIES:
         print(
@@ -91,22 +108,7 @@ def provision_launch_digest(ctx, signature_policy):
     connection = connect_to_kbs_db()
     with connection:
         with connection.cursor() as cursor:
-            # Annoyingly, the only way we can force the kata-agent to check
-            # the launch measurement against our measured value is to create
-            # a placeholder secret that has an associated policy that only
-            # allows our launch digest (and no other). By enabling signature
-            # verification, the kata-agennt will be triggered to consume the
-            # secret and, as a consequence, apply the policy
-            # NOTE: the kata-agent will pull _all_ policies
-            # TODO: update explanation when i understand what is going on
-            # TODO: i actually think we don't need the secret?
             policy_id = 10
-            secret_id = 10
-            # TODO: is this necessary?
-            secret_name = "default/security-policy/test"
-            sql = "INSERT INTO secrets VALUES({}, ".format(secret_id)
-            sql += "'{}', 'secret-value', {})".format(secret_name, policy_id)
-            cursor.execute(sql)
 
             # When enabling signature verification, we need to provide a
             # signature policy. This policy has a constant string identifier

@@ -1,7 +1,6 @@
 from os.path import exists, join
 from subprocess import run
 from tasks.util.env import K8S_CONFIG_DIR
-from tasks.util.kbs import SIMPLE_KBS_RESOURCE_PATH
 
 COSIGN_BINARY = "cosign"
 COSIGN_VERSION = "2.2.0"
