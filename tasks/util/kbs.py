@@ -1,3 +1,4 @@
+from json import dumps as json_dumps
 from os import makedirs
 from os.path import join
 from pymysql import connect as mysql_connect
@@ -11,6 +12,25 @@ SIMPLE_KBS_DIR = join(PROJ_ROOT, "..", "simple-kbs")
 # directory. The server expects the `resources` directory to be in:
 # /<working_dir>/resources
 SIMPLE_KBS_RESOURCE_PATH = join(SIMPLE_KBS_DIR, "resources")
+SIMPLE_KBS_KEYS_RESOURCE_PATH = join(SIMPLE_KBS_RESOURCE_PATH, "keys")
+
+# --------
+# Signature Verification Policy
+# --------
+
+NO_SIGNATURE_POLICY = "no-signature-policy"
+SIGNATURE_POLICY_NONE = "none"
+SIGNATURE_POLICY_VERIFY = "verify"
+ALLOWED_SIGNATURE_POLICIES = [SIGNATURE_POLICY_NONE, SIGNATURE_POLICY_VERIFY]
+SIGNATURE_POLICY_NONE_JSON = """{
+    "default": [{"type": "insecureAcceptAnything"}],
+    "transports": {}
+}
+"""
+SIGNATURE_POLICY_VERIFY_JSON = {
+    "default": [{"type": "reject"}],
+    "transports": {"docker": {}},
+}
 
 
 def connect_to_kbs_db():
@@ -74,3 +94,35 @@ def create_kbs_resource(resource_path, resource_contents):
 
     with open(join(SIMPLE_KBS_RESOURCE_PATH, resource_path), "w") as fh:
         fh.write(resource_contents)
+
+
+def validate_signature_verification_policy(signature_policy):
+    """
+    Validate that a given signature policy is supported
+    """
+    if signature_policy not in ALLOWED_SIGNATURE_POLICIES:
+        print(
+            "--signature-policy must be one in: {}".format(ALLOWED_SIGNATURE_POLICIES)
+        )
+        raise RuntimeError("Disallowed signature policy: {}".format(signature_policy))
+
+
+def populate_signature_verification_policy(signature_policy, policy_details=None):
+    """
+    Given a list of tuples containing an image name, and the resource id of the
+    key used to sign it, return the JSON string containing the signature
+    verification policy
+    """
+    if signature_policy == SIGNATURE_POLICY_NONE:
+        return SIGNATURE_POLICY_NONE_JSON
+
+    policy = SIGNATURE_POLICY_VERIFY_JSON
+    for image_name, signing_key_resource_id in policy_details:
+        policy["transports"]["docker"][image_name] = [
+            {
+                "type": "sigstoreSigned",
+                "keyPath": "kbs:///{}".format(signing_key_resource_id),
+            }
+        ]
+
+    return json_dumps(policy)

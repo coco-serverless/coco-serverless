@@ -70,25 +70,42 @@ VM have been signed by a well-known private key.
 
 To this extent, we will sign the container images used, and then update the
 KBS signature-verification policy to validate image signatures (and will
-provide the associated public key to do so).
+provide the associated public key to do so). We use [`cosign`](
+https://github.com/sigstore/cosign) to sign the Docker images, so you will
+have to install it first:
+
+```bash
+inv cosign.install
+```
 
 > [!WARNING]
-> We can only sign (and encrypt) images that we control. As a consequence, we
-> need to re-tag the side-car image used by default by Knative (as we can not
-> sign it) and push it to a registry that we control.
+> We can only sign (and encrypt) images published in registries that we have
+> `push` access to. As a consequence, we need to re-tag the side-car image used
+> by default by Knative (as we don't have push access to Knative's repo) and
+> push it to a registry that we control.
 
 ```bash
 inv knative.repalce-sidecar
 ```
 
-Then we are ready to sign both images that are going to live inside the cVM.
+Now we are ready to sign both images that are going to live inside the cVM.
 As [recommended](https://github.com/sigstore/cosign#sign-a-container-and-store-the-signature-in-the-registry),
-we sign images based on their digest.
+we sign images based on their digest. Note that we configure `cosign` to use
+a private key with an empty passphrase.
 
 ```bash
 inv cosign.sign-container-image "docker.io/csegarragonz/coco-helloworld-py@sha256:af0fec55e9aed9a259e8da9dcaa28ab3fc1277dc8db4b8883265f98272cef11d"
-inv cosign.sign-container-image "gcr.io/knative-releases/knative.dev/serving/cmd/queue@sha256:987f53e3ead58627e3022c8ccbb199ed71b965f10c59485bab8015ecf18b44af"
+inv cosign.sign-container-image "docker.io/csegarragonz/coco-knative-sidecar@sha256:79d5f6031f308cee209c4c32eeab9113b29a1ed4096c5d657504096734ca3b1d"
 ```
+
+Finally, (re-)provision the KBS with the right FW measurements and the
+adequate signature-policy to validate the image signatures:
+
+```bash
+inv kbs.provision-launch-digest --signature-policy verify --clean
+```
+
+Now, you may proceed to [running the application](#run-the-application).
 
 ## Encrypted Container Images
 
