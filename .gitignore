@@ -11,3 +11,6 @@ k9s
 
 # Python-related stuff
 venv
+
+# Templated files
+templated

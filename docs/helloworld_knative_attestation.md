@@ -17,6 +17,8 @@ Depending on what features do you want to measure/attest, browse through the
 following subsections (in increasing order of security):
 * [Firmware Digest](#firmware-digest) - Attest that the VM runs in an SEV node,
 with the right firmware, kernel, initrd, and Kata Agent configuration.
+* [Signed Container Images](#signed-container-images) - Attest that the images
+used have been signed with a well-known private key.
 
 After that, you may jump to [running the application](#run-the-application).
 
@@ -62,9 +64,26 @@ straight to [running the application](#run-the-application).
 
 ## Signed Container Images
 
-If we enable signature verification, we then need to sign our container image
-too. As [recommended](https://github.com/sigstore/cosign#sign-a-container-and-store-the-signature-in-the-registry),
-we sign images based on their digest:
+In this section we configure the system to, in addition to the HW launch
+digest, validate that all container images pulled inside the confidential
+VM have been signed by a well-known private key.
+
+To this extent, we will sign the container images used, and then update the
+KBS signature-verification policy to validate image signatures (and will
+provide the associated public key to do so).
+
+> [!WARNING]
+> We can only sign (and encrypt) images that we control. As a consequence, we
+> need to re-tag the side-car image used by default by Knative (as we can not
+> sign it) and push it to a registry that we control.
+
+```bash
+inv knative.repalce-sidecar
+```
+
+Then we are ready to sign both images that are going to live inside the cVM.
+As [recommended](https://github.com/sigstore/cosign#sign-a-container-and-store-the-signature-in-the-registry),
+we sign images based on their digest.
 
 ```bash
 inv cosign.sign-container-image "docker.io/csegarragonz/coco-helloworld-py@sha256:af0fec55e9aed9a259e8da9dcaa28ab3fc1277dc8db4b8883265f98272cef11d"

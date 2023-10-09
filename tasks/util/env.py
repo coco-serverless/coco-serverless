@@ -7,6 +7,7 @@ GLOBAL_BIN_DIR = "/usr/local/bin"
 # See csegarragonz/coco-serverless#3
 GLOBAL_INSTALL_DIR = "/opt"
 CONF_FILES_DIR = join(PROJ_ROOT, "conf-files")
+TEMPLATED_FILES_DIR = join(PROJ_ROOT, "templated")
 
 # K8s Config
 
