@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-deployment
+  namespace: knative-serving
+  labels:
+    serving.knative.dev/release: devel
+  annotations:
+    # Copy this annotation by inspecting the actual configmap
+    knative.dev/example-checksum: "ed77183a"
+data:
+  # If we want to use signed (and encrypted) container images, we need to have
+  # push access to the side-car image repository. So we re-tag it using:
+  # inv knative.replace-sidecar
+  queue-sidecar-image: {{ knative_sidecar_image_url }}
