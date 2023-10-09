@@ -1,8 +1,11 @@
 # CoCo Serverless
 
-The goal of this project is to deploy Knative on CoCo and run some baseline benchmarks.
+The goal of this project is to deploy [Knative](https://knative.dev/docs/) on
+[CoCo](https://github.com/confidential-containers) and run some baseline
+benchmarks.
 
-All instructions in this repository assume that you have checked-out the source code, and have activated the python virtual environment:
+All instructions in this repository assume that you have checked-out the source
+code, and have activated the python virtual environment:
 
 ```bash
 source ./bin/workon.sh
