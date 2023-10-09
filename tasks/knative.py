@@ -1,6 +1,9 @@
 from invoke import task
-from os.path import join
-from tasks.util.env import CONF_FILES_DIR
+from os import makedirs
+from os.path import exists, join
+from subprocess import run
+from tasks.util.env import CONF_FILES_DIR, TEMPLATED_FILES_DIR
+from tasks.util.k8s import template_k8s_file
 from tasks.util.kubeadm import run_kubectl_command, wait_for_pods_in_ns
 from time import sleep
 
@@ -16,6 +19,12 @@ KNATIVE_BASE_URL = "https://github.com/knative/serving/releases/download"
 KNATIVE_BASE_URL += "/knative-v{}".format(KNATIVE_VERSION)
 KOURIER_BASE_URL = "https://github.com/knative/net-kourier/releases/download"
 KOURIER_BASE_URL += "/knative-v{}".format(KNATIVE_VERSION)
+
+# Knative Serving Side-Car Tag
+KNATIVE_SIDECAR_IMAGE_TAG = "gcr.io/knative-releases/knative.dev/serving/cmd/"
+KNATIVE_SIDECAR_IMAGE_TAG += (
+    "queue@sha256:987f53e3ead58627e3022c8ccbb199ed71b965f10c59485bab8015ecf18b44af"
+)
 
 
 def install_kourier():
@@ -166,3 +175,70 @@ def uninstall(ctx):
     # Delete CRDs
     kube_cmd = "delete -f {}".format(join(KNATIVE_BASE_URL, "serving-crds.yaml"))
     run_kubectl_command(kube_cmd)
+
+
+@task
+def replace_sidecar(ctx, reset_default=False):
+    """
+    Replace Knative's side-car image with an image we control
+
+    In order to enable image signature and encryption, we need to have push
+    access to the image repository. As a consequence, we can not use Knative's
+    default side-car image. Instead, we re-tag the corresponding image, and
+    update Knative's deployment ConfigMap to use our image.
+    """
+    k8s_filename = "knative_replace_sidecar.yaml"
+
+    if reset_default:
+        in_k8s_file = join(CONF_FILES_DIR, "{}.j2".format(k8s_filename))
+        out_k8s_file = join(TEMPLATED_FILES_DIR, k8s_filename)
+        template_k8s_file(
+            in_k8s_file,
+            out_k8s_file,
+            {"knative_sidecar_image_url": KNATIVE_SIDECAR_IMAGE_TAG},
+        )
+        run_kubectl_command("apply -f {}".format(out_k8s_file))
+        return
+
+    # Pull the right Knative Serving side-car image tag
+    docker_cmd = "docker pull {}".format(KNATIVE_SIDECAR_IMAGE_TAG)
+    run(docker_cmd, shell=True, check=True)
+
+    # Re-tag it, and push it to our controlled registry
+    image_repo = "docker.io"
+    image_name = "csegarragonz/coco-knative-sidecar"
+    image_tag = "unencrypted"
+    new_image_url = "{}/{}:{}".format(image_repo, image_name, image_tag)
+    docker_cmd = "docker tag {} {}".format(KNATIVE_SIDECAR_IMAGE_TAG, new_image_url)
+    run(docker_cmd, shell=True, check=True)
+
+    docker_cmd = "docker push {}".format(new_image_url)
+    run(docker_cmd, shell=True, check=True)
+
+    # Get the digest for the recently pulled image, and use it to update
+    # Knative's deployment configmap
+    docker_cmd = 'docker images {} --digests --format "{{{{.Digest}}}}"'.format(
+        image_name
+    )
+    image_digest = (
+        run(docker_cmd, shell=True, capture_output=True).stdout.decode("utf-8").strip()
+    )
+    assert len(image_digest) > 0
+
+    if not exists(TEMPLATED_FILES_DIR):
+        makedirs(TEMPLATED_FILES_DIR)
+
+    in_k8s_file = join(CONF_FILES_DIR, "{}.j2".format(k8s_filename))
+    out_k8s_file = join(TEMPLATED_FILES_DIR, k8s_filename)
+    new_image_url_digest = "{}/{}@{}".format(image_repo, image_name, image_digest)
+    template_k8s_file(
+        in_k8s_file, out_k8s_file, {"knative_sidecar_image_url": new_image_url_digest}
+    )
+    run_kubectl_command("apply -f {}".format(out_k8s_file))
+
+    # Finally, make sure to remove all pulled container images to avoid
+    # unintended caching issues with CoCo
+    docker_cmd = "docker rmi {}".format(KNATIVE_SIDECAR_IMAGE_TAG)
+    run(docker_cmd, shell=True, check=True)
+    docker_cmd = "docker rmi {}".format(new_image_url)
+    run(docker_cmd, shell=True, check=True)
