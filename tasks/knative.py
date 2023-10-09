@@ -177,9 +177,8 @@ def uninstall(ctx):
     run_kubectl_command(kube_cmd)
 
 
-# TODO: add --restore flag to revert to the original sidecar
 @task
-def replace_sidecar(ctx):
+def replace_sidecar(ctx, reset_default=False):
     """
     Replace Knative's side-car image with an image we control
 
@@ -188,6 +187,19 @@ def replace_sidecar(ctx):
     default side-car image. Instead, we re-tag the corresponding image, and
     update Knative's deployment ConfigMap to use our image.
     """
+    k8s_filename = "knative_replace_sidecar.yaml"
+
+    if reset_default:
+        in_k8s_file = join(CONF_FILES_DIR, "{}.j2".format(k8s_filename))
+        out_k8s_file = join(TEMPLATED_FILES_DIR, k8s_filename)
+        template_k8s_file(
+            in_k8s_file,
+            out_k8s_file,
+            {"knative_sidecar_image_url": KNATIVE_SIDECAR_IMAGE_TAG},
+        )
+        run_kubectl_command("apply -f {}".format(out_k8s_file))
+        return
+
     # Pull the right Knative Serving side-car image tag
     docker_cmd = "docker pull {}".format(KNATIVE_SIDECAR_IMAGE_TAG)
     run(docker_cmd, shell=True, check=True)
@@ -208,17 +220,14 @@ def replace_sidecar(ctx):
     docker_cmd = 'docker images {} --digests --format "{{{{.Digest}}}}"'.format(
         image_name
     )
-    print(docker_cmd)
     image_digest = (
         run(docker_cmd, shell=True, capture_output=True).stdout.decode("utf-8").strip()
     )
-    print(image_digest)
     assert len(image_digest) > 0
 
     if not exists(TEMPLATED_FILES_DIR):
         makedirs(TEMPLATED_FILES_DIR)
 
-    k8s_filename = "knative_replace_sidecar.yaml"
     in_k8s_file = join(CONF_FILES_DIR, "{}.j2".format(k8s_filename))
     out_k8s_file = join(TEMPLATED_FILES_DIR, k8s_filename)
     new_image_url_digest = "{}/{}@{}".format(image_repo, image_name, image_digest)
