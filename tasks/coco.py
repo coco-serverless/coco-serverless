@@ -1,7 +1,6 @@
 from invoke import task
 from os.path import join
-from tasks.util.env import KATA_CONFIG_DIR
-from tasks.util.kbs import KBS_PORT, get_kbs_url
+from tasks.util.env import KATA_CONFIG_DIR, KBS_PORT, get_kbs_url
 from tasks.util.toml import read_value_from_toml, update_toml
 
 

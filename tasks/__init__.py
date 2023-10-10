@@ -13,6 +13,7 @@ from . import knative
 from . import kubeadm
 from . import operator
 from . import sev
+from . import skopeo
 
 ns = Collection(
     apps,
@@ -28,4 +29,5 @@ ns = Collection(
     kubeadm,
     operator,
     sev,
+    skopeo,
 )

@@ -6,8 +6,7 @@ from sevsnpmeasure.sev_mode import SevMode
 from sevsnpmeasure.vmm_types import VMMType
 from sevsnpmeasure.vcpu_types import cpu_sig as sev_snp_cpu_sig
 from subprocess import run
-from tasks.util.env import KATA_CONFIG_DIR
-from tasks.util.kbs import KBS_PORT, get_kbs_url
+from tasks.util.env import KATA_CONFIG_DIR, KBS_PORT, get_kbs_url
 from tasks.util.toml import read_value_from_toml
 
 
