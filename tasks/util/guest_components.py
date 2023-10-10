@@ -4,7 +4,9 @@ from tasks.util.env import PROJ_ROOT
 from time import sleep
 
 GUEST_COMPONENTS_DIR = join(PROJ_ROOT, "..", "guest-components")
-COCO_KEYPROVIDER_DIR = join(GUEST_COMPONENTS_DIR, "attestation-agent", "coco_keyprovider")
+COCO_KEYPROVIDER_DIR = join(
+    GUEST_COMPONENTS_DIR, "attestation-agent", "coco_keyprovider"
+)
 
 COCO_KEYPROVIDER_CTR_NAME = "coco-keyprovider"
 COCO_KEYPROVIDER_CTR_PORT = 50000
@@ -22,7 +24,8 @@ def start_coco_keyprovider(host_key_path, guest_key_path):
         "-v {}:{}".format(host_key_path, guest_key_path),
         "-w /usr/src/guest-components/attestation-agent/coco-keyprovider",
         "rust:1.72",
-        "bash -c 'rustup component add rustfmt && cargo run --release --bin coco_keyprovider -- --socket 127.0.0.1:{}'".format(COCO_KEYPROVIDER_CTR_PORT),
+        "bash -c 'rustup component add rustfmt && cargo run --release --bin",
+        "coco_keyprovider -- --socket 127.0.0.1:{}'".format(COCO_KEYPROVIDER_CTR_PORT),
     ]
     docker_cmd = " ".join(docker_cmd)
     print(docker_cmd)

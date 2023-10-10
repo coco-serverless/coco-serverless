@@ -4,7 +4,7 @@ from json import loads as json_loads
 from os.path import exists, join
 from subprocess import run
 from tasks.util.cosign import sign_container_image
-from tasks.util.env import CONF_FILES_DIR, K8S_CONFIG_DIR, PROJ_ROOT
+from tasks.util.env import CONF_FILES_DIR, K8S_CONFIG_DIR
 from tasks.util.guest_components import (
     start_coco_keyprovider,
     stop_coco_keyprovider,
@@ -31,7 +31,11 @@ def run_skopeo_cmd(cmd, capture_stdout=False):
     ]
     skopeo_cmd = " ".join(skopeo_cmd)
     if capture_stdout:
-        return run(skopeo_cmd, shell=True, capture_output=True).stdout.decode("utf-8").strip()
+        return (
+            run(skopeo_cmd, shell=True, capture_output=True)
+            .stdout.decode("utf-8")
+            .strip()
+        )
     else:
         run(skopeo_cmd, shell=True, check=True)
 
@@ -62,8 +66,10 @@ def encrypt_container_image(ctx, image_tag, sign=False):
     skopeo_cmd = [
         "copy --insecure-policy",
         "--authfile /config.json",
-        "--encryption-key provider:attestation-agent:keyid=kbs:///{}::keypath={}".format(
-            encryption_key_resource_id, AA_CTR_ENCRYPTION_KEY),
+        "--encryption-key",
+        "provider:attestation-agent:keyid=kbs:///{}::keypath={}".format(
+            encryption_key_resource_id, AA_CTR_ENCRYPTION_KEY
+        ),
         "docker://{}".format(image_tag),
         "docker://{}".format(encrypted_image_tag),
     ]
@@ -71,9 +77,14 @@ def encrypt_container_image(ctx, image_tag, sign=False):
     run_skopeo_cmd(skopeo_cmd)
 
     # Sanity check that the image is actually encrypted
-    inspect_jsonstr = run_skopeo_cmd("inspect docker://{}".format(encrypted_image_tag), capture_stdout=True)
+    inspect_jsonstr = run_skopeo_cmd(
+        "inspect docker://{}".format(encrypted_image_tag), capture_stdout=True
+    )
     inspect_json = json_loads(inspect_jsonstr)
-    layers = [layer["MIMEType"].endswith("tar+gzip+encrypted") for layer in inspect_json["LayersData"]]
+    layers = [
+        layer["MIMEType"].endswith("tar+gzip+encrypted")
+        for layer in inspect_json["LayersData"]
+    ]
     if not all(layers):
         print("Some layers in image {} are not encrypted!".format(encrypted_image_tag))
         stop_coco_keyprovider()
@@ -84,10 +95,7 @@ def encrypt_container_image(ctx, image_tag, sign=False):
     with open(SKOPEO_ENCRYPTION_KEY, "rb") as fh:
         key_b64 = b64encode(fh.read()).decode()
 
-    create_kbs_secret(
-        encryption_key_resource_id,
-        key_b64
-    )
+    create_kbs_secret(encryption_key_resource_id, key_b64)
 
     if sign:
         sign_container_image(encrypted_image_tag)

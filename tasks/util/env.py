@@ -48,6 +48,7 @@ APPS_SOURCE_DIR = join(PROJ_ROOT, "apps")
 
 KBS_PORT = 44444
 
+
 def get_kbs_url():
     """
     Get the external KBS IP that can be reached from both host and guest

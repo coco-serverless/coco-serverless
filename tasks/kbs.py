@@ -116,9 +116,7 @@ def provision_launch_digest(ctx, signature_policy=SIGNATURE_POLICY_NONE, clean=F
         # If we set a `none` signature policy, it means that we don't
         # check any signatures on the pulled container images (still
         # necessary to set the policy to check the launch measurment)
-        policy_json_str = populate_signature_verification_policy(
-            signature_policy
-        )
+        policy_json_str = populate_signature_verification_policy(signature_policy)
     else:
         # The verify policy, checks that the image has been signed
         # with a given key. As everything in the KBS, the key
@@ -143,17 +141,9 @@ def provision_launch_digest(ctx, signature_policy=SIGNATURE_POLICY_NONE, clean=F
 
         # Create a resource for the signing key
         with open(COSIGN_PUB_KEY) as fh:
-            create_kbs_resource(
-                signing_key_resource_id,
-                "cosign.pub",
-                fh.read()
-            )
+            create_kbs_resource(signing_key_resource_id, "cosign.pub", fh.read())
 
     # Finally, create a resource for the image signing policy. Note that the
     # resource ID for the image signing policy is hardcoded in the kata agent
     # (particularly in the attestation agent)
-    create_kbs_resource(
-        SIGNATURE_POLICY_STRING_ID,
-        resource_path,
-        policy_json_str
-    )
+    create_kbs_resource(SIGNATURE_POLICY_STRING_ID, resource_path, policy_json_str)

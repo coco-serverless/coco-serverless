@@ -82,7 +82,12 @@ def set_launch_measurement_policy():
         connection.commit()
 
 
-def create_kbs_resource(resource_id, resource_kbs_path, resource_contents, resource_launch_policy_id=DEFAULT_LAUNCH_POLICY_ID):
+def create_kbs_resource(
+    resource_id,
+    resource_kbs_path,
+    resource_contents,
+    resource_launch_policy_id=DEFAULT_LAUNCH_POLICY_ID,
+):
     """
     Create a KBS resource for the kata-agent to consume
 
@@ -115,7 +120,9 @@ def create_kbs_resource(resource_id, resource_kbs_path, resource_contents, resou
         fh.write(resource_contents)
 
 
-def create_kbs_secret(secret_id, secret_contents, resource_launch_policy_id=DEFAULT_LAUNCH_POLICY_ID):
+def create_kbs_secret(
+    secret_id, secret_contents, resource_launch_policy_id=DEFAULT_LAUNCH_POLICY_ID
+):
     """
     Create a KBS secret for the kata-agent to consume
     """
