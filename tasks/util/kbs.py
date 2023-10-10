@@ -1,3 +1,4 @@
+from base64 import b64encode
 from json import dumps as json_dumps
 from os import makedirs
 from os.path import join
@@ -5,14 +6,16 @@ from pymysql import connect as mysql_connect
 from pymysql.cursors import DictCursor
 from subprocess import run
 from tasks.util.env import PROJ_ROOT
+from tasks.util.sev import get_launch_digest
 
-KBS_PORT = 44444
 SIMPLE_KBS_DIR = join(PROJ_ROOT, "..", "simple-kbs")
 # WARNING: this resource path depends on the KBS' `server` service working
 # directory. The server expects the `resources` directory to be in:
 # /<working_dir>/resources
 SIMPLE_KBS_RESOURCE_PATH = join(SIMPLE_KBS_DIR, "resources")
 SIMPLE_KBS_KEYS_RESOURCE_PATH = join(SIMPLE_KBS_RESOURCE_PATH, "keys")
+
+DEFAULT_LAUNCH_POLICY_ID = 10
 
 # --------
 # Signature Verification Policy
@@ -60,30 +63,33 @@ def connect_to_kbs_db():
     return connection
 
 
-def get_kbs_url():
+def set_launch_measurement_policy():
     """
-    Get the external KBS IP that can be reached from both host and guest
-
-    If the KBS is deployed using docker compose with host networking and the
-    port is forwarded to the host (i.e. KBS is bound to :${KBS_PORT}, then
-    we can use this method to figure out the "public-facing" IP that can be
-    reached both from the host and the guest
+    This method configures and sets the launch measurement policy
     """
-    ip_cmd = "ip -o route get to 8.8.8.8"
-    ip_cmd_out = (
-        run(ip_cmd, shell=True, capture_output=True)
-        .stdout.decode("utf-8")
-        .strip()
-        .split(" ")
-    )
-    idx = ip_cmd_out.index("src") + 1
-    kbs_url = ip_cmd_out[idx]
-    return kbs_url
+    # Get the launch measurement
+    ld = get_launch_digest("sev")
+    ld_b64 = b64encode(ld).decode()
+
+    # Create a policy associated to this measurement in the KBS DB
+    connection = connect_to_kbs_db()
+    with connection:
+        with connection.cursor() as cursor:
+            sql = "INSERT INTO policy VALUES ({}, ".format(DEFAULT_LAUNCH_POLICY_ID)
+            sql += "'[\"{}\"]', '[]', 0, 0, '[]', now(), NULL, 1)".format(ld_b64)
+            cursor.execute(sql)
+
+        connection.commit()
 
 
-def create_kbs_resource(resource_path, resource_contents):
+def create_kbs_resource(resource_id, resource_kbs_path, resource_contents, resource_launch_policy_id=DEFAULT_LAUNCH_POLICY_ID):
     """
     Create a KBS resource for the kata-agent to consume
+
+    Each KBS resource is identified by a resource ID. Each KBS resource has
+    a resource path, where the actual resource lives. In addition, each
+    each resource is associated to a launch policy, that checks that the FW
+    digest is as expected.
 
     KBS resources are stored in a `resources` directory in the same **working
     directory** from which we call the KBS binary. This value can be checked
@@ -92,8 +98,38 @@ def create_kbs_resource(resource_path, resource_contents):
     """
     makedirs(SIMPLE_KBS_RESOURCE_PATH, exist_ok=True)
 
-    with open(join(SIMPLE_KBS_RESOURCE_PATH, resource_path), "w") as fh:
+    # First, insert the resource in the SQL database
+    connection = connect_to_kbs_db()
+    with connection:
+        with connection.cursor() as cursor:
+            sql = "INSERT INTO resources VALUES(NULL, NULL, "
+            sql += "'{}', '{}', {})".format(
+                resource_id, resource_kbs_path, resource_launch_policy_id
+            )
+            cursor.execute(sql)
+
+        connection.commit()
+
+    # Second, dump the resource contents in the specified resource path
+    with open(join(SIMPLE_KBS_RESOURCE_PATH, resource_kbs_path), "w") as fh:
         fh.write(resource_contents)
+
+
+def create_kbs_secret(secret_id, secret_contents, resource_launch_policy_id=DEFAULT_LAUNCH_POLICY_ID):
+    """
+    Create a KBS secret for the kata-agent to consume
+    """
+    # First, insert the resource in the SQL database
+    connection = connect_to_kbs_db()
+    with connection:
+        with connection.cursor() as cursor:
+            sql = "INSERT INTO secrets VALUES(NULL, "
+            sql += "'{}', '{}', {})".format(
+                secret_id, secret_contents, resource_launch_policy_id
+            )
+            cursor.execute(sql)
+
+        connection.commit()
 
 
 def validate_signature_verification_policy(signature_policy):
