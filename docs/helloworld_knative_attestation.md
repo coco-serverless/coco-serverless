@@ -19,8 +19,14 @@ following subsections (in increasing order of security):
 with the right firmware, kernel, initrd, and Kata Agent configuration.
 * [Signed Container Images](#signed-container-images) - Attest that the images
 used have been signed with a well-known private key.
+* [Encrypted Container Images](#encrypted-container-images) - In addition to
+signatures, consume encrypted container images.
 
 After that, you may jump to [running the application](#run-the-application).
+
+> Note that, if you are running different attestation types one after the other
+> you may want to clear the contents of the KBS between runs using:
+> `inv kbs.clear-db`
 
 ## Firmware Digest
 
@@ -109,6 +115,31 @@ Now, you may proceed to [running the application](#run-the-application).
 
 ## Encrypted Container Images
 
+In this last section, we will configure the system to consume encrypted
+container images from public registries.
+
+To encrypt docker images, we use [`skopeo`](https://github.com/containers/skopeo).
+`skopeo` can be used together with image signatures, just make sure to pass the
+`--sign` flag:
+
+```bash
+inv skopeo.encrypt-container-image "docker.io/csegarragonz/coco-helloworld-py:unencrypted" --sign
+```
+
+> To check that the image is actually encrypted, you may try to run it:
+> `docker run docker.io/csegarragonz/coco-helloworld-py:encrypted`
+
+Then, as in the previous section, update the KBS to set the right signature
+verification policy:
+
+```bash
+# IMPORTANT: do not use the `--clean` flag here, as the encrypt-container-image
+# command will provision a secret to the KBS
+inv kbs.provision-launch-digest --signature-policy verify
+```
+
+Finally, you may proceed to [running the application](#run-the-application).
+
 ## Run the application
 
 Once the KBS has been populated with the right measurements and secrets, we can
@@ -116,4 +147,10 @@ deploy the workload just like with the `Hello world! (Knative)` app:
 
 ```bash
 kubectl apply -f ./apps/helloworld-knative
+```
+
+note that if you are using encrypted images you will have to do:
+
+```bash
+kubectl apply -f ./apps/helloworld-knative-encrypted
 ```
