@@ -24,6 +24,10 @@ signatures, consume encrypted container images.
 
 After that, you may jump to [running the application](#run-the-application).
 
+> Note that, if you are running different attestation types one after the other
+> you may want to clear the contents of the KBS between runs using:
+> `inv kbs.clear-db`
+
 ## Firmware Digest
 
 Before running the application, we need to generate the expected launch digest

@@ -14,7 +14,6 @@ from tasks.util.kbs import create_kbs_secret
 SKOPEO_VERSION = "1.13.0"
 SKOPEO_IMAGE = "quay.io/skopeo/stable:v{}".format(SKOPEO_VERSION)
 SKOPEO_ENCRYPTION_KEY = join(K8S_CONFIG_DIR, "image_enc.key")
-# SKOPEO_CTR_ENCRYPTION_KEY = "/tmp/image_enc.key"
 AA_CTR_ENCRYPTION_KEY = "/tmp/image_enc.key"
 
 
@@ -31,7 +30,6 @@ def run_skopeo_cmd(cmd, capture_stdout=False):
         cmd,
     ]
     skopeo_cmd = " ".join(skopeo_cmd)
-    print(skopeo_cmd)
     if capture_stdout:
         return run(skopeo_cmd, shell=True, capture_output=True).stdout.decode("utf-8").strip()
     else:
@@ -50,12 +48,15 @@ def encrypt_container_image(ctx, image_tag, sign=False):
 
     The image tag must be provided in the format: docker.io/<repo>/<name>:tag
     """
-    # start_coco_keyprovider()
-
-    # Encrypt image
     encryption_key_resource_id = "default/image-encryption-key/1"
     if not exists(SKOPEO_ENCRYPTION_KEY):
         create_encryption_key()
+
+    # We use CoCo's keyprovider server (that implements the ocicrypt protocol)
+    # to encrypt the OCI image. To that extent, we need to mount the encryption
+    # key somewhere that the attestation agent (in the keyprovider) can find
+    # it
+    start_coco_keyprovider(SKOPEO_ENCRYPTION_KEY, AA_CTR_ENCRYPTION_KEY)
 
     encrypted_image_tag = image_tag.split(":")[0] + ":encrypted"
     skopeo_cmd = [
@@ -75,6 +76,7 @@ def encrypt_container_image(ctx, image_tag, sign=False):
     layers = [layer["MIMEType"].endswith("tar+gzip+encrypted") for layer in inspect_json["LayersData"]]
     if not all(layers):
         print("Some layers in image {} are not encrypted!".format(encrypted_image_tag))
+        stop_coco_keyprovider()
         raise RuntimeError("Image encryption failed!")
 
     # Create a secret in KBS with the encryption key. Skopeo needs it as raw
@@ -89,3 +91,5 @@ def encrypt_container_image(ctx, image_tag, sign=False):
 
     if sign:
         sign_container_image(encrypted_image_tag)
+
+    stop_coco_keyprovider()
