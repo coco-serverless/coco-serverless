@@ -61,10 +61,10 @@ you may then plot the results by using:
 inv eval.startup.plot
 ```
 
-which generates a plot in ...
-You can also see the plot below:
+which generates a plot in [`./plots/startup/startup.png`](
+./plots/sartup/startup.png). You can also see the plot below:
 
-TODO: commit the plots in the README too
+![plot](./plots/startup/startup.png)
 
 ## Benchmarks
 
