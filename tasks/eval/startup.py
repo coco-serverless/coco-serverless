@@ -21,6 +21,11 @@ from tasks.util.kbs import clear_kbs_db, provision_launch_digest
 from tasks.util.kubeadm import get_pod_names_in_ns, run_kubectl_command
 from time import sleep, time
 
+# We are running into image pull rate issues, so we want to support changing
+# this easily. Note that the image, signatures, and encrypted layers _already_
+# live in any container registry before we run the experiment
+EXPERIMENT_IMAGE_REPO = "ghcr.io"
+
 
 def init_csv_file(file_name, header):
     with open(file_name, "w") as fh:
@@ -33,7 +38,7 @@ def write_csv_line(file_name, *args):
         fh.write(layout.format(*args))
 
 
-def setup_baseline(baseline):
+def setup_baseline(baseline, used_images):
     """
     Configure the system for a specific baseline
 
@@ -59,7 +64,12 @@ def setup_baseline(baseline):
     # Configure signature policy (check image signature or not). We must do
     # this at the very end as it relies on: (i) the KBS DB being clear, and
     # (ii) the configuration file populated by the previous methods
-    provision_launch_digest(signature_policy=baseline_traits["signature_policy"], clean=False)
+    images_to_sign = [join(EXPERIMENT_IMAGE_REPO, image) for image in used_images]
+    provision_launch_digest(
+        images_to_sign,
+        signature_policy=baseline_traits["signature_policy"],
+        clean=False
+    )
 
 
 def clean_container_images(used_ctr_images):
@@ -133,7 +143,7 @@ def run(ctx, baseline=None):
 
     service_template_file = join(APPS_DIR, "startup", "service.yaml.j2")
     image_name = "csegarragonz/coco-helloworld-py"
-    images_to_remove = ["{}:unencrypted".format(image_name)]
+    used_images = ["csegarragonz/coco-knative-sidecar", image_name]
     num_runs = 3
 
     results_dir = join(RESULTS_DIR, "startup")
@@ -152,18 +162,22 @@ def run(ctx, baseline=None):
 
         # First, template the service file
         service_file = join(EVAL_TEMPLATED_DIR, "apps_startup_{}_service.yaml".format(bline))
-        template_vars = {"image_name": image_name, "image_tag": baseline_traits["image_tag"]}
+        template_vars = {
+            "image_repo": EXPERIMENT_IMAGE_REPO,
+            "image_name": image_name,
+            "image_tag": baseline_traits["image_tag"],
+        }
         if len(baseline_traits["runtime_class"]) > 0:
             template_vars["runtime_class"] = baseline_traits["runtime_class"]
         template_k8s_file(service_template_file, service_file, template_vars)
 
         # Second, run any baseline-specific set-up
-        setup_baseline(bline)
+        setup_baseline(bline, used_images)
 
         for nr in range(num_runs):
             do_run(result_file, nr, service_file)
             # TODO: differntiate between warm/cold starts
-            cleanup_after_run(bline, images_to_remove)
+            cleanup_after_run(bline, used_images)
 
 
 @task

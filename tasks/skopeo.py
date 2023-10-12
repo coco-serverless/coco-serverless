@@ -76,9 +76,13 @@ def encrypt_container_image(ctx, image_tag, sign=False):
     skopeo_cmd = " ".join(skopeo_cmd)
     run_skopeo_cmd(skopeo_cmd)
 
+    # Stop the keyprovider when we are done encrypting layers
+    stop_coco_keyprovider()
+
     # Sanity check that the image is actually encrypted
     inspect_jsonstr = run_skopeo_cmd(
-        "inspect docker://{}".format(encrypted_image_tag), capture_stdout=True
+        "inspect --authfile /config.json docker://{}".format(encrypted_image_tag),
+        capture_stdout=True
     )
     inspect_json = json_loads(inspect_jsonstr)
     layers = [
@@ -99,5 +103,3 @@ def encrypt_container_image(ctx, image_tag, sign=False):
 
     if sign:
         sign_container_image(encrypted_image_tag)
-
-    stop_coco_keyprovider()

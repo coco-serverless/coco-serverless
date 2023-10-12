@@ -205,7 +205,7 @@ def replace_sidecar(ctx, reset_default=False):
     run(docker_cmd, shell=True, check=True)
 
     # Re-tag it, and push it to our controlled registry
-    image_repo = "docker.io"
+    image_repo = "ghcr.io"
     image_name = "csegarragonz/coco-knative-sidecar"
     image_tag = "unencrypted"
     new_image_url = "{}/{}:{}".format(image_repo, image_name, image_tag)
@@ -218,7 +218,7 @@ def replace_sidecar(ctx, reset_default=False):
     # Get the digest for the recently pulled image, and use it to update
     # Knative's deployment configmap
     docker_cmd = 'docker images {} --digests --format "{{{{.Digest}}}}"'.format(
-        image_name
+        join(image_repo, image_name),
     )
     image_digest = (
         run(docker_cmd, shell=True, capture_output=True).stdout.decode("utf-8").strip()

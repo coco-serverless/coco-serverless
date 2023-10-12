@@ -18,7 +18,7 @@ spec:
         runAsUser: 1000
       {% endif %}
       containers:
-        - image: {{ image_name }}:{{ image_tag }}
+        - image: {{ image_repo }}/{{ image_name }}:{{ image_tag }}
           ports:
             - containerPort: 8080
           env:

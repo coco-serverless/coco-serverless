@@ -69,8 +69,10 @@ BASELINES = {
 }
 
 # Each image digest has a unique ID in `crictl`'s image repository. We want to
-# remove it from there to avoid caching images when measuring cold starts
+# remove it from there to avoid caching images when measuring cold starts.
+# Note that this ID depends on the image digest, and will change if we change
+# the image
 IMAGE_TO_ID = {
-    "csegarragonz/coco-helloworld-py:unencrypted": "e84d0530bcded",
+    "csegarragonz/coco-helloworld-py": "e84d0530bcded",
     "csegarragonz/coco-knative-sidecar": "b7c9cff267c66",
 }

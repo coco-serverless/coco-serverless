@@ -191,7 +191,7 @@ def populate_signature_verification_policy(signature_policy, policy_details=None
     return json_dumps(policy)
 
 
-def provision_launch_digest(signature_policy=SIGNATURE_POLICY_NONE, clean=False):
+def provision_launch_digest(images_to_sign, signature_policy=SIGNATURE_POLICY_NONE, clean=False):
     """
     For details on this method check the main entrypoint task with the same
     name in ./tasks/kbs.py.
@@ -228,18 +228,10 @@ def provision_launch_digest(signature_policy=SIGNATURE_POLICY_NONE, clean=False)
         # (i.e. we could change it to keys/cosign/1 as long as the
         # corresponding resource exists)
         signing_key_resource_id = "default/cosign-key/1"
+        policy_details = [[image_tag, signing_key_resource_id] for image_tag in images_to_sign]
         policy_json_str = populate_signature_verification_policy(
             signature_policy,
-            [
-                [
-                    "docker.io/csegarragonz/coco-helloworld-py",
-                    signing_key_resource_id,
-                ],
-                [
-                    "docker.io/csegarragonz/coco-knative-sidecar",
-                    signing_key_resource_id,
-                ],
-            ],
+            policy_details,
         )
 
         # Create a resource for the signing key

@@ -80,4 +80,11 @@ def provision_launch_digest(ctx, signature_policy=SIGNATURE_POLICY_NONE, clean=F
     in the policy. If the FW digest is not exactly the one in the policy, boot
     fails.
     """
-    do_provision_launch_digest(signature_policy=signature_policy, clean=clean)
+    # For the purposes of the demo, we hardcode the images we include in the
+    # policy to be included in the signature policy
+    images_to_sign = [
+        "docker.io/csegarragonz/coco-helloworld-py",
+        "docker.io/csegarragonz/coco-knatve-sidecar",
+    ]
+
+    do_provision_launch_digest(images_to_sign, signature_policy=signature_policy, clean=clean)
