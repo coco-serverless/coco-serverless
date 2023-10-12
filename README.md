@@ -74,6 +74,13 @@ If your app uses Knative, you will have to install it first:
 inv knative.install
 ```
 
+## Evaluation
+
+The goal of the project is to measure the performance of Knative with CoCo,
+and compare it to other isolation mechanisms using standarised benchmarks. To
+This extent, we provide a thorough evaluation in the [evaluation](./eval)
+directory.
+
 ## Uninstall
 
 In order to uninstall components for debugging purposes, you may un-install the CoCo runtime, and then the operator as follows:

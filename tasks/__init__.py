@@ -15,6 +15,8 @@ from . import operator
 from . import sev
 from . import skopeo
 
+from tasks.eval import ns as eval_ns
+
 ns = Collection(
     apps,
     coco,
@@ -31,3 +33,5 @@ ns = Collection(
     sev,
     skopeo,
 )
+
+ns.add_collection(eval_ns, name="eval")
