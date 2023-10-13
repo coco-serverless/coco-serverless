@@ -16,6 +16,7 @@ from tasks.eval.util.env import (
     PLOTS_DIR,
 )
 from tasks.util.coco import guest_attestation, signature_verification
+from tasks.util.containerd import get_time_pulling_image
 from tasks.util.k8s import template_k8s_file
 from tasks.util.kbs import clear_kbs_db, provision_launch_digest
 from tasks.util.kubeadm import get_pod_names_in_ns, run_kubectl_command
@@ -128,6 +129,10 @@ def do_run(result_file, num_run, service_file, warmup=False):
         sleep(2)
 
     if not warmup:
+        # TODO: pass image name
+        start_ts, end_ts = get_time_pulling_image()
+        events_ts.append(("StartImagePull", start_ts))
+        events_ts.append(("EndImagePull", end_ts))
         events_ts = sorted(events_ts, key=lambda x: x[1])
         for event in events_ts:
             write_csv_line(result_file, num_run, event[0], event[1])
@@ -246,6 +251,7 @@ def plot(ctx):
     else:
         bar_width = (1 - space_between_baselines) / (num_flavours + 1)
 
+    # pattern_for_flavour = {"warm": ".", "cold": "*"}
     for ind, flavour in enumerate(BASELINE_FLAVOURS):
         if num_flavours % 2 == 0:
             x_offset = bar_width * (ind + 1 / 2 - num_flavours / 2)
@@ -253,16 +259,30 @@ def plot(ctx):
             x_offset = bar_width * (ind - num_flavours / 2)
 
         this_xs = [x + x_offset for x in xs]
-        print("bar width:", bar_width)
-        print("x offset:", x_offset)
-        print("xs:", this_xs)
-        ys = []
-        for b in xlabels:
-            ys.append(
-                results_dict[b][flavour]["Ready"]["mean"]
-                - results_dict[b][flavour]["Start"]["mean"]
-            )
-        ax.bar(this_xs, ys, label=flavour, width=bar_width)
+        ordered_events = {
+            "pre-pull": ("Start", "StartImagePull"),
+            "image-pull": ("StartImagePull", "EndImagePull"),
+            "post-pull": ("EndImagePull", "Ready")
+        }
+        stacked_ys = []
+        for ev in ordered_events:
+            start_ev = ordered_events[ev][0]
+            end_ev = ordered_events[ev][1]
+            ys = []
+            for b in xlabels:
+                ys.append(
+                    results_dict[b][flavour][end_ev]["mean"]
+                    - results_dict[b][flavour][start_ev]["mean"]
+                )
+
+            stacked_ys.append(ys)
+
+        for num, ys in enumerate(stacked_ys):
+            label = list(ordered_events.keys())[num]
+            if num == 0:
+                ax.bar(this_xs, ys, label=label, width=bar_width)
+            else:
+                ax.bar(this_xs, ys, bottom=stacked_ys[num - 1], label=label, width=bar_width)
 
     # Misc
     ax.set_xticks(xs, xlabels)
