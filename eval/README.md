@@ -38,7 +38,7 @@ inv skopeo.encrypt-container-image "ghcr.io/csegarragonz/coco-helloworld-py:unen
 
 # Then sign the unencrypted images used
 inv cosign.sign-container-image "ghcr.io/csegarragonz/coco-helloworld-py:unencrypted"
-inv cosign.sign-container-image "ghcr.io/csegarragonz/coco-knative-sidecar@sha256:79d5f6031f308cee209c4c32eeab9113b29a1ed4096c5d657504096734ca3b1d"
+inv cosign.sign-container-image "ghcr.io/csegarragonz/coco-knative-sidecar:unencrypted"
 ```
 
 Now you are ready to run one of the experiments:

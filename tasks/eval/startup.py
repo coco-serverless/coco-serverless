@@ -26,6 +26,8 @@ from time import sleep, time
 # live in any container registry before we run the experiment
 EXPERIMENT_IMAGE_REPO = "ghcr.io"
 
+DEFAULT_NUM_RUNS = 3
+
 
 def init_csv_file(file_name, header):
     with open(file_name, "w") as fh:
@@ -92,8 +94,10 @@ def cleanup_after_run(baseline, used_ctr_images):
 def do_run(result_file, num_run, service_file):
     start_ts = time()
 
+    # Silently start
+    run_kubectl_command("apply -f {}".format(service_file), capture_output=True)
+
     # Wait for pod to start
-    run_kubectl_command("apply -f {}".format(service_file))
     pods = get_pod_names_in_ns("default")
     while len(pods) < 1:
         sleep(1)
@@ -117,13 +121,12 @@ def do_run(result_file, num_run, service_file):
         sleep(2)
 
     events_ts = sorted(events_ts, key=lambda x: x[1])
-    print(events_ts)
     for event in events_ts:
         write_csv_line(result_file, num_run, event[0], event[1])
 
     # Wait for pod to finish
-    run_kubectl_command("delete -f {}".format(service_file))
-    run_kubectl_command("delete pod {}".format(pod_name))
+    run_kubectl_command("delete -f {}".format(service_file), capture_output=True)
+    run_kubectl_command("delete pod {}".format(pod_name), capture_output=True)
 
 
 @task
@@ -175,6 +178,7 @@ def run(ctx, baseline=None):
         setup_baseline(bline, used_images)
 
         for nr in range(num_runs):
+            print("Executing baseline {} run {}/{}...".format(bline, nr + 1, num_runs))
             do_run(result_file, nr, service_file)
             # TODO: differntiate between warm/cold starts
             cleanup_after_run(bline, used_images)
@@ -206,9 +210,9 @@ def plot(ctx):
             }
 
     fig, ax = subplots()
-    xs = list(results_dict.keys())
+    xs = list(BASELINES.keys())
     ys = []
-    for b in results_dict:
+    for b in xs:
         ys.append(
             results_dict[b]["Ready"]["mean"] -
             results_dict[b]["Start"]["mean"]
