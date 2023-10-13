@@ -9,9 +9,9 @@ The evaluation of the project is divided in two parts:
 * [Benchmarks](#benchmarks) - evaluating Knative + CoCo on standarised benchmarks.
 
 In general, we compare Knative running on regular containers, on VMs (aka
-Knative + Cata) and with Knative + CoCo with different levels of security: (i)
-only guest FW attestation, (ii) image signature, and (iii) image signature +
-encryption.
+Knative + Kata) and with Knative + CoCo with different levels of security: (i)
+no attestaion, (ii) only guest FW attestation, (ii) image signature, and (iii)
+image signature + encryption.
 
 ## Performance Measurements
 
