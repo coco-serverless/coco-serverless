@@ -26,7 +26,7 @@ from time import sleep, time
 # live in any container registry before we run the experiment
 EXPERIMENT_IMAGE_REPO = "ghcr.io"
 
-DEFAULT_NUM_RUNS = 3
+BASELINE_FLAVOURS = ["warm", "cold"]
 
 
 def init_csv_file(file_name, header):
@@ -79,8 +79,8 @@ def clean_container_images(used_ctr_images):
     for ctr in used_ctr_images:
         ids_to_remove.append(IMAGE_TO_ID[ctr])
     crictl_cmd = "sudo crictl rmi {}".format(" ".join(ids_to_remove))
-    print(crictl_cmd)
-    sp_run(crictl_cmd, shell=True, check=True)
+    out = sp_run(crictl_cmd, shell=True, capture_output=True)
+    assert out.returncode == 0
 
 
 def cleanup_after_run(baseline, used_ctr_images):
@@ -91,7 +91,7 @@ def cleanup_after_run(baseline, used_ctr_images):
         clean_container_images(used_ctr_images)
 
 
-def do_run(result_file, num_run, service_file):
+def do_run(result_file, num_run, service_file, warmup=False):
     start_ts = time()
 
     # Silently start
@@ -127,9 +127,10 @@ def do_run(result_file, num_run, service_file):
 
         sleep(2)
 
-    events_ts = sorted(events_ts, key=lambda x: x[1])
-    for event in events_ts:
-        write_csv_line(result_file, num_run, event[0], event[1])
+    if not warmup:
+        events_ts = sorted(events_ts, key=lambda x: x[1])
+        for event in events_ts:
+            write_csv_line(result_file, num_run, event[0], event[1])
 
     # Wait for pod to finish
     run_kubectl_command("delete -f {}".format(service_file), capture_output=True)
@@ -170,10 +171,6 @@ def run(ctx, baseline=None):
     for bline in baselines_to_run:
         baseline_traits = BASELINES[bline]
 
-        # Prepare the result file
-        result_file = join(results_dir, "{}.csv".format(bline))
-        init_csv_file(result_file, "Run,Event,TimeStampMs")
-
         # First, template the service file
         service_file = join(
             EVAL_TEMPLATED_DIR, "apps_startup_{}_service.yaml".format(bline)
@@ -190,11 +187,25 @@ def run(ctx, baseline=None):
         # Second, run any baseline-specific set-up
         setup_baseline(bline, used_images)
 
-        for nr in range(num_runs):
-            print("Executing baseline {} run {}/{}...".format(bline, nr + 1, num_runs))
-            do_run(result_file, nr, service_file)
-            # TODO: differntiate between warm/cold starts
-            cleanup_after_run(bline, used_images)
+        for flavour in BASELINE_FLAVOURS:
+            # Prepare the result file
+            result_file = join(results_dir, "{}_{}.csv".format(bline, flavour))
+            init_csv_file(result_file, "Run,Event,TimeStampMs")
+
+            if flavour == "warm":
+                print("Executing baseline {} warmup run...".format(bline))
+                do_run(result_file, -1, service_file, warmup=True)
+
+            for nr in range(num_runs):
+                print(
+                    "Executing baseline {} ({}) run {}/{}...".format(
+                        bline, flavour, nr + 1, num_runs
+                    )
+                )
+                do_run(result_file, nr, service_file)
+
+                if flavour == "cold":
+                    cleanup_after_run(bline, used_images)
 
 
 @task
@@ -205,33 +216,60 @@ def plot(ctx):
     glob_str = join(results_dir, "*.csv")
     results_dict = {}
     for csv in glob(glob_str):
-        baseline = basename(csv).split(".")[0]
+        baseline = basename(csv).split(".")[0].split("_")[0]
+        flavour = basename(csv).split(".")[0].split("_")[1]
         if baseline == "kata":
             # TODO: kata baseline does not work
             continue
 
-        results_dict[baseline] = {}
-        print(csv, baseline)
+        if baseline not in results_dict:
+            results_dict[baseline] = {}
+
+        results_dict[baseline][flavour] = {}
         results = read_csv(csv)
         groupped = results.groupby("Event", as_index=False)
         events = groupped.mean()["Event"].to_list()
         for ind, event in enumerate(events):
             # TODO: these timestamps are in seconds
-            results_dict[baseline][event] = {
+            results_dict[baseline][flavour][event] = {
                 "mean": groupped.mean()["TimeStampMs"].to_list()[ind],
                 "sem": groupped.sem()["TimeStampMs"].to_list()[ind],
             }
 
     fig, ax = subplots()
-    xs = list(BASELINES.keys())
-    ys = []
-    for b in xs:
-        ys.append(results_dict[b]["Ready"]["mean"] - results_dict[b]["Start"]["mean"])
-    ax.bar(xs, ys)
+    xlabels = list(BASELINES.keys())
+    xs = range(len(xlabels))
+    num_flavours = len(BASELINE_FLAVOURS)
+    space_between_baselines = 0.2
+    if num_flavours % 2 == 0:
+        bar_width = (1 - space_between_baselines) / num_flavours
+    else:
+        bar_width = (1 - space_between_baselines) / (num_flavours + 1)
+
+    for ind, flavour in enumerate(BASELINE_FLAVOURS):
+        if num_flavours % 2 == 0:
+            x_offset = bar_width * (ind + 1 / 2 - num_flavours / 2)
+        else:
+            x_offset = bar_width * (ind - num_flavours / 2)
+
+        this_xs = [x + x_offset for x in xs]
+        print("bar width:", bar_width)
+        print("x offset:", x_offset)
+        print("xs:", this_xs)
+        ys = []
+        for b in xlabels:
+            ys.append(
+                results_dict[b][flavour]["Ready"]["mean"]
+                - results_dict[b][flavour]["Start"]["mean"]
+            )
+        ax.bar(this_xs, ys, label=flavour, width=bar_width)
 
     # Misc
+    ax.set_xticks(xs, xlabels)
     ax.set_xlabel("Baseline")
     ax.set_ylabel("Time [s]")
+    ax.set_title("End-to-end latency to start a pod")
+    ax.legend()
 
     for plot_format in ["pdf", "png"]:
         plot_file = join(plots_dir, "startup.{}".format(plot_format))
