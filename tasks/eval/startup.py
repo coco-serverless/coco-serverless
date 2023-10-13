@@ -70,7 +70,7 @@ def setup_baseline(baseline, used_images):
     provision_launch_digest(
         images_to_sign,
         signature_policy=baseline_traits["signature_policy"],
-        clean=False
+        clean=False,
     )
 
 
@@ -112,10 +112,17 @@ def do_run(result_file, num_run, service_file):
         conditions = run_kubectl_command(kube_cmd, capture_output=True)
         cond_json = json_loads(conditions)
 
-        is_done = all([cond['status'] == 'True' for cond in cond_json])
+        is_done = all([cond["status"] == "True" for cond in cond_json])
         if is_done:
             for cond in cond_json:
-                events_ts.append((cond['type'], datetime.fromisoformat(cond['lastTransitionTime'][:-1]).timestamp()))
+                events_ts.append(
+                    (
+                        cond["type"],
+                        datetime.fromisoformat(
+                            cond["lastTransitionTime"][:-1]
+                        ).timestamp(),
+                    )
+                )
             break
 
         sleep(2)
@@ -140,7 +147,11 @@ def run(ctx, baseline=None):
     baselines_to_run = list(BASELINES.keys())
     if baseline is not None:
         if baseline not in baselines_to_run:
-            print("Unrecognised baseline {}! Must be one in: {}".format(baseline, baselines_to_run))
+            print(
+                "Unrecognised baseline {}! Must be one in: {}".format(
+                    baseline, baselines_to_run
+                )
+            )
             raise RuntimeError("Unrecognised baseline")
         baselines_to_run = [baseline]
 
@@ -164,7 +175,9 @@ def run(ctx, baseline=None):
         init_csv_file(result_file, "Run,Event,TimeStampMs")
 
         # First, template the service file
-        service_file = join(EVAL_TEMPLATED_DIR, "apps_startup_{}_service.yaml".format(bline))
+        service_file = join(
+            EVAL_TEMPLATED_DIR, "apps_startup_{}_service.yaml".format(bline)
+        )
         template_vars = {
             "image_repo": EXPERIMENT_IMAGE_REPO,
             "image_name": image_name,
@@ -213,10 +226,7 @@ def plot(ctx):
     xs = list(BASELINES.keys())
     ys = []
     for b in xs:
-        ys.append(
-            results_dict[b]["Ready"]["mean"] -
-            results_dict[b]["Start"]["mean"]
-        )
+        ys.append(results_dict[b]["Ready"]["mean"] - results_dict[b]["Start"]["mean"])
     ax.bar(xs, ys)
 
     # Misc

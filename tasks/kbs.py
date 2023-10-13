@@ -87,4 +87,6 @@ def provision_launch_digest(ctx, signature_policy=SIGNATURE_POLICY_NONE, clean=F
         "docker.io/csegarragonz/coco-knatve-sidecar",
     ]
 
-    do_provision_launch_digest(images_to_sign, signature_policy=signature_policy, clean=clean)
+    do_provision_launch_digest(
+        images_to_sign, signature_policy=signature_policy, clean=clean
+    )

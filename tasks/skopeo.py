@@ -82,7 +82,7 @@ def encrypt_container_image(ctx, image_tag, sign=False):
     # Sanity check that the image is actually encrypted
     inspect_jsonstr = run_skopeo_cmd(
         "inspect --authfile /config.json docker://{}".format(encrypted_image_tag),
-        capture_stdout=True
+        capture_stdout=True,
     )
     inspect_json = json_loads(inspect_jsonstr)
     layers = [
