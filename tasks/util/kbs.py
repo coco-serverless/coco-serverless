@@ -5,6 +5,7 @@ from os.path import join
 from pymysql import connect as mysql_connect
 from pymysql.cursors import DictCursor
 from subprocess import run
+from tasks.util.cosign import COSIGN_PUB_KEY
 from tasks.util.env import PROJ_ROOT
 from tasks.util.sev import get_launch_digest
 
@@ -20,6 +21,10 @@ DEFAULT_LAUNCH_POLICY_ID = 10
 # --------
 # Signature Verification Policy
 # --------
+
+# This is the policy id that the kata-agent asks for when required to validate
+# image signatures. It is hardcoded somewhere in the agent code
+SIGNATURE_POLICY_STRING_ID = "default/security-policy/test"
 
 NO_SIGNATURE_POLICY = "no-signature-policy"
 SIGNATURE_POLICY_NONE = "none"
@@ -61,6 +66,21 @@ def connect_to_kbs_db():
     )
 
     return connection
+
+
+def clear_kbs_db(skip_secrets=False):
+    """
+    Clear the contents of the KBS DB
+    """
+    connection = connect_to_kbs_db()
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute("DELETE from policy")
+            cursor.execute("DELETE from resources")
+            if not skip_secrets:
+                cursor.execute("DELETE from secrets")
+
+        connection.commit()
 
 
 def set_launch_measurement_policy():
@@ -169,3 +189,60 @@ def populate_signature_verification_policy(signature_policy, policy_details=None
         ]
 
     return json_dumps(policy)
+
+
+def provision_launch_digest(
+    images_to_sign, signature_policy=SIGNATURE_POLICY_NONE, clean=False
+):
+    """
+    For details on this method check the main entrypoint task with the same
+    name in ./tasks/kbs.py.
+    """
+    validate_signature_verification_policy(signature_policy)
+
+    if clean:
+        clear_kbs_db()
+
+    # First, we provision a launch digest policy that only allows to
+    # boot confidential VMs with the launch measurement that we have
+    # just calculated. We will associate signature verification and
+    # image encryption policies to this launch digest policy.
+    set_launch_measurement_policy()
+
+    # To make sure the launch policy is enforced, we must enable
+    # signature verification. This means that we also need to provide a
+    # signature policy. This policy has a constant string identifier
+    # that the kata agent will ask for (default/security-policy/test),
+    # which points to a config file that specifies how to validate
+    # signatures
+    resource_path = "signature_policy_{}.json".format(signature_policy)
+
+    if signature_policy == SIGNATURE_POLICY_NONE:
+        # If we set a `none` signature policy, it means that we don't
+        # check any signatures on the pulled container images (still
+        # necessary to set the policy to check the launch measurment)
+        policy_json_str = populate_signature_verification_policy(signature_policy)
+    else:
+        # The verify policy, checks that the image has been signed
+        # with a given key. As everything in the KBS, the key
+        # we give in the policy is an ID for another resource.
+        # Note that the following resource prefix is NOT required
+        # (i.e. we could change it to keys/cosign/1 as long as the
+        # corresponding resource exists)
+        signing_key_resource_id = "default/cosign-key/1"
+        policy_details = [
+            [image_tag, signing_key_resource_id] for image_tag in images_to_sign
+        ]
+        policy_json_str = populate_signature_verification_policy(
+            signature_policy,
+            policy_details,
+        )
+
+        # Create a resource for the signing key
+        with open(COSIGN_PUB_KEY) as fh:
+            create_kbs_resource(signing_key_resource_id, "cosign.pub", fh.read())
+
+    # Finally, create a resource for the image signing policy. Note that the
+    # resource ID for the image signing policy is hardcoded in the kata agent
+    # (particularly in the attestation agent)
+    create_kbs_resource(SIGNATURE_POLICY_STRING_ID, resource_path, policy_json_str)

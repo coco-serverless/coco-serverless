@@ -15,10 +15,10 @@ spec:
         apps.coco-serverless/name: helloworld-py
         io.katacontainers.config.pre_attestation.enabled: "false"
     spec:
-      runtimeClassName: kata-qemu-sev
+      runtimeClassName: kata-qemu
       containers:
       - name: helloworld-py
-        image: csegarragonz/coco-helloworld-py:latest
-          imagePullPolicy: Always
+        image: ghcr.io/csegarragonz/coco-helloworld-py:unencrypted
+        imagePullPolicy: Always
         ports:
         - containerPort: 8080

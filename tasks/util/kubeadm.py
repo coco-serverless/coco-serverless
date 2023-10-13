@@ -45,6 +45,12 @@ def wait_for_pods_in_ns(ns=None, expected_num_of_pods=0, label=None):
         sleep(5)
 
 
+def get_pod_names_in_ns(ns):
+    kubectl_cmd = "get pods -n {} -o jsonpath='{{..metadata.name}}'".format(ns)
+    pods = run_kubectl_command(kubectl_cmd, capture_output=True).split(" ")
+    return [p for p in pods if len(p) > 0]
+
+
 def get_node_name():
     cmd = "get nodes -o jsonpath="
     cmd += "'{.items..status..addresses[?(@.type==\"Hostname\")].address}'"
