@@ -28,7 +28,6 @@ def start_coco_keyprovider(host_key_path, guest_key_path):
         "coco_keyprovider -- --socket 127.0.0.1:{}'".format(COCO_KEYPROVIDER_CTR_PORT),
     ]
     docker_cmd = " ".join(docker_cmd)
-    print(docker_cmd)
     run(docker_cmd, shell=True, check=True)
 
     # Wait for the gRPC server to be ready
