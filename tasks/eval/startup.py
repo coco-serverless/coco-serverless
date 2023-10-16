@@ -2,6 +2,7 @@ from datetime import datetime
 from glob import glob
 from invoke import task
 from json import loads as json_loads
+from matplotlib.patches import Patch
 from matplotlib.pyplot import subplots
 from os import makedirs
 from os.path import basename, exists, join
@@ -16,6 +17,7 @@ from tasks.eval.util.env import (
     PLOTS_DIR,
 )
 from tasks.util.coco import guest_attestation, signature_verification
+from tasks.util.containerd import get_time_pulling_image
 from tasks.util.k8s import template_k8s_file
 from tasks.util.kbs import clear_kbs_db, provision_launch_digest
 from tasks.util.kubeadm import get_pod_names_in_ns, run_kubectl_command
@@ -128,6 +130,19 @@ def do_run(result_file, num_run, service_file, warmup=False):
         sleep(2)
 
     if not warmup:
+        # Work-out the time spent pulling container images
+        start_ts_service, end_ts_service = get_time_pulling_image("coco-helloworld-py")
+        start_ts_sidecar, end_ts_sidecar = get_time_pulling_image(
+            "coco-knative-sidecar"
+        )
+        # We combine both image pulling times by taking the extreme-most
+        # timestamps. This is not necessarily correct (?)
+        start_ts = min(start_ts_service, start_ts_sidecar)
+        end_ts = max(end_ts_service, end_ts_sidecar)
+        events_ts.append(("StartImagePull", start_ts))
+        events_ts.append(("EndImagePull", end_ts))
+
+        # Sort the events by timestamp and write them to a file
         events_ts = sorted(events_ts, key=lambda x: x[1])
         for event in events_ts:
             write_csv_line(result_file, num_run, event[0], event[1])
@@ -196,6 +211,11 @@ def run(ctx, baseline=None):
                 print("Executing baseline {} warmup run...".format(bline))
                 do_run(result_file, -1, service_file, warmup=True)
 
+            if flavour == "cold":
+                # `cold` happens after `warm`, so we want to clean-up after
+                # all the `warm` runs
+                cleanup_after_run(bline, used_images)
+
             for nr in range(num_runs):
                 print(
                     "Executing baseline {} ({}) run {}/{}...".format(
@@ -246,6 +266,8 @@ def plot(ctx):
     else:
         bar_width = (1 - space_between_baselines) / (num_flavours + 1)
 
+    pattern_for_flavour = {"warm": "//", "cold": "."}
+    color_for_event = {"pre-pull": "green", "image-pull": "blue", "post-pull": "orange"}
     for ind, flavour in enumerate(BASELINE_FLAVOURS):
         if num_flavours % 2 == 0:
             x_offset = bar_width * (ind + 1 / 2 - num_flavours / 2)
@@ -253,23 +275,79 @@ def plot(ctx):
             x_offset = bar_width * (ind - num_flavours / 2)
 
         this_xs = [x + x_offset for x in xs]
-        print("bar width:", bar_width)
-        print("x offset:", x_offset)
-        print("xs:", this_xs)
-        ys = []
-        for b in xlabels:
-            ys.append(
-                results_dict[b][flavour]["Ready"]["mean"]
-                - results_dict[b][flavour]["Start"]["mean"]
-            )
-        ax.bar(this_xs, ys, label=flavour, width=bar_width)
+        ordered_events = {
+            "pre-pull": ("Start", "StartImagePull"),
+            "image-pull": ("StartImagePull", "EndImagePull"),
+            "post-pull": ("EndImagePull", "Ready"),
+        }
+        stacked_ys = []
+        for ev in ordered_events:
+            start_ev = ordered_events[ev][0]
+            end_ev = ordered_events[ev][1]
+            ys = []
+            for b in xlabels:
+                # Given the way we parse the containerd logs, the Start/End
+                # ImagePull events for baselines that cache docker images
+                # (in their 'warm' flavour) are going to refer to ImagePull
+                # events in the past, and botch any timestamp differences.
+                # Thus, we need to make a special-case for them here
+                if b == "docker" and flavour == "warm":
+                    # For docker warm starts, we attribute all time spent in
+                    # a post-pull stage
+                    if ev == "post-pull":
+                        event_duration = (
+                            results_dict[b][flavour]["Ready"]["mean"]
+                            - results_dict[b][flavour]["Start"]["mean"]
+                        )
+                    else:
+                        event_duration = 0
+                else:
+                    event_duration = (
+                        results_dict[b][flavour][end_ev]["mean"]
+                        - results_dict[b][flavour][start_ev]["mean"]
+                    )
+
+                assert event_duration >= 0
+                ys.append(event_duration)
+
+            stacked_ys.append(ys)
+
+        for num, ys in enumerate(stacked_ys):
+            label = list(ordered_events.keys())[num]
+            if num == 0:
+                ax.bar(
+                    this_xs,
+                    ys,
+                    width=bar_width,
+                    color=color_for_event[label],
+                    edgecolor="black",
+                    hatch=pattern_for_flavour[flavour],
+                )
+                acc_ys = ys
+            else:
+                ax.bar(
+                    this_xs,
+                    ys,
+                    bottom=acc_ys,  # stacked_ys[num - 1],
+                    width=bar_width,
+                    color=color_for_event[label],
+                    edgecolor="black",
+                    hatch=pattern_for_flavour[flavour],
+                )
+                for i in range(len(acc_ys)):
+                    acc_ys[i] += ys[i]
 
     # Misc
     ax.set_xticks(xs, xlabels)
     ax.set_xlabel("Baseline")
     ax.set_ylabel("Time [s]")
-    ax.set_title("End-to-end latency to start a pod")
-    ax.legend()
+    ax.set_title("End-to-end latency to start a pod\n(cold start='/' - warm start='.')")
+
+    # Manually craft the legend
+    legend_handles = []
+    for ev in color_for_event:
+        legend_handles.append(Patch(color=color_for_event[ev], label=ev))
+    ax.legend(handles=legend_handles)
 
     for plot_format in ["pdf", "png"]:
         plot_file = join(plots_dir, "startup.{}".format(plot_format))
