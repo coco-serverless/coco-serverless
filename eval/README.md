@@ -66,6 +66,11 @@ which generates a plot in [`./plots/startup/startup.png`](
 
 ![plot](./plots/startup/startup.png)
 
+In addition, we also generate a breakdown pie chart for one of the runs in
+[`./plots/sartup/breakdown.png`](./plots/startup/breakdown.png):
+
+![plot](./plots/startup/breakdown.png)
+
 ## Benchmarks
 
 TODO
