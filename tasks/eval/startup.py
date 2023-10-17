@@ -4,6 +4,7 @@ from invoke import task
 from json import loads as json_loads
 from matplotlib.patches import Patch
 from matplotlib.pyplot import subplots
+from numpy import array as np_array, mean as np_mean
 from os import makedirs
 from os.path import basename, exists, join
 from pandas import read_csv
@@ -17,8 +18,8 @@ from tasks.eval.util.env import (
     PLOTS_DIR,
 )
 from tasks.util.coco import guest_attestation, signature_verification
-from tasks.util.containerd import get_time_pulling_image
-from tasks.util.k8s import template_k8s_file
+from tasks.util.containerd import get_start_end_ts_for_containerd_event
+from tasks.util.k8s import get_container_id_from_pod, template_k8s_file
 from tasks.util.kbs import clear_kbs_db, provision_launch_digest
 from tasks.util.kubeadm import get_pod_names_in_ns, run_kubectl_command
 from time import sleep, time
@@ -29,6 +30,8 @@ from time import sleep, time
 EXPERIMENT_IMAGE_REPO = "ghcr.io"
 
 BASELINE_FLAVOURS = ["warm", "cold"]
+
+INTER_RUN_SLEEP_SECS = 1
 
 
 def init_csv_file(file_name, header):
@@ -93,7 +96,7 @@ def cleanup_after_run(baseline, used_ctr_images):
         clean_container_images(used_ctr_images)
 
 
-def do_run(result_file, num_run, service_file, warmup=False):
+def do_run(result_file, num_run, service_file, flavour, warmup=False):
     start_ts = time()
 
     # Silently start
@@ -130,17 +133,73 @@ def do_run(result_file, num_run, service_file, warmup=False):
         sleep(2)
 
     if not warmup:
-        # Work-out the time spent pulling container images
-        start_ts_service, end_ts_service = get_time_pulling_image("coco-helloworld-py")
-        start_ts_sidecar, end_ts_sidecar = get_time_pulling_image(
-            "coco-knative-sidecar"
+        # Work-out the time spent creating the pod sandbox
+        start_ts_ps, end_ts_ps = get_start_end_ts_for_containerd_event(
+            "RunPodSandbox",
+            pod_name,
+            # lower_bound=start_ts,
         )
-        # We combine both image pulling times by taking the extreme-most
-        # timestamps. This is not necessarily correct (?)
-        start_ts = min(start_ts_service, start_ts_sidecar)
-        end_ts = max(end_ts_service, end_ts_sidecar)
-        events_ts.append(("StartImagePull", start_ts))
-        events_ts.append(("EndImagePull", end_ts))
+        events_ts.append(("StartRunPodSandbox", start_ts_ps))
+        events_ts.append(("EndRunPodSandbox", end_ts_ps))
+
+        # Work-out the time spent pulling container images
+        skip_image_pull = "docker" in service_file and flavour == "warm"
+        if skip_image_pull:
+            start_ts_pi_srv = end_ts_ps
+            end_ts_pi_srv = end_ts_ps
+            start_ts_pi_sc = end_ts_ps
+            end_ts_pi_sc = end_ts_ps
+        else:
+            start_ts_pi_srv, end_ts_pi_srv = get_start_end_ts_for_containerd_event(
+                "PullImage",
+                "coco-helloworld-py",
+                lower_bound=end_ts_ps,
+            )
+            start_ts_pi_sc, end_ts_pi_sc = get_start_end_ts_for_containerd_event(
+                "PullImage",
+                "coco-knative-sidecar",
+                lower_bound=end_ts_ps,
+            )
+
+        events_ts.append(("StartImagePull_Service", start_ts_pi_srv))
+        events_ts.append(("EndImagePull_Service", end_ts_pi_srv))
+
+        events_ts.append(("StartImagePull_Sidecar", start_ts_pi_sc))
+        events_ts.append(("EndImagePull_Sidecar", end_ts_pi_sc))
+
+        # Work-out time to create each container
+        start_ts_cc_srv, end_ts_cc_srv = get_start_end_ts_for_containerd_event(
+            "CreateContainer",
+            "user-container",
+            lower_bound=end_ts_pi_srv,
+        )
+        events_ts.append(("StartCreateContainer_Service", start_ts_cc_srv))
+        events_ts.append(("EndCreateContainer_Service", end_ts_cc_srv))
+
+        start_ts_cc_sc, end_ts_cc_sc = get_start_end_ts_for_containerd_event(
+            "CreateContainer",
+            "queue-proxy",
+            lower_bound=end_ts_pi_sc,
+        )
+        events_ts.append(("StartCreateContainer_Sidecar", start_ts_cc_sc))
+        events_ts.append(("EndCreateContainer_Sidecar", end_ts_cc_sc))
+
+        # Work-out time to start each container
+        start_ts_sc_srv, end_ts_sc_srv = get_start_end_ts_for_containerd_event(
+            "StartContainer",
+            get_container_id_from_pod(pod_name, "user-container"),
+            lower_bound=end_ts_cc_srv,
+        )
+        events_ts.append(("StartStartContainer_Service", start_ts_sc_srv))
+        events_ts.append(("EndStartContainer_Service", end_ts_sc_srv))
+
+        start_ts_sc_sc, end_ts_sc_sc = get_start_end_ts_for_containerd_event(
+            "StartContainer",
+            get_container_id_from_pod(pod_name, "queue-proxy"),
+            lower_bound=end_ts_cc_sc,
+        )
+        events_ts.append(("StartStartContainer_Sidecar", start_ts_sc_sc))
+        events_ts.append(("EndStartContainer_Sidecar", end_ts_sc_sc))
 
         # Sort the events by timestamp and write them to a file
         events_ts = sorted(events_ts, key=lambda x: x[1])
@@ -209,7 +268,8 @@ def run(ctx, baseline=None):
 
             if flavour == "warm":
                 print("Executing baseline {} warmup run...".format(bline))
-                do_run(result_file, -1, service_file, warmup=True)
+                do_run(result_file, -1, service_file, flavour, warmup=True)
+                sleep(INTER_RUN_SLEEP_SECS)
 
             if flavour == "cold":
                 # `cold` happens after `warm`, so we want to clean-up after
@@ -222,7 +282,8 @@ def run(ctx, baseline=None):
                         bline, flavour, nr + 1, num_runs
                     )
                 )
-                do_run(result_file, nr, service_file)
+                do_run(result_file, nr, service_file, flavour)
+                sleep(INTER_RUN_SLEEP_SECS)
 
                 if flavour == "cold":
                     cleanup_after_run(bline, used_images)
@@ -250,11 +311,34 @@ def plot(ctx):
         groupped = results.groupby("Event", as_index=False)
         events = groupped.mean()["Event"].to_list()
         for ind, event in enumerate(events):
-            # TODO: these timestamps are in seconds
+            # NOTE: these timestamps are in seconds
             results_dict[baseline][flavour][event] = {
                 "mean": groupped.mean()["TimeStampMs"].to_list()[ind],
                 "sem": groupped.sem()["TimeStampMs"].to_list()[ind],
+                "list": groupped.get_group(event)["TimeStampMs"].to_list(),
             }
+
+    # Useful maps to plot the experiments
+    pattern_for_flavour = {"warm": "//", "cold": "."}
+    ordered_events = {
+        "pod-scheduling": ("Start", "StartRunPodSandbox"),
+        "make-pod-sandbox": ("StartRunPodSandbox", "EndRunPodSandbox"),
+        "image-pull": ("StartImagePull", "EndImagePull"),
+        "create-container": ("StartCreateContainer", "EndCreateContainer"),
+        "start-container": ("StartCreateContainer", "EndCreateContainer"),
+    }
+    color_for_event = {
+        "pod-scheduling": "green",
+        "make-pod-sandbox": "blue",
+        "image-pull": "orange",
+        "create-container": "yellow",
+        "start-container": "red",
+    }
+    assert list(color_for_event.keys()) == list(ordered_events.keys())
+
+    # --------------------------
+    # Stacked bar chart comparing different baselines
+    # --------------------------
 
     fig, ax = subplots()
     xlabels = list(BASELINES.keys())
@@ -266,8 +350,6 @@ def plot(ctx):
     else:
         bar_width = (1 - space_between_baselines) / (num_flavours + 1)
 
-    pattern_for_flavour = {"warm": "//", "cold": "."}
-    color_for_event = {"pre-pull": "green", "image-pull": "blue", "post-pull": "orange"}
     for ind, flavour in enumerate(BASELINE_FLAVOURS):
         if num_flavours % 2 == 0:
             x_offset = bar_width * (ind + 1 / 2 - num_flavours / 2)
@@ -275,38 +357,48 @@ def plot(ctx):
             x_offset = bar_width * (ind - num_flavours / 2)
 
         this_xs = [x + x_offset for x in xs]
-        ordered_events = {
-            "pre-pull": ("Start", "StartImagePull"),
-            "image-pull": ("StartImagePull", "EndImagePull"),
-            "post-pull": ("EndImagePull", "Ready"),
-        }
         stacked_ys = []
         for ev in ordered_events:
             start_ev = ordered_events[ev][0]
             end_ev = ordered_events[ev][1]
             ys = []
             for b in xlabels:
-                # Given the way we parse the containerd logs, the Start/End
-                # ImagePull events for baselines that cache docker images
-                # (in their 'warm' flavour) are going to refer to ImagePull
-                # events in the past, and botch any timestamp differences.
-                # Thus, we need to make a special-case for them here
-                if b == "docker" and flavour == "warm":
-                    # For docker warm starts, we attribute all time spent in
-                    # a post-pull stage
-                    if ev == "post-pull":
-                        event_duration = (
-                            results_dict[b][flavour]["Ready"]["mean"]
-                            - results_dict[b][flavour]["Start"]["mean"]
-                        )
-                    else:
-                        event_duration = 0
-                else:
-                    event_duration = (
-                        results_dict[b][flavour][end_ev]["mean"]
-                        - results_dict[b][flavour][start_ev]["mean"]
+                # We calculate the event duration as the mean of the
+                # differences, not the difference of the mean (eventually
+                # consider if something like the median is more significant)
+                if ev in ["pod-scheduling", "make-pod-sandbox"]:
+                    # For the pod-scheduling and make-pod-sandbox event we
+                    # only have one start/end timestamp pair
+                    event_duration = np_mean(
+                        np_array(results_dict[b][flavour][end_ev]["list"])
+                        - np_array(results_dict[b][flavour][start_ev]["list"])
                     )
+                else:
+                    # For all other events, (i.e. all events related to
+                    # containers) we have two timestamp pairs: one for the
+                    # service container, and one for the sidecar
+                    event_duration = 0
+                    for i in ["Service", "Sidecar"]:
+                        event_duration += np_mean(
+                            np_array(
+                                results_dict[b][flavour]["{}_{}".format(end_ev, i)][
+                                    "list"
+                                ]
+                            )
+                            - np_array(
+                                results_dict[b][flavour]["{}_{}".format(start_ev, i)][
+                                    "list"
+                                ]
+                            )
+                        )
 
+                # Some events we read from the Kubernetes events (e.g. the
+                # 'Ready' event) only have second resolution, whereas the
+                # containerd logs have higher resolution, so sometimes we may
+                # have event with negative durations in the [-1, 0) range
+                # due to resolution issues
+                if event_duration < 0 and event_duration > -1:
+                    event_duration = 0
                 assert event_duration >= 0
                 ys.append(event_duration)
 
@@ -328,7 +420,7 @@ def plot(ctx):
                 ax.bar(
                     this_xs,
                     ys,
-                    bottom=acc_ys,  # stacked_ys[num - 1],
+                    bottom=acc_ys,
                     width=bar_width,
                     color=color_for_event[label],
                     edgecolor="black",
@@ -351,4 +443,62 @@ def plot(ctx):
 
     for plot_format in ["pdf", "png"]:
         plot_file = join(plots_dir, "startup.{}".format(plot_format))
+        fig.savefig(plot_file, format=plot_format, bbox_inches="tight")
+
+    # --------------------------
+    # Pie chart breaking down the execution time of one baseline
+    # --------------------------
+
+    baseline = "coco-fw-sig-enc"
+    flavour = "cold"
+    fig, ax = subplots()
+
+    labels = list(color_for_event.keys())
+    event_durations = []
+    event_labels = []
+    for ev in labels:
+        start_ev = ordered_events[ev][0]
+        end_ev = ordered_events[ev][1]
+        if ev in ["pod-scheduling", "make-pod-sandbox"]:
+            event_durations.append(
+                np_mean(
+                    np_array(results_dict[baseline][flavour][end_ev]["list"])
+                    - np_array(results_dict[baseline][flavour][start_ev]["mean"])
+                )
+            )
+            event_labels.append(ev)
+        else:
+            for i in ["Service", "Sidecar"]:
+                event_durations.append(
+                    np_mean(
+                        np_array(
+                            results_dict[baseline][flavour]["{}_{}".format(end_ev, i)][
+                                "list"
+                            ]
+                        )
+                        - np_array(
+                            results_dict[baseline][flavour][
+                                "{}_{}".format(start_ev, i)
+                            ]["mean"]
+                        )
+                    )
+                )
+                event_labels.append("{}_{}".format(end_ev.removeprefix("End"), i))
+
+    ax.pie(
+        event_durations,
+        labels=event_labels,
+        colors=list(color_for_event.values()),
+        wedgeprops={"edgecolor": "black"}
+        # edgecolor="black",
+    )
+
+    title_str = "Breakdown of the time to start a Knative Service on CoCo\n"
+    title_str += "(baseline: {} - total time: {:.2f} s)".format(
+        baseline, sum(event_durations)
+    )
+    ax.set_title(title_str)
+
+    for plot_format in ["pdf", "png"]:
+        plot_file = join(plots_dir, "breakdown.{}".format(plot_format))
         fig.savefig(plot_file, format=plot_format, bbox_inches="tight")
