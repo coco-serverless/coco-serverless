@@ -27,10 +27,15 @@ from time import sleep, time
 def do_run(result_file, baseline, num_run, num_par_inst):
     start_ts = time()
 
-    service_files = ["apps_xput_{}_service_{}.yaml".format(baseline, i) for i in range(num_par_inst)]
+    service_files = [
+        "apps_xput_{}_service_{}.yaml".format(baseline, i) for i in range(num_par_inst)
+    ]
     for service_file in service_files:
         # Capture output to avoid verbose Knative logging
-        run_kubectl_command("apply -f {}".format(join(EVAL_TEMPLATED_DIR, service_file)), capture_output=True)
+        run_kubectl_command(
+            "apply -f {}".format(join(EVAL_TEMPLATED_DIR, service_file)),
+            capture_output=True,
+        )
 
     # Get all pod names
     pods = get_pod_names_in_ns("default")
@@ -46,21 +51,28 @@ def do_run(result_file, baseline, num_run, num_par_inst):
     pods_ready_ts = {pod: None for pod in pods}
     is_done = all(list(ready_pods.values()))
     while not is_done:
+
         def is_pod_done(pod_name):
-            kube_cmd = "get pod {} -o jsonpath='{{..status.conditions}}'".format(pod_name)
+            kube_cmd = "get pod {} -o jsonpath='{{..status.conditions}}'".format(
+                pod_name
+            )
             conditions = run_kubectl_command(kube_cmd, capture_output=True)
             cond_json = json_loads(conditions)
             return all([cond["status"] == "True" for cond in cond_json])
 
         def get_pod_ready_ts(pod_name):
-            kube_cmd = "get pod {} -o jsonpath='{{..status.conditions}}'".format(pod_name)
+            kube_cmd = "get pod {} -o jsonpath='{{..status.conditions}}'".format(
+                pod_name
+            )
             conditions = run_kubectl_command(kube_cmd, capture_output=True)
             cond_json = json_loads(conditions)
             for cond in cond_json:
                 if cond["type"] == "Ready":
-                    return datetime.fromisoformat(
+                    return (
+                        datetime.fromisoformat(
                             cond["lastTransitionTime"][:-1]
-                    ).timestamp(),
+                        ).timestamp(),
+                    )
 
         for pod in ready_pods:
             # Skip finished pods
@@ -80,7 +92,10 @@ def do_run(result_file, baseline, num_run, num_par_inst):
 
     # Remove the pods when we are done
     for service_file in service_files:
-        run_kubectl_command("delete -f {}".format(join(EVAL_TEMPLATED_DIR, service_file)), capture_output=True)
+        run_kubectl_command(
+            "delete -f {}".format(join(EVAL_TEMPLATED_DIR, service_file)),
+            capture_output=True,
+        )
     for pod in pods:
         run_kubectl_command("delete pod {}".format(pod), capture_output=True)
 
@@ -174,8 +189,10 @@ def plot(ctx):
 
         results = read_csv(csv)
         results_dict[baseline][num_par] = {
-            "mean": np_mean(np_array(results["EndTimeStampSec"].to_list())
-                        - np_array(results["StartTimeStampSec"].to_list())),
+            "mean": np_mean(
+                np_array(results["EndTimeStampSec"].to_list())
+                - np_array(results["StartTimeStampSec"].to_list())
+            ),
             "sem": 0,
         }
 
@@ -185,12 +202,12 @@ def plot(ctx):
     for bline in baselines:
         xs = sorted([int(k) for k in results_dict[bline].keys()])
         ys = [results_dict[bline][str(x)]["mean"] for x in xs]
-        ys_err = [results_dict[bline][str(x)]["sem"] for x in xs]
+        # ys_err = [results_dict[bline][str(x)]["sem"] for x in xs]
         ax.errorbar(
             xs,
             ys,
             # yerr=ys_err,
-            fmt='o-',
+            fmt="o-",
             label=bline,
         )
 
