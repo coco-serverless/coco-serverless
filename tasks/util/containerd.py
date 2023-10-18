@@ -4,7 +4,7 @@ from time import sleep
 
 
 def get_journalctl_containerd_logs():
-    journalctl_cmd = 'sudo journalctl -xeu containerd --since "10 min ago" -o json'
+    journalctl_cmd = 'sudo journalctl -xeu containerd --since "1 min ago" -o json'
     out = (
         run(journalctl_cmd, shell=True, capture_output=True)
         .stdout.decode("utf-8")
@@ -31,13 +31,25 @@ def get_start_end_ts_for_containerd_event(event_name, event_id, lower_bound=None
             event_json = []
             for o in out:
                 o_json = json_loads(o)
-                if o_json is None or "MESSAGE" not in o_json:
+                if (
+                    o_json is None
+                    or "MESSAGE" not in o_json
+                    or o_json["MESSAGE"] is None
+                ):
                     # Sometimes, after resetting containerd, some of the
                     # journal messages won't have a "MESSAGE" in it, so we skip
                     # them
                     continue
-                if event_name in o_json["MESSAGE"] and event_id in o_json["MESSAGE"]:
-                    event_json.append(o_json)
+                try:
+                    if (
+                        event_name in o_json["MESSAGE"]
+                        and event_id in o_json["MESSAGE"]
+                    ):
+                        event_json.append(o_json)
+                except TypeError as e:
+                    print(o_json)
+                    print(e)
+                    raise e
 
             assert len(event_json) >= 2, "Not enough events in log: {} !>= 2".format(
                 len(event_json)
