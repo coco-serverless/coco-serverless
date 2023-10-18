@@ -92,7 +92,8 @@ def cleanup_after_run(baseline, used_ctr_images):
     """
     This method is called after each experiment run
     """
-    if baseline in ["docker", "kata"]:
+    # The Kata baseline we use also pulls iamges directly on the host
+    if baseline in ["docker"]:
         clean_container_images(used_ctr_images)
 
 
