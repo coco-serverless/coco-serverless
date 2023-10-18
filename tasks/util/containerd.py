@@ -4,7 +4,7 @@ from time import sleep
 
 
 def get_journalctl_containerd_logs():
-    journalctl_cmd = 'sudo journalctl -xeu containerd --since "10 min ago" -o json'
+    journalctl_cmd = 'sudo journalctl -xeu containerd --since "1 min ago" -o json'
     out = (
         run(journalctl_cmd, shell=True, capture_output=True)
         .stdout.decode("utf-8")
@@ -12,27 +12,6 @@ def get_journalctl_containerd_logs():
         .split("\n")
     )
     return out
-
-
-def get_time_pulling_image(image_name):
-    """
-    Retrieve the start and end timestamp (in epoch floating seconds) for the
-    PullImage event from containerd
-    """
-    out = get_journalctl_containerd_logs()
-
-    pull_image_json = []
-    for o in out:
-        o_json = json_loads(o)
-        if "PullImage" in o_json["MESSAGE"] and image_name in o_json["MESSAGE"]:
-            pull_image_json.append(o_json)
-
-    assert len(pull_image_json) >= 2
-
-    start_ts = int(pull_image_json[-2]["__REALTIME_TIMESTAMP"]) / 1e6
-    end_ts = int(pull_image_json[-1]["__REALTIME_TIMESTAMP"]) / 1e6
-
-    return start_ts, end_ts
 
 
 def get_start_end_ts_for_containerd_event(event_name, event_id, lower_bound=None):
@@ -52,24 +31,51 @@ def get_start_end_ts_for_containerd_event(event_name, event_id, lower_bound=None
             event_json = []
             for o in out:
                 o_json = json_loads(o)
-                if event_name in o_json["MESSAGE"] and event_id in o_json["MESSAGE"]:
-                    event_json.append(o_json)
+                if (
+                    o_json is None
+                    or "MESSAGE" not in o_json
+                    or o_json["MESSAGE"] is None
+                ):
+                    # Sometimes, after resetting containerd, some of the
+                    # journal messages won't have a "MESSAGE" in it, so we skip
+                    # them
+                    continue
+                try:
+                    if (
+                        event_name in o_json["MESSAGE"]
+                        and event_id in o_json["MESSAGE"]
+                    ):
+                        event_json.append(o_json)
+                except TypeError as e:
+                    print(o_json)
+                    print(e)
+                    raise e
 
-            assert len(event_json) >= 2
+            assert len(event_json) >= 2, "Not enough events in log: {} !>= 2".format(
+                len(event_json)
+            )
 
             start_ts = int(event_json[-2]["__REALTIME_TIMESTAMP"]) / 1e6
             end_ts = int(event_json[-1]["__REALTIME_TIMESTAMP"]) / 1e6
 
-            assert end_ts > start_ts
+            assert (
+                end_ts > start_ts
+            ), "End and start timestamp not in order: {} !> {}".format(end_ts, start_ts)
 
             if lower_bound is not None:
-                assert start_ts > lower_bound
+                assert (
+                    start_ts > lower_bound
+                ), "Provided timestamp smaller than lower bound: {} !> {}".format(
+                    start_ts, lower_bound
+                )
 
             return start_ts, end_ts
-        except AssertionError:
+        except AssertionError as e:
+            print(e)
             print(
-                "WARNING: Failed getting event {} (attempt {}/{})".format(
+                "WARNING: Failed getting event {} (id: {}) (attempt {}/{})".format(
                     event_name,
+                    event_id,
                     i + 1,
                     num_repeats,
                 )

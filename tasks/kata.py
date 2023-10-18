@@ -3,7 +3,7 @@ from os import makedirs
 from os.path import dirname, join
 from subprocess import run
 from tasks.util.env import KATA_CONFIG_DIR, KATA_IMG_DIR, PROJ_ROOT
-from tasks.util.toml import update_toml
+from tasks.util.toml import remove_entry_from_toml, update_toml
 
 KATA_RUNTIMES = ["qemu", "qemu-sev"]
 KATA_SOURCE_DIR = join(PROJ_ROOT, "..", "kata-containers")
@@ -58,7 +58,6 @@ def replace_agent(ctx, agent_source_dir=KATA_AGENT_SOURCE_DIR):
     4. Re-build the initrd
     5. Update the kata config to point to the new initrd
     """
-    conf_file_path = join(KATA_CONFIG_DIR, "configuration-qemu-sev.toml")
     # Use a hardcoded path, as we want to always start from a _clean_ initrd
     initrd_path = join(KATA_IMG_DIR, "kata-containers-initrd-sev.img")
 
@@ -105,10 +104,15 @@ def replace_agent(ctx, agent_source_dir=KATA_AGENT_SOURCE_DIR):
     run(initrd_pack_cmd, shell=True, check=True, env=work_env)
 
     # Lastly, update the Kata config to point to the new initrd
-    updated_toml_str = """
-    [hypervisor.qemu]
-    initrd = "{new_initrd_path}"
-    """.format(
-        new_initrd_path=new_initrd_path
-    )
-    update_toml(conf_file_path, updated_toml_str)
+    for runtime in KATA_RUNTIMES:
+        conf_file_path = join(KATA_CONFIG_DIR, "configuration-{}.toml".format(runtime))
+        updated_toml_str = """
+        [hypervisor.qemu]
+        initrd = "{new_initrd_path}"
+        """.format(
+            new_initrd_path=new_initrd_path
+        )
+        update_toml(conf_file_path, updated_toml_str)
+
+        if runtime == "qemu":
+            remove_entry_from_toml(conf_file_path, "hypervisor.qemu.image")

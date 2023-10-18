@@ -92,7 +92,8 @@ def cleanup_after_run(baseline, used_ctr_images):
     """
     This method is called after each experiment run
     """
-    if baseline in ["docker", "kata"]:
+    # The Kata baseline we use also pulls iamges directly on the host
+    if baseline in ["docker"]:
         clean_container_images(used_ctr_images)
 
 
@@ -299,9 +300,6 @@ def plot(ctx):
     for csv in glob(glob_str):
         baseline = basename(csv).split(".")[0].split("_")[0]
         flavour = basename(csv).split(".")[0].split("_")[1]
-        if baseline == "kata":
-            # TODO: kata baseline does not work
-            continue
 
         if baseline not in results_dict:
             results_dict[baseline] = {}
@@ -430,7 +428,7 @@ def plot(ctx):
                     acc_ys[i] += ys[i]
 
     # Misc
-    ax.set_xticks(xs, xlabels)
+    ax.set_xticks(xs, xlabels, rotation=45)
     ax.set_xlabel("Baseline")
     ax.set_ylabel("Time [s]")
     ax.set_title("End-to-end latency to start a pod\n(cold start='/' - warm start='.')")
