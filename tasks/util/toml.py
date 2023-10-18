@@ -82,3 +82,35 @@ def read_value_from_toml(toml_file_path, toml_path):
         raise RuntimeError("Haven't reached TOML leaf!")
 
     return toml_file
+
+
+def do_remove_entry_from_toml(toml_dict, toml_path):
+    toml_levels = toml_path.split(".")
+    dict_key = toml_levels[0]
+
+    if dict_key not in toml_dict:
+        return toml_dict
+
+    if not isinstance(toml_dict[dict_key], dict):
+        del toml_dict[dict_key]
+        return toml_dict
+
+    toml_dict[dict_key] = do_remove_entry_from_toml(
+        toml_dict[dict_key],
+        ".".join(toml_levels[1:]),
+    )
+
+    return toml_dict
+
+
+def remove_entry_from_toml(toml_file_path, toml_path):
+    """
+    Remove an entry (and all its descendants) from a TOML specified by a path.
+    This method returns silently if the specified path does not exist.
+    """
+    toml_file = toml_load(toml_file_path)
+
+    toml_file = do_remove_entry_from_toml(toml_file, toml_path)
+
+    with open(toml_file_path, "w") as fh:
+        toml_dump(toml_file, fh)

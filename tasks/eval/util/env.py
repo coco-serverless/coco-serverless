@@ -17,18 +17,15 @@ BASELINES = {
         "signature_verification": "",
         "signature_policy": "",
     },
-    # This baseline uses plain Knative on Kata containers (i.e. VMs)
-    # Unfortunately, we can't run baseline kata as we need to use the CCv0
-    # fork with CoCo, and we had to patch the agent in that version to run wiht
-    # image revisions
-    # TODO: consider fixing
-    # "kata": {
-    # "runtime_class": "kata",
-    # "image_tag": "unencrypted",
-    # "guest_attestation": "",
-    # "signature_verification": "",
-    # "signature_policy": "",
-    # },
+    # This baseline uses plain Knative on CoCo, but without SEV-enabled VMs
+    # (so all CoCo machinery, but no runtime memory encryption)
+    "kata": {
+        "runtime_class": "kata-qemu",
+        "image_tag": "unencrypted",
+        "guest_attestation": "",
+        "signature_verification": "",
+        "signature_policy": "",
+    },
     # This baseline uses Knative on confidential VMs with Kata, but does not
     # have any kind of attestation feature. This is an _insecure_ baseline,
     # and only included for demonstration purposes

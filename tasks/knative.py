@@ -146,6 +146,9 @@ def install(ctx):
     run_kubectl_command(kube_cmd)
     wait_for_pods_in_ns(KNATIVE_NAMESPACE, label="app=default-domain")
 
+    # Replace the sidecar to use an image we control
+    replace_sidecar(ctx)
+
     print("Succesfully deployed Knative! The external IP is: {}".format(actual_ip))
 
 
