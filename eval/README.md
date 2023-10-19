@@ -44,6 +44,7 @@ inv cosign.sign-container-image "ghcr.io/csegarragonz/coco-knative-sidecar:unenc
 Now you are ready to run one of the experiments:
 * [Start-Up Costs](#start-up-costs) - time required to spin-up a Knative service.
 * [Instantiation Throughput](#instantiation-throughput) - throughput-latency of service instantiation.
+* [Memory Size](#memory-size) - impact on initial VM memory size on start-up time.
 
 ### Start-Up Costs
 
@@ -98,6 +99,25 @@ which generates a plot in [`./plots/xput/xput.png`](
 ./plots/xput/xput.png). You can also see the plot below:
 
 ![plot](./plots/xput/xput.png)
+
+### Memory Size
+
+This experiment explores the impact of the initial VM memory size on the
+Knative service start-up time.
+
+By initial VM memory size we mean the memory size passed to QEMU with the `-m`
+flag. This size can be configured through the Kata configuration file.
+
+To run the experiment you may run:
+
+```bash
+inv eval.mem-size.run
+```
+
+which generates a plot in [`./plots/mem-size/mem_size.png`](
+./plots/mem-size/mem_size.png). You can also see the plot below:
+
+![plot](./plots/mem-size/mem_size.png)
 
 ## Benchmarks
 
