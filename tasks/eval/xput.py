@@ -3,7 +3,7 @@ from glob import glob
 from invoke import task
 from json import loads as json_loads
 from matplotlib.pyplot import subplots
-from numpy import array as np_array, mean as np_mean
+from numpy import array as np_array, mean as np_mean, std as np_std
 from os import makedirs
 from os.path import basename, exists, join
 from pandas import read_csv
@@ -193,7 +193,10 @@ def plot(ctx):
                 np_array(results["EndTimeStampSec"].to_list())
                 - np_array(results["StartTimeStampSec"].to_list())
             ),
-            "sem": 0,
+            "sem": np_std(
+                np_array(results["EndTimeStampSec"].to_list())
+                - np_array(results["StartTimeStampSec"].to_list())
+            ),
         }
 
     # Plot throughput-latency
@@ -202,11 +205,11 @@ def plot(ctx):
     for bline in baselines:
         xs = sorted([int(k) for k in results_dict[bline].keys()])
         ys = [results_dict[bline][str(x)]["mean"] for x in xs]
-        # ys_err = [results_dict[bline][str(x)]["sem"] for x in xs]
+        ys_err = [results_dict[bline][str(x)]["sem"] for x in xs]
         ax.errorbar(
             xs,
             ys,
-            # yerr=ys_err,
+            yerr=ys_err,
             fmt="o-",
             label=bline,
         )
