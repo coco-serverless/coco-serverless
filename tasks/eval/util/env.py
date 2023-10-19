@@ -8,6 +8,13 @@ EVAL_TEMPLATED_DIR = join(EVAL_ROOT, "templated")
 PLOTS_DIR = join(EVAL_ROOT, "plots")
 RESULTS_DIR = join(EVAL_ROOT, "results")
 
+# We are running into image pull rate issues, so we want to support changing
+# this easily. Note that the image, signatures, and encrypted layers _already_
+# live in any container registry before we run the experiment
+EXPERIMENT_IMAGE_REPO = "ghcr.io"
+
+INTER_RUN_SLEEP_SECS = 1
+
 BASELINES = {
     # This baseline uses plain Knative on docker containrs
     "docker": {
@@ -64,6 +71,7 @@ BASELINES = {
         "signature_policy": "verify",
     },
 }
+BASELINE_FLAVOURS = ["warm", "cold"]
 
 # Each image digest has a unique ID in `crictl`'s image repository. We want to
 # remove it from there to avoid caching images when measuring cold starts.

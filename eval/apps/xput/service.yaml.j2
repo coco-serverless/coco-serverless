@@ -1,7 +1,7 @@
 apiVersion: serving.knative.dev/v1
 kind: Service
 metadata:
-  name: helloworld-knative
+  name: helloworld-knative-{{ service_num }}
   annotations:
     "features.knative.dev/podspec-runtimeclassname": "enabled"
 spec:
@@ -11,12 +11,14 @@ spec:
         apps.coco-serverless/name: helloworld-py
         io.katacontainers.config.pre_attestation.enabled: "false"
     spec:
-      runtimeClassName: kata-qemu-sev
+      {% if runtime_class is defined %}
+      runtimeClassName: {{ runtime_class }}
       # coco-knative: need to run user container as root
       securityContext:
         runAsUser: 1000
+      {% endif %}
       containers:
-        - image: ghcr.io/csegarragonz/coco-helloworld-py:unencrypted
+        - image: {{ image_repo }}/{{ image_name }}:{{ image_tag }}
           ports:
             - containerPort: 8080
           env:

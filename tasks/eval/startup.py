@@ -8,93 +8,23 @@ from numpy import array as np_array, mean as np_mean
 from os import makedirs
 from os.path import basename, exists, join
 from pandas import read_csv
-from subprocess import run as sp_run
+from tasks.eval.util.clean import cleanup_after_run
+from tasks.eval.util.csv import init_csv_file, write_csv_line
 from tasks.eval.util.env import (
     APPS_DIR,
+    BASELINE_FLAVOURS,
     BASELINES,
+    EXPERIMENT_IMAGE_REPO,
     EVAL_TEMPLATED_DIR,
-    IMAGE_TO_ID,
+    INTER_RUN_SLEEP_SECS,
     RESULTS_DIR,
     PLOTS_DIR,
 )
-from tasks.util.coco import guest_attestation, signature_verification
+from tasks.eval.util.setup import setup_baseline
 from tasks.util.containerd import get_start_end_ts_for_containerd_event
 from tasks.util.k8s import get_container_id_from_pod, template_k8s_file
-from tasks.util.kbs import clear_kbs_db, provision_launch_digest
 from tasks.util.kubeadm import get_pod_names_in_ns, run_kubectl_command
 from time import sleep, time
-
-# We are running into image pull rate issues, so we want to support changing
-# this easily. Note that the image, signatures, and encrypted layers _already_
-# live in any container registry before we run the experiment
-EXPERIMENT_IMAGE_REPO = "ghcr.io"
-
-BASELINE_FLAVOURS = ["warm", "cold"]
-
-INTER_RUN_SLEEP_SECS = 1
-
-
-def init_csv_file(file_name, header):
-    with open(file_name, "w") as fh:
-        fh.write("{}\n".format(header))
-
-
-def write_csv_line(file_name, *args):
-    layout = ",".join(["{}" for _ in range(len(args))]) + "\n"
-    with open(file_name, "a") as fh:
-        fh.write(layout.format(*args))
-
-
-def setup_baseline(baseline, used_images):
-    """
-    Configure the system for a specific baseline
-
-    This set-up is meant to run once per baseline (so not per run) and it
-    configures things like turning guest attestation on/off or signature
-    verification on/off and also populating the KBS.
-    """
-    if baseline in ["docker", "kata"]:
-        return
-
-    baseline_traits = BASELINES[baseline]
-
-    # Turn guest pre-attestation on/off (connect KBS to PSP)
-    guest_attestation(baseline_traits["guest_attestation"])
-
-    # Turn signature verification on/off (validate HW digest)
-    signature_verification(baseline_traits["signature_verification"])
-
-    # Manually clean the KBS but skip clearing the secrets used to decrypt
-    # images. Those can remain there
-    clear_kbs_db(skip_secrets=True)
-
-    # Configure signature policy (check image signature or not). We must do
-    # this at the very end as it relies on: (i) the KBS DB being clear, and
-    # (ii) the configuration file populated by the previous methods
-    images_to_sign = [join(EXPERIMENT_IMAGE_REPO, image) for image in used_images]
-    provision_launch_digest(
-        images_to_sign,
-        signature_policy=baseline_traits["signature_policy"],
-        clean=False,
-    )
-
-
-def clean_container_images(used_ctr_images):
-    ids_to_remove = [IMAGE_TO_ID["csegarragonz/coco-knative-sidecar"]]
-    for ctr in used_ctr_images:
-        ids_to_remove.append(IMAGE_TO_ID[ctr])
-    crictl_cmd = "sudo crictl rmi {}".format(" ".join(ids_to_remove))
-    out = sp_run(crictl_cmd, shell=True, capture_output=True)
-    assert out.returncode == 0
-
-
-def cleanup_after_run(baseline, used_ctr_images):
-    """
-    This method is called after each experiment run
-    """
-    # The Kata baseline we use also pulls iamges directly on the host
-    if baseline in ["docker"]:
-        clean_container_images(used_ctr_images)
 
 
 def do_run(result_file, num_run, service_file, flavour, warmup=False):

@@ -43,15 +43,22 @@ inv cosign.sign-container-image "ghcr.io/csegarragonz/coco-knative-sidecar:unenc
 
 Now you are ready to run one of the experiments:
 * [Start-Up Costs](#start-up-costs) - time required to spin-up a Knative service.
+* [Instantiation Throughput](#instantiation-throughput) - throughput-latency of service instantiation.
 
 ### Start-Up Costs
 
 This benchmark compares the time required to spin-up a pod as measured from
 Kubernetes. This is the higher-level (user-facing) measure we can take.
 
+The benchmark must be run with `debug` logging disabled:
+
+```bash
+inv containerd.set-log-level info kata.set-log-level info
+```
+
 In order to run the experiment, just run:
 
-```
+```bash
 inv eval.startup.run
 ```
 
@@ -70,6 +77,27 @@ In addition, we also generate a breakdown pie chart for one of the runs in
 [`./plots/sartup/breakdown.png`](./plots/startup/breakdown.png):
 
 ![plot](./plots/startup/breakdown.png)
+
+### Instantiation Throughput
+
+In this experiment we measure the time it takes to spawn a fixed number of
+Knative services. Each service uses the _same_ docker image, so it is a proxy
+measurement for scale-up/scale-down costs.
+
+In more detail, we template `N` different service files, apply all of them,
+and wait for all associated service pods to be in `Ready` state. We report the
+time between we apply all files, and the last service pod is `Ready`.
+
+To run the benchmark, you may run:
+
+```bash
+inv eval.xput.run
+```
+
+which generates a plot in [`./plots/xput/xput.png`](
+./plots/xput/xput.png). You can also see the plot below:
+
+![plot](./plots/xput/xput.png)
 
 ## Benchmarks
 
