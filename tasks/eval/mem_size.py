@@ -113,7 +113,7 @@ def run(ctx, baseline=None, mem_size_mult=None):
     service_template_file = join(APPS_DIR, "mem-size", "service.yaml.j2")
     image_name = "csegarragonz/coco-helloworld-py"
     used_images = ["csegarragonz/coco-knative-sidecar", image_name]
-    num_runs = 1
+    num_runs = 3
 
     # Get the default memory size
     default_vm_mem_size = get_default_vm_mem_size()
