@@ -1,5 +1,7 @@
 from datetime import datetime
 from json import loads as json_loads
+from re import search as re_search
+from tasks.util.containerd import get_event_from_containerd_logs
 from tasks.util.kubeadm import run_kubectl_command
 from time import sleep
 
@@ -44,3 +46,13 @@ def wait_for_pod_ready_and_get_ts(pod_name):
         pod_ready = is_pod_ready(pod_name)
 
     return get_pod_ready_ts(pod_name)
+
+
+def get_sandbox_id_from_pod_name(pod_name):
+    """
+    Get the sandbox ID from a pod name
+    """
+    # The sandbox ID is in the ending pair of the RunPodSandbox event
+    event_json = get_event_from_containerd_logs("RunPodSandbox", pod_name, 2)[-1]
+    sbox_id = re_search(r'returns sandbox id \\"([a-zA-Z0-9]*)\\"', event_json["MESSAGE"]).groups(1)[0]
+    return sbox_id

@@ -12,6 +12,7 @@ from . import kbs
 from . import knative
 from . import kubeadm
 from . import operator
+from . import ovmf
 from . import sev
 from . import skopeo
 
@@ -30,6 +31,7 @@ ns = Collection(
     knative,
     kubeadm,
     operator,
+    ovmf,
     sev,
     skopeo,
 )

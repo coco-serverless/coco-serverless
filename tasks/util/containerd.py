@@ -14,10 +14,10 @@ def get_journalctl_containerd_logs():
     return out
 
 
-def get_start_end_ts_for_containerd_event(event_name, event_id, lower_bound=None):
+def get_event_from_containerd_logs(event_name, event_id, num_events):
     """
-    Get the start and end timestamps (in epoch floating seconds) for a given
-    event from the containerd journalctl logs
+    Get the last `num_events` events in containerd logs that correspond to
+    the `event_name` for sandbox/pod/container id `event_id`
     """
     # Parsing from `journalctl` is slightly hacky, and prone to spurious
     # errors. We put a lot of assertions here to make sure that the timestamps
@@ -51,25 +51,12 @@ def get_start_end_ts_for_containerd_event(event_name, event_id, lower_bound=None
                     print(e)
                     raise e
 
-            assert len(event_json) >= 2, "Not enough events in log: {} !>= 2".format(
-                len(event_json)
+            assert len(event_json) >= num_events, "Not enough events in log: {} !>= {}".format(
+                len(event_json),
+                num_events
             )
 
-            start_ts = int(event_json[-2]["__REALTIME_TIMESTAMP"]) / 1e6
-            end_ts = int(event_json[-1]["__REALTIME_TIMESTAMP"]) / 1e6
-
-            assert (
-                end_ts > start_ts
-            ), "End and start timestamp not in order: {} !> {}".format(end_ts, start_ts)
-
-            if lower_bound is not None:
-                assert (
-                    start_ts > lower_bound
-                ), "Provided timestamp smaller than lower bound: {} !> {}".format(
-                    start_ts, lower_bound
-                )
-
-            return start_ts, end_ts
+            return event_json[-num_events:]
         except AssertionError as e:
             print(e)
             print(
@@ -82,3 +69,44 @@ def get_start_end_ts_for_containerd_event(event_name, event_id, lower_bound=None
             )
             sleep(backoff_secs)
             continue
+
+
+def get_ts_for_containerd_event(event_name, event_id, lower_bound=None):
+    """
+    Get the journalctl timestamp for one event in the containerd logs
+    """
+    event_json = get_event_from_containerd_logs(event_name, event_id, 1)[0]
+    ts = int(event_json["__REALTIME_TIMESTAMP"]) / 1e6
+
+    if lower_bound is not None:
+        assert (
+            ts > lower_bound
+        ), "Provided timestamp smaller than lower bound: {} !> {}".format(
+            ts, lower_bound
+        )
+
+    return ts
+
+
+def get_start_end_ts_for_containerd_event(event_name, event_id, lower_bound=None):
+    """
+    Get the start and end timestamps (in epoch floating seconds) for a given
+    event from the containerd journalctl logs
+    """
+    event_json = get_event_from_containerd_logs(event_name, event_id, 2)
+
+    start_ts = int(event_json[-2]["__REALTIME_TIMESTAMP"]) / 1e6
+    end_ts = int(event_json[-1]["__REALTIME_TIMESTAMP"]) / 1e6
+
+    assert (
+        end_ts > start_ts
+    ), "End and start timestamp not in order: {} !> {}".format(end_ts, start_ts)
+
+    if lower_bound is not None:
+        assert (
+            start_ts > lower_bound
+        ), "Provided timestamp smaller than lower bound: {} !> {}".format(
+            start_ts, lower_bound
+        )
+
+    return start_ts, end_ts
