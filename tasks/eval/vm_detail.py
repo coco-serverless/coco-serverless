@@ -98,13 +98,17 @@ def do_run(result_file, num_run, service_file, flavour, warmup=False):
         sandbox_id = get_sandbox_id_from_pod_name(pod_name)
 
         # Starting VM happens briefly after the beginning of RunPodSandbox.
-        # Before that, the shim is just loading a bunch of plugins that don't
-        # seem to take up too much time
-        start_ts_vms = get_ts_for_containerd_event("Starting VM", sandbox_id, lower_bound=start_ts_ps)
+        # To get the start timestamp for starting the VM, we grep for one of
+        # the first log messages from the Kata runtime (not containerd)
+        start_ts_vmp = get_ts_for_containerd_event("IOMMUPlatform is disabled by default.", sandbox_id, lower_bound=start_ts_ps)
+        events_ts.append(("StartVMPreparation", start_ts_vmp))
+        start_ts_vms = get_ts_for_containerd_event("Starting VM", sandbox_id, lower_bound=start_ts_vmp)
         events_ts.append(("StartVMStarted", start_ts_vms))
 
         # Pre-attestation
-        start_ts_preatt = get_ts_for_containerd_event("Set up prelaunch attestation", sandbox_id, lower_bound=start_ts_vms)
+        # What to do with this event? It is just a set-up step I think
+        # start_ts_preatt = get_ts_for_containerd_event("Set up prelaunch attestation", sandbox_id, lower_bound=start_ts_vms)
+        start_ts_preatt = get_ts_for_containerd_event("Processing prelaunch attestation", sandbox_id, lower_bound=start_ts_vms)
         end_ts_preatt = get_ts_for_containerd_event("Launch secrets injected", sandbox_id, lower_bound=start_ts_preatt)
         events_ts.append(("StartPreAtt", start_ts_preatt))
         events_ts.append(("EndPreAtt", end_ts_preatt))
@@ -235,6 +239,7 @@ def plot(ctx):
     # Useful maps to plot the experiments
     ordered_events = {
         "make-pod-sandbox": ("StartRunPodSandbox", "EndRunPodSandbox"),
+        "host-setup": ("StartVMPreparation", "EndVMStarted"),
         "start-vm": ("StartVMStarted", "EndVMStarted"),
         "pre-attestation": ("StartPreAtt", "EndPreAtt"),
         "guest-setup": ("EndVMStarted", "AgentStarted"),
@@ -243,14 +248,16 @@ def plot(ctx):
     }
     height_for_event = {
         "make-pod-sandbox": 0,
-        "start-vm": 1,
-        "pre-attestation": 2,
+        "host-setup": 1,
+        "start-vm": 2,
+        "pre-attestation": 3,
         "guest-setup": 1,
         "guest-kernel-booting": 2,
         "kata-agent-booting": 2,
     }
     color_for_event = {
         "make-pod-sandbox": "red",
+        "host-setup": "purple",
         "start-vm": "orange",
         "pre-attestation": "green",
         "guest-setup": "yellow",
