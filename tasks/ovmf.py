@@ -75,13 +75,13 @@ def set_log_level(ctx, log_level):
 
     default_fw_path = "/opt/confidential-containers/share/ovmf/AMDSEV.fd"
     debug_fw_path = "/opt/confidential-containers/share/ovmf/AMDSEV_CSG.fd"
-    copy_ovmf_from_src(debug_fw_path)
+    if log_level == "debug":
+        copy_ovmf_from_src(debug_fw_path)
     fw_path = default_fw_path if log_level == "info" else debug_fw_path
 
     updated_toml_str = """
     [hypervisor.qemu]
     path = "{qemu_path}"
-    valid_hypervisor_paths = [ "{qemu_path}",]
     firmware = "{fw_path}"
     """.format(
         qemu_path=qemu_path,
