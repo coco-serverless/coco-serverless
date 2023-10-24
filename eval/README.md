@@ -142,6 +142,17 @@ the following:
 5. The Kernel calls the `/init` process, which in our case is the `kata-agent`
 6. Once the `kata-agent` has started, it concludes the API `RunPodSandbox` call
 
+To generate a flame graph-like plot with the detailed costs, you may run:
+
+```bash
+inv eval.vm-detail.run
+```
+
+which generates a plot in [`./plots/vm-detail/vm_detail.png`](
+./plots/vm-detail/vm_detail.png). You can also see the plot below:
+
+![plot](./plots/vm-detail/vm_detail.png)
+
 ## Benchmarks
 
 TODO

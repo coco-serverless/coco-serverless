@@ -8,11 +8,10 @@ OVMF_IMAGE_TAG = "ovmf-build"
 
 
 def do_ovmf_build(target):
-    docker_cmd = "docker build -t {} -f {} .".format(
-        OVMF_IMAGE_TAG, join(PROJ_ROOT, "docker", "ovmf.dockerfile")
+    docker_cmd = "docker build --build-arg TARGET={} -t {} -f {} .".format(
+        target, OVMF_IMAGE_TAG, join(PROJ_ROOT, "docker", "ovmf.dockerfile")
     )
-    env = {"TARGET": target}
-    run(docker_cmd, shell=True, check=True, cwd=PROJ_ROOT, env=env)
+    run(docker_cmd, shell=True, check=True, cwd=PROJ_ROOT)
 
 
 def copy_ovmf_from_src(dst_path):
@@ -81,6 +80,7 @@ def set_log_level(ctx, log_level):
 
     updated_toml_str = """
     [hypervisor.qemu]
+    path = "{qemu_path}"
     valid_hypervisor_paths = [ "{qemu_path}",]
     firmware = "{fw_path}"
     """.format(

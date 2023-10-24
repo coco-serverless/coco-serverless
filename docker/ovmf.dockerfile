@@ -17,6 +17,8 @@ RUN apt update \
 ARG TARGET
 RUN mkdir -p /usr/src/edk2 \
     && git clone \
+        -b edk2-stable202302 \
+        --single-branch --depth 1 \
         https://github.com/tianocore/edk2.git \
         /usr/src/edk2 \
     && cd /usr/src/edk2 \
