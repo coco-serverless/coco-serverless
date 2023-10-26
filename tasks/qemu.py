@@ -54,12 +54,15 @@ def standalone(ctx):
         "-machine memory-encryption=sev0",
         "-object sev-guest,id=sev0,cbitpos=51,reduced-phys-bits=1",
         "-drive if=pflash,format=raw,readonly=on,file={}".format(
-            read_value_from_toml(conf_file_path, "hypervisor.qemu.firmware")),
+            read_value_from_toml(conf_file_path, "hypervisor.qemu.firmware")
+        ),
         "-kernel {}".format(
-            read_value_from_toml(conf_file_path, "hypervisor.qemu.kernel")),
-        "-append \"console=ttyS0 earlyprintk=serial root=/dev/sda2\"",
+            read_value_from_toml(conf_file_path, "hypervisor.qemu.kernel")
+        ),
+        '-append "console=ttyS0 earlyprintk=serial root=/dev/sda2"',
         "-initrd {}".format(
-            read_value_from_toml(conf_file_path, "hypervisor.qemu.initrd")),
+            read_value_from_toml(conf_file_path, "hypervisor.qemu.initrd")
+        ),
         "-nographic",
         "-nodefaults",
         "--trace 'kvm_sev_*'",

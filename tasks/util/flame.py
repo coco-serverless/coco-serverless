@@ -8,9 +8,7 @@ FLAME_GRAPH_ROOT = join(PROJ_ROOT, "..", "FlameGraph")
 def generate_flame_graph(pid, time_in_secs, flame_path):
     perf_data_file = "/tmp/perf.data"
     cmd = "sudo perf record -F 99 -p {} -g -o {} -- sleep {}".format(
-        pid,
-        perf_data_file,
-        time_in_secs
+        pid, perf_data_file, time_in_secs
     )
     run(cmd, shell=True, check=True)
 

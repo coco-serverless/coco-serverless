@@ -47,13 +47,13 @@ def get_guest_kernel_start_ts(lower_bound=None):
     """
     start_kernel_string = "random: crng init done"
     event_json = get_event_from_containerd_logs(
-        start_kernel_string,
-        start_kernel_string,
-        1
+        start_kernel_string, start_kernel_string, 1
     )[0]
 
     # print(event_json["MESSAGE"])
-    guest_kernel_ts = float(re_search(r'vmconsole="\[ *([\.0-9]*)\]', event_json["MESSAGE"]).groups(1)[0])
+    guest_kernel_ts = float(
+        re_search(r'vmconsole="\[ *([\.0-9]*)\]', event_json["MESSAGE"]).groups(1)[0]
+    )
     journalctl_ts = int(event_json["__REALTIME_TIMESTAMP"]) / 1e6
     ts = journalctl_ts - guest_kernel_ts
 
@@ -109,21 +109,31 @@ def do_run(result_file, num_run, service_file, flavour, warmup=False):
         # Starting VM happens briefly after the beginning of RunPodSandbox.
         # To get the start timestamp for starting the VM, we grep for one of
         # the first log messages from the Kata runtime (not containerd)
-        start_ts_vmp = get_ts_for_containerd_event("IOMMUPlatform is disabled by default.", sandbox_id, lower_bound=start_ts_ps)
+        start_ts_vmp = get_ts_for_containerd_event(
+            "IOMMUPlatform is disabled by default.", sandbox_id, lower_bound=start_ts_ps
+        )
         events_ts.append(("StartVMPreparation", start_ts_vmp))
-        start_ts_vms = get_ts_for_containerd_event("Starting VM", sandbox_id, lower_bound=start_ts_vmp)
+        start_ts_vms = get_ts_for_containerd_event(
+            "Starting VM", sandbox_id, lower_bound=start_ts_vmp
+        )
         events_ts.append(("StartVMStarted", start_ts_vms))
 
         # Pre-attestation
         # What to do with this event? It is just a set-up step I think
         # start_ts_preatt = get_ts_for_containerd_event("Set up prelaunch attestation", sandbox_id, lower_bound=start_ts_vms)
-        start_ts_preatt = get_ts_for_containerd_event("Processing prelaunch attestation", sandbox_id, lower_bound=start_ts_vms)
-        end_ts_preatt = get_ts_for_containerd_event("Launch secrets injected", sandbox_id, lower_bound=start_ts_preatt)
+        start_ts_preatt = get_ts_for_containerd_event(
+            "Processing prelaunch attestation", sandbox_id, lower_bound=start_ts_vms
+        )
+        end_ts_preatt = get_ts_for_containerd_event(
+            "Launch secrets injected", sandbox_id, lower_bound=start_ts_preatt
+        )
         events_ts.append(("StartPreAtt", start_ts_preatt))
         events_ts.append(("EndPreAtt", end_ts_preatt))
 
         # Get the VM started event
-        end_ts_vms = get_ts_for_containerd_event("VM started", sandbox_id, lower_bound=end_ts_preatt)
+        end_ts_vms = get_ts_for_containerd_event(
+            "VM started", sandbox_id, lower_bound=end_ts_preatt
+        )
         events_ts.append(("EndVMStarted", end_ts_vms))
 
         # Guest kernel start-end events
@@ -138,7 +148,9 @@ def do_run(result_file, num_run, service_file, flavour, warmup=False):
         events_ts.append(("EndGuestKernelBoot", end_ts_gk))
 
         # Get the agent started event
-        ts_as = get_ts_for_containerd_event("Agent started", sandbox_id, lower_bound=end_ts_vms)
+        ts_as = get_ts_for_containerd_event(
+            "Agent started", sandbox_id, lower_bound=end_ts_vms
+        )
         events_ts.append(("AgentStarted", ts_as))
 
         # Once the agent has started, the sandbox is essentially almost ready
@@ -195,7 +207,7 @@ def run(ctx):
         # Second, run any baseline-specific set-up
         setup_baseline(bline, used_images)
 
-        for flavour in ["cold"]: # BASELINE_FLAVOURS:
+        for flavour in ["cold"]:  # BASELINE_FLAVOURS:
             # Prepare the result file
             result_file = join(results_dir, "{}_{}.csv".format(bline, flavour))
             init_csv_file(result_file, "Run,Event,TimeStampMs")
@@ -253,7 +265,7 @@ def plot(ctx):
         "pre-attestation": ("StartPreAtt", "EndPreAtt"),
         "guest-setup": ("EndVMStarted", "AgentStarted"),
         "guest-kernel-booting": ("StartGuestKernelBoot", "EndGuestKernelBoot"),
-        "kata-agent-booting": ("EndGuestKernelBoot", "AgentStarted")
+        "kata-agent-booting": ("EndGuestKernelBoot", "AgentStarted"),
     }
     height_for_event = {
         "make-pod-sandbox": 0,
@@ -308,24 +320,20 @@ def plot(ctx):
         widths,
         height=bar_height,
         left=xs,
-        align='edge',
+        align="edge",
         label=labels,
         color=colors,
     )
 
     # Misc
     ax.set_xlabel("Time [s]")
-    ax.tick_params(
-        axis='y',
-        which='both',
-        left=False,
-        right=False,
-        labelbottom=False
-    )
+    ax.tick_params(axis="y", which="both", left=False, right=False, labelbottom=False)
     ax.set_yticklabels([])
     ax.legend()
     title_str = "Breakdown of the time to start a CoCo sandbox\n"
-    title_str += "(baseline: {})".format(baseline,)
+    title_str += "(baseline: {})".format(
+        baseline,
+    )
     ax.set_title(title_str)
 
     for plot_format in ["pdf", "png"]:

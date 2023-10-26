@@ -86,8 +86,7 @@ def set_log_level(ctx, log_level):
     path = "{qemu_path}"
     firmware = "{fw_path}"
     """.format(
-        qemu_path=qemu_path,
-        fw_path=fw_path
+        qemu_path=qemu_path, fw_path=fw_path
     )
 
     conf_file_path = join(KATA_CONFIG_DIR, "configuration-qemu-sev.toml")

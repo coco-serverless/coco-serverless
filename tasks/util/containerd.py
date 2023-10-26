@@ -51,10 +51,9 @@ def get_event_from_containerd_logs(event_name, event_id, num_events):
                     print(e)
                     raise e
 
-            assert len(event_json) >= num_events, "Not enough events in log: {} !>= {}".format(
-                len(event_json),
-                num_events
-            )
+            assert (
+                len(event_json) >= num_events
+            ), "Not enough events in log: {} !>= {}".format(len(event_json), num_events)
 
             return event_json[-num_events:]
         except AssertionError as e:
@@ -98,9 +97,9 @@ def get_start_end_ts_for_containerd_event(event_name, event_id, lower_bound=None
     start_ts = int(event_json[-2]["__REALTIME_TIMESTAMP"]) / 1e6
     end_ts = int(event_json[-1]["__REALTIME_TIMESTAMP"]) / 1e6
 
-    assert (
-        end_ts > start_ts
-    ), "End and start timestamp not in order: {} !> {}".format(end_ts, start_ts)
+    assert end_ts > start_ts, "End and start timestamp not in order: {} !> {}".format(
+        end_ts, start_ts
+    )
 
     if lower_bound is not None:
         assert (
