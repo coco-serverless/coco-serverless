@@ -29,8 +29,10 @@ from tasks.util.containerd import (
     get_start_end_ts_for_containerd_event,
     get_ts_for_containerd_event,
 )
+from tasks.util.flame import generate_flame_graph
 from tasks.util.k8s import get_container_id_from_pod, template_k8s_file
 from tasks.util.kubeadm import get_pod_names_in_ns, run_kubectl_command
+from tasks.util.qemu import get_qemu_pid
 from time import sleep, time
 
 
@@ -70,6 +72,13 @@ def do_run(result_file, num_run, service_file, flavour, warmup=False):
 
     # Silently start
     run_kubectl_command("apply -f {}".format(service_file), capture_output=True)
+
+    # Capture QEMU PID as soon as possible
+    qemu_pid = get_qemu_pid(0.05)
+    flame_path = "/tmp/qemu.svg"
+    print("Generating QEMU flame graph... (PID: {})".format(qemu_pid))
+    generate_flame_graph(qemu_pid, 20, flame_path)
+    print("Done generating QEMU flame graph. Saved file at: {}".format(flame_path))
 
     # Wait for pod to start
     pods = get_pod_names_in_ns("default")

@@ -52,7 +52,7 @@ def standalone(ctx):
         # "-machine q35,accel=kvm,kernel_irqchip=split,confidential-guest-support=sev",
         "-enable-kvm -cpu host -machine q35 -smp 1 -m 2G",
         "-machine memory-encryption=sev0",
-        "-object sev-guest,id=sev0,cbitpos=51,reduced-phys-bits=1,policy=0x0",
+        "-object sev-guest,id=sev0,cbitpos=51,reduced-phys-bits=1",
         "-drive if=pflash,format=raw,readonly=on,file={}".format(
             read_value_from_toml(conf_file_path, "hypervisor.qemu.firmware")),
         "-kernel {}".format(

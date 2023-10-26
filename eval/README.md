@@ -141,6 +141,7 @@ the following:
 4. The VM is officially started, and OVMF boots into the kernel from the `initrd`
 5. The Kernel calls the `/init` process, which in our case is the `kata-agent`
 6. Once the `kata-agent` has started, it concludes the API `RunPodSandbox` call
+for more detail on the OVMF boot process, see the [OVMF docs](../docs/ovmf.md).
 
 To generate a flame graph-like plot with the detailed costs, you may run:
 

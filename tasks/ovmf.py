@@ -14,18 +14,18 @@ def do_ovmf_build(target):
     run(docker_cmd, shell=True, check=True, cwd=PROJ_ROOT)
 
 
-def copy_ovmf_from_src(dst_path):
+def copy_ovmf_from_src(dst_path, target):
     """
     Copy a custom build of OVMF into the destination path
     """
-    do_ovmf_build("DEBUG")
+    do_ovmf_build(target)
 
     # Copy the debug-built OVMF into the destiantion path
     tmp_ctr_name = "tmp_ovmf"
     docker_cmd = "docker run -td --name {} {}".format(tmp_ctr_name, OVMF_IMAGE_TAG)
     run(docker_cmd, shell=True, check=True)
 
-    ctr_fd_path = "/usr/src/edk2/Build/AmdSev/DEBUG_GCC5/FV/OVMF.fd"
+    ctr_fd_path = "/usr/src/edk2/Build/AmdSev/{}_GCC5/FV/OVMF.fd".format(target)
     docker_cmd = "docker cp {}:{} {}".format(
         tmp_ctr_name,
         ctr_fd_path,
@@ -37,7 +37,7 @@ def copy_ovmf_from_src(dst_path):
 
 
 @task
-def build(ctx, target="DEBUG"):
+def build(ctx, target="RELEASE"):
     """
     Build the OVMF work-on container image
     """
@@ -54,11 +54,13 @@ def set_log_level(ctx, log_level):
     line, we use a bash wrapper with the extra flags, and point Kata to the
     wrapper script.
 
-    In addition, we need to re-compile OVMF from scratch with the DEBUG
-    target.
+    In addition, we need to re-compile OVMF from scratch with some additional
+    DEBUG statements (which we apply using a patch in `./patches`).
 
-    Note that using a DEBUG version of OVMF is only supported with the qemu-sev
-    runtime class.
+    Note that using a verbose version of OVMF is only supported with the
+    qemu-sev runtime class. Also note that the DEBUG log level still builds
+    a RELEASE target which introduces around 0.5 s of overhead to the boot
+    process.
     """
     allowed_log_levels = ["info", "debug"]
     if log_level not in allowed_log_levels:
@@ -76,7 +78,7 @@ def set_log_level(ctx, log_level):
     default_fw_path = "/opt/confidential-containers/share/ovmf/AMDSEV.fd"
     debug_fw_path = "/opt/confidential-containers/share/ovmf/AMDSEV_CSG.fd"
     if log_level == "debug":
-        copy_ovmf_from_src(debug_fw_path)
+        copy_ovmf_from_src(debug_fw_path, "RELEASE")
     fw_path = default_fw_path if log_level == "info" else debug_fw_path
 
     updated_toml_str = """

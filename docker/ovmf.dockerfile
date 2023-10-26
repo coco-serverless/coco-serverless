@@ -14,6 +14,7 @@ RUN apt update \
         uuid-dev \
         vim
 
+COPY ./patches/ovmf_profile.patch /tmp/ovmf_profile.patch
 ARG TARGET
 RUN mkdir -p /usr/src/edk2 \
     && git clone \
@@ -25,7 +26,12 @@ RUN mkdir -p /usr/src/edk2 \
     && git submodule update --init \
     && make -C BaseTools/ \
     && touch OvmfPkg/AmdSev/Grub/grub.efi \
+    && git apply /tmp/ovmf_profile.patch \
     && cd OvmfPkg \
-    && ./build.sh -b ${TARGET} -p OvmfPkg/AmdSev/AmdSevX64.dsc
+    && ./build.sh \
+        -b ${TARGET} \
+        -D DEBUG_ON_SERIAL_PORT \
+        -p OvmfPkg/AmdSev/AmdSevX64.dsc
+        # -D DEBUG_VERBOSE \
 
 WORKDIR /usr/src/edk2
