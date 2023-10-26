@@ -13,34 +13,34 @@ index 815a6b4..9f0e60a 100644
  // attributes for reserved memory before it is promoted to system memory
  //
 diff --git a/MdeModulePkg/Core/Dxe/DxeMain/DxeMain.c b/MdeModulePkg/Core/Dxe/DxeMain/DxeMain.c
-index 4683016..896b631 100644
+index 4683016..cdf29f9 100644
 --- a/MdeModulePkg/Core/Dxe/DxeMain/DxeMain.c
 +++ b/MdeModulePkg/Core/Dxe/DxeMain/DxeMain.c
-@@ -244,6 +244,13 @@ DxeMain (
+@@ -244,6 +244,14 @@ DxeMain (
    EFI_VECTOR_HANDOFF_INFO       *VectorInfo;
    VOID                          *EntryPoint;
  
 +  UINT64 StartTicks = GetPerformanceCounter();
 +  DEBUG ((
 +    DEBUG_INFO,
-+    "%a: CSG-M4G1C: BEGIN\n",
-+    __FUNCTION__
++    "%a: CSG-M4G1C: BEGIN (ticks): %" PRIu64 "\n",
++    __FUNCTION__,
++    StartTicks
 +  ));
 +
    //
    // Setup the default exception handlers
    //
-@@ -569,6 +576,15 @@ DxeMain (
+@@ -569,6 +577,14 @@ DxeMain (
      (EFI_SOFTWARE_DXE_CORE | EFI_SW_DXE_CORE_PC_HANDOFF_TO_NEXT)
      );
  
 +  UINT64 EndTicks = GetPerformanceCounter();
-+  UINT64 DurationNs = GetTimeInNanoSecond(EndTicks - StartTicks);
 +  DEBUG ((
 +    DEBUG_INFO,
-+    "%a: CSG-M4G1C: Duration (ns): %" PRIu64 "\n",
++    "%a: CSG-M4G1C: END (ticks): %" PRIu64 "\n",
 +    __FUNCTION__,
-+    DurationNs
++    EndTicks
 +  ));
 +
    //
@@ -73,35 +73,35 @@ index 052ea0e..ad481d2 100644
  [LibraryClasses.ARM, LibraryClasses.AARCH64]
    ArmMmuLib
 diff --git a/MdeModulePkg/Core/DxeIplPeim/DxeLoad.c b/MdeModulePkg/Core/DxeIplPeim/DxeLoad.c
-index 2c19f1a..c2aa857 100644
+index 2c19f1a..51df672 100644
 --- a/MdeModulePkg/Core/DxeIplPeim/DxeLoad.c
 +++ b/MdeModulePkg/Core/DxeIplPeim/DxeLoad.c
-@@ -268,6 +268,14 @@ DxeLoadCore (
+@@ -268,6 +268,15 @@ DxeLoadCore (
    EFI_MEMORY_TYPE_INFORMATION      MemoryData[EfiMaxMemoryType + 1];
    VOID                             *CapsuleOnDiskModePpi;
  
 +  UINT64 StartTicks = GetPerformanceCounter();
 +  DEBUG ((
 +    DEBUG_INFO,
-+    "%a: CSG-M4G1C: BEGIN\n",
-+    __FUNCTION__
++    "%a: CSG-M4G1C: BEGIN (ticks): %" PRIu64 "\n",
++    __FUNCTION__,
++    StartTicks
 +  ));
 +
 +
    //
    // if in S3 Resume, restore configure
    //
-@@ -443,6 +451,15 @@ DxeLoadCore (
+@@ -443,6 +452,14 @@ DxeLoadCore (
  
    DEBUG ((DEBUG_INFO | DEBUG_LOAD, "Loading DXE CORE at 0x%11p EntryPoint=0x%11p\n", (VOID *)(UINTN)DxeCoreAddress, FUNCTION_ENTRY_POINT (DxeCoreEntryPoint)));
  
 +  UINT64 EndTicks = GetPerformanceCounter();
-+  UINT64 DurationNs = GetTimeInNanoSecond(EndTicks - StartTicks);
 +  DEBUG ((
 +    DEBUG_INFO,
-+    "%a: CSG-M4G1C: Duration (ns): %" PRIu64 "\n",
++    "%a: CSG-M4G1C: END (ticks): %" PRIu64 "\n",
 +    __FUNCTION__,
-+    DurationNs
++    EndTicks
 +  ));
 +
    //
@@ -135,10 +135,10 @@ index 0cf3573..d4adacf 100644
  [Guids]
    gPeiAprioriFileNameGuid       ## SOMETIMES_CONSUMES   ## File
 diff --git a/MdeModulePkg/Core/Pei/PeiMain/PeiMain.c b/MdeModulePkg/Core/Pei/PeiMain/PeiMain.c
-index bf1719d..b388c4b 100644
+index bf1719d..59ffe9a 100644
 --- a/MdeModulePkg/Core/Pei/PeiMain/PeiMain.c
 +++ b/MdeModulePkg/Core/Pei/PeiMain/PeiMain.c
-@@ -179,6 +179,23 @@ PeiCore (
+@@ -179,6 +179,24 @@ PeiCore (
    EFI_PEI_TEMPORARY_RAM_DONE_PPI  *TemporaryRamDonePpi;
    UINTN                           Index;
  
@@ -155,24 +155,24 @@ index bf1719d..b388c4b 100644
 +  ));
 +  DEBUG ((
 +    DEBUG_INFO,
-+    "%a: CSG-M4G1C: BEGIN\n",
-+    __FUNCTION__
++    "%a: CSG-M4G1C: BEGIN (ticks): %" PRIu64 "\n",
++    __FUNCTION__,
++    StartTicks
 +  ));
 +
    //
    // Retrieve context passed into PEI Core
    //
-@@ -522,6 +539,15 @@ PeiCore (
+@@ -522,6 +540,14 @@ PeiCore (
      CpuDeadLoop ();
    }
  
 +  UINT64 EndTicks = GetPerformanceCounter();
-+  UINT64 DurationNs = GetTimeInNanoSecond(EndTicks - StartTicks);
 +  DEBUG ((
 +    DEBUG_INFO,
-+    "%a: CSG-M4G1C: Duration (ns): %" PRIu64 "\n",
++    "%a: CSG-M4G1C: END (ticks): %" PRIu64 "\n",
 +    __FUNCTION__,
-+    DurationNs
++    EndTicks
 +  ));
 +
    //
@@ -191,7 +191,7 @@ index 5bac635..6a1aead 100644
  [Guids]
    gEfiGlobalVariableGuid                        ## SOMETIMES_PRODUCES ## Variable:L"BootNext" (The number of next boot option)
 diff --git a/MdeModulePkg/Universal/BdsDxe/BdsEntry.c b/MdeModulePkg/Universal/BdsDxe/BdsEntry.c
-index 766dde3..00401d3 100644
+index 766dde3..1a52226 100644
 --- a/MdeModulePkg/Universal/BdsDxe/BdsEntry.c
 +++ b/MdeModulePkg/Universal/BdsDxe/BdsEntry.c
 @@ -17,6 +17,9 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -204,31 +204,31 @@ index 766dde3..00401d3 100644
  #define SET_BOOT_OPTION_SUPPORT_KEY_COUNT(a, c)  { \
        (a) = ((a) & ~EFI_BOOT_OPTION_SUPPORT_COUNT) | (((c) << LowBitSet32 (EFI_BOOT_OPTION_SUPPORT_COUNT)) & EFI_BOOT_OPTION_SUPPORT_COUNT); \
        }
-@@ -696,6 +699,13 @@ BdsEntry (
+@@ -696,6 +699,14 @@ BdsEntry (
    Status          = EFI_SUCCESS;
    BootSuccess     = FALSE;
  
 +  UINT64 StartTicks = GetPerformanceCounter();
 +  DEBUG ((
 +    DEBUG_INFO,
-+    "%a: CSG-M4G1C: BEGIN\n",
-+    __FUNCTION__
++    "%a: CSG-M4G1C: BEGIN (ticks): %" PRIu64 "\n",
++    __FUNCTION__,
++    StartTicks
 +  ));
 +
    //
    // Insert the performance probe
    //
-@@ -915,6 +925,15 @@ BdsEntry (
+@@ -915,6 +926,14 @@ BdsEntry (
  
    PERF_INMODULE_END ("EfiBootManagerConnectAllDefaultConsoles");
  
 +  UINT64 EndTicks = GetPerformanceCounter();
-+  UINT64 DurationNs = GetTimeInNanoSecond(EndTicks - StartTicks);
 +  DEBUG ((
 +    DEBUG_INFO,
-+    "%a: CSG-M4G1C: Duration (ns): %" PRIu64 "\n",
++    "%a: CSG-M4G1C: END (ticks): %" PRIu64 "\n",
 +    __FUNCTION__,
-+    DurationNs
++    EndTicks
 +  ));
 +
    //
@@ -265,7 +265,7 @@ index 9110be2..000dbd7 100644
  /**
    Macro that calls DebugAssert() if an EFI_STATUS evaluates to an error code.
 diff --git a/OvmfPkg/AmdSev/BlobVerifierLibSevHashes/BlobVerifierSevHashes.c b/OvmfPkg/AmdSev/BlobVerifierLibSevHashes/BlobVerifierSevHashes.c
-index 65f040f..12e0179 100644
+index 65f040f..117e030 100644
 --- a/OvmfPkg/AmdSev/BlobVerifierLibSevHashes/BlobVerifierSevHashes.c
 +++ b/OvmfPkg/AmdSev/BlobVerifierLibSevHashes/BlobVerifierSevHashes.c
 @@ -13,6 +13,8 @@
@@ -277,39 +277,40 @@ index 65f040f..12e0179 100644
  
  /**
    The SEV Hashes table must be in encrypted memory and has the table
-@@ -97,6 +99,13 @@ VerifyBlob (
+@@ -97,6 +99,15 @@ VerifyBlob (
    INT32       Remaining;
    HASH_TABLE  *Entry;
  
 +  UINT64 StartTicks = GetPerformanceCounter();
 +  DEBUG ((
 +    DEBUG_INFO,
-+    "%a: CSG-M4G1C: BEGIN\n",
-+    __FUNCTION__
++    "%a-%s: CSG-M4G1C: BEGIN (ticks): %" PRIu64 "\n",
++    __FUNCTION__,
++    BlobName,
++    StartTicks
 +  ));
 +
    if ((mHashesTable == NULL) || (mHashesTableSize == 0)) {
      DEBUG ((
        DEBUG_ERROR,
-@@ -172,6 +181,16 @@ VerifyBlob (
+@@ -172,6 +183,15 @@ VerifyBlob (
          ));
      }
  
 +    UINT64 EndTicks = GetPerformanceCounter();
-+    UINT64 DurationNs = GetTimeInNanoSecond(EndTicks - StartTicks);
 +    DEBUG ((
 +      DEBUG_INFO,
-+      "%a: CSG-M4G1C: Blob: %s Duration (ns): %" PRIu64 "\n",
++      "%a-%s: CSG-M4G1C: END (ticks): %" PRIu64 "\n",
 +      __FUNCTION__,
 +      BlobName,
-+      DurationNs
++      EndTicks
 +    ));
 +
      return Status;
    }
  
 diff --git a/OvmfPkg/Library/PlatformBootManagerLibGrub/BdsPlatform.c b/OvmfPkg/Library/PlatformBootManagerLibGrub/BdsPlatform.c
-index a402589..b0d4f0c 100644
+index a402589..5d74965 100644
 --- a/OvmfPkg/Library/PlatformBootManagerLibGrub/BdsPlatform.c
 +++ b/OvmfPkg/Library/PlatformBootManagerLibGrub/BdsPlatform.c
 @@ -13,6 +13,9 @@
@@ -322,38 +323,38 @@ index a402589..b0d4f0c 100644
  //
  // Global data
  //
-@@ -1399,6 +1402,13 @@ PlatformBootManagerAfterConsole (
+@@ -1399,6 +1402,14 @@ PlatformBootManagerAfterConsole (
  {
    EFI_BOOT_MODE  BootMode;
  
 +  UINT64 StartTicks = GetPerformanceCounter();
 +  DEBUG ((
 +    DEBUG_INFO,
-+    "%a: CSG-M4G1C: BEGIN\n",
-+    __FUNCTION__
++    "%a: CSG-M4G1C: BEGIN (ticks): %" PRIu64 "\n",
++    __FUNCTION__,
++    StartTicks
 +  ));
 +
    DEBUG ((DEBUG_INFO, "PlatformBootManagerAfterConsole\n"));
  
    //
-@@ -1423,6 +1433,15 @@ PlatformBootManagerAfterConsole (
+@@ -1423,6 +1434,14 @@ PlatformBootManagerAfterConsole (
    //
    PciAcpiInitialization ();
  
 +  UINT64 EndTicks = GetPerformanceCounter();
-+  UINT64 DurationNs = GetTimeInNanoSecond(EndTicks - StartTicks);
 +  DEBUG ((
 +    DEBUG_INFO,
-+    "%a: CSG-M4G1C: Duration (ns): %" PRIu64 "\n",
++    "%a: CSG-M4G1C: END (ticks): %" PRIu64 "\n",
 +    __FUNCTION__,
-+    DurationNs
++    EndTicks
 +  ));
 +
    //
    // Process QEMU's -kernel command line option
    //
 diff --git a/OvmfPkg/Library/PlatformBootManagerLibGrub/QemuKernel.c b/OvmfPkg/Library/PlatformBootManagerLibGrub/QemuKernel.c
-index 1e66e3c..2483448 100644
+index 1e66e3c..90ebec6 100644
 --- a/OvmfPkg/Library/PlatformBootManagerLibGrub/QemuKernel.c
 +++ b/OvmfPkg/Library/PlatformBootManagerLibGrub/QemuKernel.c
 @@ -13,6 +13,9 @@
@@ -366,31 +367,31 @@ index 1e66e3c..2483448 100644
  EFI_STATUS
  TryRunningQemuKernel (
    VOID
-@@ -21,6 +24,13 @@ TryRunningQemuKernel (
+@@ -21,6 +24,14 @@ TryRunningQemuKernel (
    EFI_STATUS  Status;
    EFI_HANDLE  KernelImageHandle;
  
 +  UINT64 StartTicks = GetPerformanceCounter();
 +  DEBUG ((
 +    DEBUG_INFO,
-+    "%a: CSG-M4G1C: BEGIN\n",
-+    __FUNCTION__
++    "%a: CSG-M4G1C: BEGIN (ticks): %" PRIu64 "\n",
++    __FUNCTION__,
++    StartTicks
 +  ));
 +
    Status = QemuLoadKernelImage (&KernelImageHandle);
    if (EFI_ERROR (Status)) {
      return Status;
-@@ -36,6 +46,23 @@ TryRunningQemuKernel (
+@@ -36,6 +47,22 @@ TryRunningQemuKernel (
      (EFI_SOFTWARE_DXE_BS_DRIVER | EFI_SW_DXE_BS_PC_READY_TO_BOOT_EVENT)
      );
  
 +  UINT64 EndTicks = GetPerformanceCounter();
-+  UINT64 DurationNs = GetTimeInNanoSecond(EndTicks - StartTicks);
 +  DEBUG ((
 +    DEBUG_INFO,
-+    "%a: CSG-M4G1C: Duration (ns): %" PRIu64 "\n",
++    "%a: CSG-M4G1C: END (ticks): %" PRIu64 "\n",
 +    __FUNCTION__,
-+    DurationNs
++    EndTicks
 +  ));
 +  UINT64 Frequency = GetPerformanceCounterProperties (NULL, NULL);
 +  DEBUG ((
@@ -421,7 +422,7 @@ index 1e66e3c..2483448 100644
  
    return Status;
 diff --git a/OvmfPkg/QemuKernelLoaderFsDxe/QemuKernelLoaderFsDxe.c b/OvmfPkg/QemuKernelLoaderFsDxe/QemuKernelLoaderFsDxe.c
-index d4f3cd9..c888a99 100644
+index d4f3cd9..2516d82 100644
 --- a/OvmfPkg/QemuKernelLoaderFsDxe/QemuKernelLoaderFsDxe.c
 +++ b/OvmfPkg/QemuKernelLoaderFsDxe/QemuKernelLoaderFsDxe.c
 @@ -22,12 +22,15 @@
@@ -440,31 +441,31 @@ index d4f3cd9..c888a99 100644
  //
  // Static data that hosts the fw_cfg blobs and serves file requests.
  //
-@@ -1045,6 +1048,13 @@ QemuKernelLoaderFsDxeEntrypoint (
+@@ -1045,6 +1048,14 @@ QemuKernelLoaderFsDxeEntrypoint (
    EFI_HANDLE   FileSystemHandle;
    EFI_HANDLE   InitrdLoadFile2Handle;
  
 +  UINT64 StartTicks = GetPerformanceCounter();
 +  DEBUG ((
 +    DEBUG_INFO,
-+    "%a: CSG-M4G1C: BEGIN\n",
-+    __FUNCTION__
++    "%a: CSG-M4G1C: BEGIN (ticks): %" PRIu64 "\n",
++    __FUNCTION__,
++    StartTicks
 +  ));
 +
    if (!QemuFwCfgIsAvailable ()) {
      return EFI_NOT_FOUND;
    }
-@@ -1128,6 +1138,15 @@ QemuKernelLoaderFsDxeEntrypoint (
+@@ -1128,6 +1139,14 @@ QemuKernelLoaderFsDxeEntrypoint (
      }
    }
  
 +  UINT64 EndTicks = GetPerformanceCounter();
-+  UINT64 DurationNs = GetTimeInNanoSecond(EndTicks - StartTicks);
 +  DEBUG ((
 +    DEBUG_INFO,
-+    "%a: CSG-M4G1C: Duration (ns): %" PRIu64 "\n",
++    "%a: CSG-M4G1C: END (ticks): %" PRIu64 "\n",
 +    __FUNCTION__,
-+    DurationNs
++    EndTicks
 +  ));
 +
    return EFI_SUCCESS;

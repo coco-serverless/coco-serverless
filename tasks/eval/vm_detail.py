@@ -33,6 +33,7 @@ from tasks.util.flame import generate_flame_graph
 from tasks.util.k8s import get_container_id_from_pod, template_k8s_file
 from tasks.util.kubeadm import get_pod_names_in_ns, run_kubectl_command
 from tasks.util.qemu import get_qemu_pid
+from tasks.util.ovmf import get_ovmf_boot_events
 from time import sleep, time
 
 
@@ -146,6 +147,14 @@ def do_run(result_file, num_run, service_file, flavour, warmup=False):
         )
         events_ts.append(("StartGuestKernelBoot", start_ts_gk))
         events_ts.append(("EndGuestKernelBoot", end_ts_gk))
+
+        # Get all the events for OVMF
+        # Note that we can only get OVMF logs through the serial port, which
+        # we redirect to a file. In addition, we don't have a clock in OVMF,
+        # so we can only use relative timestamps based on one performance
+        # counter and the CPU frequency. Thus, we ARBITRARILY anchor the end
+        # of OVMF execution to the start of the guest kernel
+        events_ts = get_ovmf_boot_events(events_ts, start_ts_gk)
 
         # Get the agent started event
         ts_as = get_ts_for_containerd_event(
@@ -264,6 +273,7 @@ def plot(ctx):
         "start-vm": ("StartVMStarted", "EndVMStarted"),
         "pre-attestation": ("StartPreAtt", "EndPreAtt"),
         "guest-setup": ("EndVMStarted", "AgentStarted"),
+        "ovmf-booting": ("StartOVMFBoot", "EndOVMFBoot"),
         "guest-kernel-booting": ("StartGuestKernelBoot", "EndGuestKernelBoot"),
         "kata-agent-booting": ("EndGuestKernelBoot", "AgentStarted"),
     }
@@ -273,6 +283,7 @@ def plot(ctx):
         "start-vm": 2,
         "pre-attestation": 3,
         "guest-setup": 1,
+        "ovmf-booting": 2,
         "guest-kernel-booting": 2,
         "kata-agent-booting": 2,
     }
@@ -282,6 +293,7 @@ def plot(ctx):
         "start-vm": "orange",
         "pre-attestation": "green",
         "guest-setup": "yellow",
+        "ovmf-booting": "gray",
         "guest-kernel-booting": "blue",
         "kata-agent-booting": "pink",
     }
