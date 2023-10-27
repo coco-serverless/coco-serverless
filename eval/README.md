@@ -45,6 +45,7 @@ Now you are ready to run one of the experiments:
 * [Start-Up Costs](#start-up-costs) - time required to spin-up a Knative service.
 * [Instantiation Throughput](#instantiation-throughput) - throughput-latency of service instantiation.
 * [Memory Size](#memory-size) - impact on initial VM memory size on start-up time.
+* [VM Start-Up](#vm-start-up) - breakdown of the cVM start-up costs
 
 ### Start-Up Costs
 
@@ -118,6 +119,40 @@ which generates a plot in [`./plots/mem-size/mem_size.png`](
 ./plots/mem-size/mem_size.png). You can also see the plot below:
 
 ![plot](./plots/mem-size/mem_size.png)
+
+### VM Start-Up
+
+This experiment further analyzes the costs associated to spinning up just the
+confidential VM (as part of the Knative service instantiation).
+
+To run this test, we want to enable `debug` logging on `containerd`, `kata`,
+and `ovmf`:
+
+```bash
+inv containerd.set-log-level debug kata.set-log-level debug ovmf.set-log-level debug
+```
+
+In very brief summary, the events when booting a confidential VM (for CoCo) are
+the following:
+1. `containerd` calls the `RunPodSandbox` API
+2. The `kata-shim` translates this call into a QEMU command to start a VM
+3. In the process of starting a VM, pre-attestation happens and secrets are
+  injected from the KBS
+4. The VM is officially started, and OVMF boots into the kernel from the `initrd`
+5. The Kernel calls the `/init` process, which in our case is the `kata-agent`
+6. Once the `kata-agent` has started, it concludes the API `RunPodSandbox` call
+for more detail on the OVMF boot process, see the [OVMF docs](../docs/ovmf.md).
+
+To generate a flame graph-like plot with the detailed costs, you may run:
+
+```bash
+inv eval.vm-detail.run
+```
+
+which generates a plot in [`./plots/vm-detail/vm_detail.png`](
+./plots/vm-detail/vm_detail.png). You can also see the plot below:
+
+![plot](./plots/vm-detail/vm_detail.png)
 
 ## Benchmarks
 

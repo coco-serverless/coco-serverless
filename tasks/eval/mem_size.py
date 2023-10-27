@@ -58,7 +58,9 @@ def update_vm_mem_size(baseline, new_mem_size):
 def do_run(result_file, baseline, num_run, num_par_inst):
     start_ts = time()
 
-    service_file = join(EVAL_TEMPLATED_DIR, "apps_mem-size_{}_service.yaml".format(baseline))
+    service_file = join(
+        EVAL_TEMPLATED_DIR, "apps_mem-size_{}_service.yaml".format(baseline)
+    )
     # Capture output to avoid verbose Knative logging
     run_kubectl_command("apply -f {}".format(service_file), capture_output=True)
 

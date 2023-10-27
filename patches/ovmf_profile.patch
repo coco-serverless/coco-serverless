@@ -1,0 +1,473 @@
+diff --git a/MdeModulePkg/Core/Dxe/DxeMain.h b/MdeModulePkg/Core/Dxe/DxeMain.h
+index 815a6b4..9f0e60a 100644
+--- a/MdeModulePkg/Core/Dxe/DxeMain.h
++++ b/MdeModulePkg/Core/Dxe/DxeMain.h
+@@ -85,6 +85,9 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
+ #include <Library/DebugAgentLib.h>
+ #include <Library/CpuExceptionHandlerLib.h>
+ 
++#include <Library/TimerLib.h>
++#include <inttypes.h>
++
+ //
+ // attributes for reserved memory before it is promoted to system memory
+ //
+diff --git a/MdeModulePkg/Core/Dxe/DxeMain/DxeMain.c b/MdeModulePkg/Core/Dxe/DxeMain/DxeMain.c
+index 4683016..cdf29f9 100644
+--- a/MdeModulePkg/Core/Dxe/DxeMain/DxeMain.c
++++ b/MdeModulePkg/Core/Dxe/DxeMain/DxeMain.c
+@@ -244,6 +244,14 @@ DxeMain (
+   EFI_VECTOR_HANDOFF_INFO       *VectorInfo;
+   VOID                          *EntryPoint;
+ 
++  UINT64 StartTicks = GetPerformanceCounter();
++  DEBUG ((
++    DEBUG_INFO,
++    "%a: CSG-M4G1C: BEGIN (ticks): %" PRIu64 "\n",
++    __FUNCTION__,
++    StartTicks
++  ));
++
+   //
+   // Setup the default exception handlers
+   //
+@@ -569,6 +577,14 @@ DxeMain (
+     (EFI_SOFTWARE_DXE_CORE | EFI_SW_DXE_CORE_PC_HANDOFF_TO_NEXT)
+     );
+ 
++  UINT64 EndTicks = GetPerformanceCounter();
++  DEBUG ((
++    DEBUG_INFO,
++    "%a: CSG-M4G1C: END (ticks): %" PRIu64 "\n",
++    __FUNCTION__,
++    EndTicks
++  ));
++
+   //
+   // Transfer control to the BDS Architectural Protocol
+   //
+diff --git a/MdeModulePkg/Core/DxeIplPeim/DxeIpl.h b/MdeModulePkg/Core/DxeIplPeim/DxeIpl.h
+index 2f015be..4e6255c 100644
+--- a/MdeModulePkg/Core/DxeIplPeim/DxeIpl.h
++++ b/MdeModulePkg/Core/DxeIplPeim/DxeIpl.h
+@@ -43,6 +43,9 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
+ #include <Library/PeiServicesTablePointerLib.h>
+ #include <Library/PerformanceLib.h>
+ 
++#include <Library/TimerLib.h>
++#include <inttypes.h>
++
+ #define STACK_SIZE      0x20000
+ #define BSP_STORE_SIZE  0x4000
+ 
+diff --git a/MdeModulePkg/Core/DxeIplPeim/DxeIpl.inf b/MdeModulePkg/Core/DxeIplPeim/DxeIpl.inf
+index 052ea0e..ad481d2 100644
+--- a/MdeModulePkg/Core/DxeIplPeim/DxeIpl.inf
++++ b/MdeModulePkg/Core/DxeIplPeim/DxeIpl.inf
+@@ -79,6 +79,7 @@
+   DebugAgentLib
+   PeiServicesTablePointerLib
+   PerformanceLib
++  TimerLib
+ 
+ [LibraryClasses.ARM, LibraryClasses.AARCH64]
+   ArmMmuLib
+diff --git a/MdeModulePkg/Core/DxeIplPeim/DxeLoad.c b/MdeModulePkg/Core/DxeIplPeim/DxeLoad.c
+index 2c19f1a..51df672 100644
+--- a/MdeModulePkg/Core/DxeIplPeim/DxeLoad.c
++++ b/MdeModulePkg/Core/DxeIplPeim/DxeLoad.c
+@@ -268,6 +268,15 @@ DxeLoadCore (
+   EFI_MEMORY_TYPE_INFORMATION      MemoryData[EfiMaxMemoryType + 1];
+   VOID                             *CapsuleOnDiskModePpi;
+ 
++  UINT64 StartTicks = GetPerformanceCounter();
++  DEBUG ((
++    DEBUG_INFO,
++    "%a: CSG-M4G1C: BEGIN (ticks): %" PRIu64 "\n",
++    __FUNCTION__,
++    StartTicks
++  ));
++
++
+   //
+   // if in S3 Resume, restore configure
+   //
+@@ -443,6 +452,14 @@ DxeLoadCore (
+ 
+   DEBUG ((DEBUG_INFO | DEBUG_LOAD, "Loading DXE CORE at 0x%11p EntryPoint=0x%11p\n", (VOID *)(UINTN)DxeCoreAddress, FUNCTION_ENTRY_POINT (DxeCoreEntryPoint)));
+ 
++  UINT64 EndTicks = GetPerformanceCounter();
++  DEBUG ((
++    DEBUG_INFO,
++    "%a: CSG-M4G1C: END (ticks): %" PRIu64 "\n",
++    __FUNCTION__,
++    EndTicks
++  ));
++
+   //
+   // Transfer control to the DXE Core
+   // The hand off state is simply a pointer to the HOB list
+diff --git a/MdeModulePkg/Core/Pei/PeiMain.h b/MdeModulePkg/Core/Pei/PeiMain.h
+index 556bedd..a6ce2fe 100644
+--- a/MdeModulePkg/Core/Pei/PeiMain.h
++++ b/MdeModulePkg/Core/Pei/PeiMain.h
+@@ -46,6 +46,10 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
+ #include <Guid/AprioriFileName.h>
+ #include <Guid/MigratedFvInfo.h>
+ 
++#include <Library/DebugLib.h>
++#include <Library/TimerLib.h>
++#include <inttypes.h>
++
+ ///
+ /// It is an FFS type extension used for PeiFindFileEx. It indicates current
+ /// FFS searching is for all PEIMs can be dispatched by PeiCore.
+diff --git a/MdeModulePkg/Core/Pei/PeiMain.inf b/MdeModulePkg/Core/Pei/PeiMain.inf
+index 0cf3573..d4adacf 100644
+--- a/MdeModulePkg/Core/Pei/PeiMain.inf
++++ b/MdeModulePkg/Core/Pei/PeiMain.inf
+@@ -66,6 +66,7 @@
+   PeCoffLib
+   PeiServicesTablePointerLib
+   PcdLib
++  TimerLib
+ 
+ [Guids]
+   gPeiAprioriFileNameGuid       ## SOMETIMES_CONSUMES   ## File
+diff --git a/MdeModulePkg/Core/Pei/PeiMain/PeiMain.c b/MdeModulePkg/Core/Pei/PeiMain/PeiMain.c
+index bf1719d..59ffe9a 100644
+--- a/MdeModulePkg/Core/Pei/PeiMain/PeiMain.c
++++ b/MdeModulePkg/Core/Pei/PeiMain/PeiMain.c
+@@ -179,6 +179,24 @@ PeiCore (
+   EFI_PEI_TEMPORARY_RAM_DONE_PPI  *TemporaryRamDonePpi;
+   UINTN                           Index;
+ 
++  UINT64 Frequency = GetPerformanceCounterProperties (NULL, NULL);
++  UINT64 StartTicks = GetPerformanceCounter();
++  //
++  // CSG: also log the ticks, as we are at the very begining
++  DEBUG ((
++    DEBUG_INFO,
++    "%a: CSG-M4G1C: G3N3S1S (ticks): %" PRIu64 " Freq: %" PRIu64 "\n",
++    __FUNCTION__,
++    StartTicks,
++    Frequency
++  ));
++  DEBUG ((
++    DEBUG_INFO,
++    "%a: CSG-M4G1C: BEGIN (ticks): %" PRIu64 "\n",
++    __FUNCTION__,
++    StartTicks
++  ));
++
+   //
+   // Retrieve context passed into PEI Core
+   //
+@@ -522,6 +540,14 @@ PeiCore (
+     CpuDeadLoop ();
+   }
+ 
++  UINT64 EndTicks = GetPerformanceCounter();
++  DEBUG ((
++    DEBUG_INFO,
++    "%a: CSG-M4G1C: END (ticks): %" PRIu64 "\n",
++    __FUNCTION__,
++    EndTicks
++  ));
++
+   //
+   // Enter DxeIpl to load Dxe core.
+   //
+diff --git a/MdeModulePkg/Universal/BdsDxe/BdsDxe.inf b/MdeModulePkg/Universal/BdsDxe/BdsDxe.inf
+index 5bac635..6a1aead 100644
+--- a/MdeModulePkg/Universal/BdsDxe/BdsDxe.inf
++++ b/MdeModulePkg/Universal/BdsDxe/BdsDxe.inf
+@@ -54,6 +54,7 @@
+   PlatformBootManagerLib
+   PcdLib
+   PrintLib
++  TimerLib
+ 
+ [Guids]
+   gEfiGlobalVariableGuid                        ## SOMETIMES_PRODUCES ## Variable:L"BootNext" (The number of next boot option)
+diff --git a/MdeModulePkg/Universal/BdsDxe/BdsEntry.c b/MdeModulePkg/Universal/BdsDxe/BdsEntry.c
+index 766dde3..1a52226 100644
+--- a/MdeModulePkg/Universal/BdsDxe/BdsEntry.c
++++ b/MdeModulePkg/Universal/BdsDxe/BdsEntry.c
+@@ -17,6 +17,9 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
+ #include "HwErrRecSupport.h"
+ #include <Library/VariablePolicyHelperLib.h>
+ 
++#include <Library/TimerLib.h>
++#include <inttypes.h>
++
+ #define SET_BOOT_OPTION_SUPPORT_KEY_COUNT(a, c)  { \
+       (a) = ((a) & ~EFI_BOOT_OPTION_SUPPORT_COUNT) | (((c) << LowBitSet32 (EFI_BOOT_OPTION_SUPPORT_COUNT)) & EFI_BOOT_OPTION_SUPPORT_COUNT); \
+       }
+@@ -696,6 +699,14 @@ BdsEntry (
+   Status          = EFI_SUCCESS;
+   BootSuccess     = FALSE;
+ 
++  UINT64 StartTicks = GetPerformanceCounter();
++  DEBUG ((
++    DEBUG_INFO,
++    "%a: CSG-M4G1C: BEGIN (ticks): %" PRIu64 "\n",
++    __FUNCTION__,
++    StartTicks
++  ));
++
+   //
+   // Insert the performance probe
+   //
+@@ -915,6 +926,14 @@ BdsEntry (
+ 
+   PERF_INMODULE_END ("EfiBootManagerConnectAllDefaultConsoles");
+ 
++  UINT64 EndTicks = GetPerformanceCounter();
++  DEBUG ((
++    DEBUG_INFO,
++    "%a: CSG-M4G1C: END (ticks): %" PRIu64 "\n",
++    __FUNCTION__,
++    EndTicks
++  ));
++
+   //
+   // Do the platform specific action after the console is ready
+   // Possible things that can be done in PlatformBootManagerAfterConsole:
+diff --git a/MdePkg/Include/Library/DebugLib.h b/MdePkg/Include/Library/DebugLib.h
+index 9110be2..000dbd7 100644
+--- a/MdePkg/Include/Library/DebugLib.h
++++ b/MdePkg/Include/Library/DebugLib.h
+@@ -416,16 +416,21 @@ UnitTestDebugAssert (
+ 
+ 
+ **/
+-#if !defined (MDEPKG_NDEBUG)
++//
++// CSG: get the DEBUG (INFO) logs even if building the RELEASE target.
++// Empirically, this introduces around 0.5 s extra to the start-up
++// time
++//
++// #if !defined (MDEPKG_NDEBUG)
+ #define DEBUG(Expression)        \
+     do {                           \
+       if (DebugPrintEnabled ()) {  \
+         _DEBUG (Expression);       \
+       }                            \
+     } while (FALSE)
+-#else
+-#define DEBUG(Expression)
+-#endif
++// #else
++// #define DEBUG(Expression)
++// #endif
+ 
+ /**
+   Macro that calls DebugAssert() if an EFI_STATUS evaluates to an error code.
+diff --git a/OvmfPkg/AmdSev/BlobVerifierLibSevHashes/BlobVerifierSevHashes.c b/OvmfPkg/AmdSev/BlobVerifierLibSevHashes/BlobVerifierSevHashes.c
+index 65f040f..117e030 100644
+--- a/OvmfPkg/AmdSev/BlobVerifierLibSevHashes/BlobVerifierSevHashes.c
++++ b/OvmfPkg/AmdSev/BlobVerifierLibSevHashes/BlobVerifierSevHashes.c
+@@ -13,6 +13,8 @@
+ #include <Library/BaseMemoryLib.h>
+ #include <Library/DebugLib.h>
+ #include <Library/BlobVerifierLib.h>
++#include <Library/TimerLib.h>
++#include <inttypes.h>
+ 
+ /**
+   The SEV Hashes table must be in encrypted memory and has the table
+@@ -97,6 +99,15 @@ VerifyBlob (
+   INT32       Remaining;
+   HASH_TABLE  *Entry;
+ 
++  UINT64 StartTicks = GetPerformanceCounter();
++  DEBUG ((
++    DEBUG_INFO,
++    "%a-%s: CSG-M4G1C: BEGIN (ticks): %" PRIu64 "\n",
++    __FUNCTION__,
++    BlobName,
++    StartTicks
++  ));
++
+   if ((mHashesTable == NULL) || (mHashesTableSize == 0)) {
+     DEBUG ((
+       DEBUG_ERROR,
+@@ -172,6 +183,15 @@ VerifyBlob (
+         ));
+     }
+ 
++    UINT64 EndTicks = GetPerformanceCounter();
++    DEBUG ((
++      DEBUG_INFO,
++      "%a-%s: CSG-M4G1C: END (ticks): %" PRIu64 "\n",
++      __FUNCTION__,
++      BlobName,
++      EndTicks
++    ));
++
+     return Status;
+   }
+ 
+diff --git a/OvmfPkg/Library/PlatformBootManagerLibGrub/BdsPlatform.c b/OvmfPkg/Library/PlatformBootManagerLibGrub/BdsPlatform.c
+index a402589..5d74965 100644
+--- a/OvmfPkg/Library/PlatformBootManagerLibGrub/BdsPlatform.c
++++ b/OvmfPkg/Library/PlatformBootManagerLibGrub/BdsPlatform.c
+@@ -13,6 +13,9 @@
+ #include <Library/PlatformBmPrintScLib.h>
+ #include <Library/Tcg2PhysicalPresenceLib.h>
+ 
++#include <Library/TimerLib.h>
++#include <inttypes.h>
++
+ //
+ // Global data
+ //
+@@ -1399,6 +1402,14 @@ PlatformBootManagerAfterConsole (
+ {
+   EFI_BOOT_MODE  BootMode;
+ 
++  UINT64 StartTicks = GetPerformanceCounter();
++  DEBUG ((
++    DEBUG_INFO,
++    "%a: CSG-M4G1C: BEGIN (ticks): %" PRIu64 "\n",
++    __FUNCTION__,
++    StartTicks
++  ));
++
+   DEBUG ((DEBUG_INFO, "PlatformBootManagerAfterConsole\n"));
+ 
+   //
+@@ -1423,6 +1434,14 @@ PlatformBootManagerAfterConsole (
+   //
+   PciAcpiInitialization ();
+ 
++  UINT64 EndTicks = GetPerformanceCounter();
++  DEBUG ((
++    DEBUG_INFO,
++    "%a: CSG-M4G1C: END (ticks): %" PRIu64 "\n",
++    __FUNCTION__,
++    EndTicks
++  ));
++
+   //
+   // Process QEMU's -kernel command line option
+   //
+diff --git a/OvmfPkg/Library/PlatformBootManagerLibGrub/QemuKernel.c b/OvmfPkg/Library/PlatformBootManagerLibGrub/QemuKernel.c
+index 1e66e3c..90ebec6 100644
+--- a/OvmfPkg/Library/PlatformBootManagerLibGrub/QemuKernel.c
++++ b/OvmfPkg/Library/PlatformBootManagerLibGrub/QemuKernel.c
+@@ -13,6 +13,9 @@
+ #include <Library/ReportStatusCodeLib.h>
+ #include <Library/UefiLib.h>
+ 
++#include <Library/TimerLib.h>
++#include <inttypes.h>
++
+ EFI_STATUS
+ TryRunningQemuKernel (
+   VOID
+@@ -21,6 +24,14 @@ TryRunningQemuKernel (
+   EFI_STATUS  Status;
+   EFI_HANDLE  KernelImageHandle;
+ 
++  UINT64 StartTicks = GetPerformanceCounter();
++  DEBUG ((
++    DEBUG_INFO,
++    "%a: CSG-M4G1C: BEGIN (ticks): %" PRIu64 "\n",
++    __FUNCTION__,
++    StartTicks
++  ));
++
+   Status = QemuLoadKernelImage (&KernelImageHandle);
+   if (EFI_ERROR (Status)) {
+     return Status;
+@@ -36,6 +47,22 @@ TryRunningQemuKernel (
+     (EFI_SOFTWARE_DXE_BS_DRIVER | EFI_SW_DXE_BS_PC_READY_TO_BOOT_EVENT)
+     );
+ 
++  UINT64 EndTicks = GetPerformanceCounter();
++  DEBUG ((
++    DEBUG_INFO,
++    "%a: CSG-M4G1C: END (ticks): %" PRIu64 "\n",
++    __FUNCTION__,
++    EndTicks
++  ));
++  UINT64 Frequency = GetPerformanceCounterProperties (NULL, NULL);
++  DEBUG ((
++    DEBUG_INFO,
++    "%a: CSG-M4G1C: 3ND (ticks): %" PRIu64 " Freq: %" PRIu64 "\n",
++    __FUNCTION__,
++    EndTicks,
++    Frequency
++  ));
++
+   //
+   // Start the image.
+   //
+@@ -49,6 +76,15 @@ TryRunningQemuKernel (
+       ));
+   }
+ 
++  //
++  // CSG: CoCo boots directly from the initrd, so we never return from the StartKernel call
++  //
++  DEBUG ((
++    DEBUG_INFO,
++    "%a: CSG-M4G1C: NOT HERE\n",
++    __FUNCTION__
++  ));
++
+   QemuUnloadKernelImage (KernelImageHandle);
+ 
+   return Status;
+diff --git a/OvmfPkg/QemuKernelLoaderFsDxe/QemuKernelLoaderFsDxe.c b/OvmfPkg/QemuKernelLoaderFsDxe/QemuKernelLoaderFsDxe.c
+index d4f3cd9..2516d82 100644
+--- a/OvmfPkg/QemuKernelLoaderFsDxe/QemuKernelLoaderFsDxe.c
++++ b/OvmfPkg/QemuKernelLoaderFsDxe/QemuKernelLoaderFsDxe.c
+@@ -22,12 +22,15 @@
+ #include <Library/DevicePathLib.h>
+ #include <Library/MemoryAllocationLib.h>
+ #include <Library/QemuFwCfgLib.h>
++#include <Library/TimerLib.h>
+ #include <Library/UefiBootServicesTableLib.h>
+ #include <Library/UefiRuntimeServicesTableLib.h>
+ #include <Protocol/DevicePath.h>
+ #include <Protocol/LoadFile2.h>
+ #include <Protocol/SimpleFileSystem.h>
+ 
++#include <inttypes.h>
++
+ //
+ // Static data that hosts the fw_cfg blobs and serves file requests.
+ //
+@@ -1045,6 +1048,14 @@ QemuKernelLoaderFsDxeEntrypoint (
+   EFI_HANDLE   FileSystemHandle;
+   EFI_HANDLE   InitrdLoadFile2Handle;
+ 
++  UINT64 StartTicks = GetPerformanceCounter();
++  DEBUG ((
++    DEBUG_INFO,
++    "%a: CSG-M4G1C: BEGIN (ticks): %" PRIu64 "\n",
++    __FUNCTION__,
++    StartTicks
++  ));
++
+   if (!QemuFwCfgIsAvailable ()) {
+     return EFI_NOT_FOUND;
+   }
+@@ -1128,6 +1139,14 @@ QemuKernelLoaderFsDxeEntrypoint (
+     }
+   }
+ 
++  UINT64 EndTicks = GetPerformanceCounter();
++  DEBUG ((
++    DEBUG_INFO,
++    "%a: CSG-M4G1C: END (ticks): %" PRIu64 "\n",
++    __FUNCTION__,
++    EndTicks
++  ));
++
+   return EFI_SUCCESS;
+ 
+ UninstallFileSystemHandle:
