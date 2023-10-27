@@ -91,9 +91,3 @@ def set_log_level(ctx, log_level):
 
     conf_file_path = join(KATA_CONFIG_DIR, "configuration-qemu-sev.toml")
     update_toml(conf_file_path, updated_toml_str)
-
-
-from tasks.util.ovmf import get_ovmf_boot_events
-@task
-def foo(ctx):
-    get_ovmf_boot_events([], 0)

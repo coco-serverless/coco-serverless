@@ -60,8 +60,8 @@ def get_ovmf_boot_events(events_ts, guest_kernel_start_ts):
             else:
                 ind_to_remove.append(ind)
     lines = [li for ind, li in enumerate(lines) if ind not in ind_to_remove]
-    for li in lines:
-        print(li.strip())
+    # for li in lines:
+        # print(li.strip())
 
     def get_end_ticks(lines, event):
         for li in lines:
@@ -73,23 +73,33 @@ def get_ovmf_boot_events(events_ts, guest_kernel_start_ts):
 
     # TODO: finish plotting this
     # TODO: DxeMain seems to also start at tick 0?
-    event_allow_list = {
-        "PeiCore": "Pei",
-        "DxeMain", "Dxe",
+    event_allow_list = ["DxeMain"]
 
-    }
-
+    verify_start_ts = -1
+    verify_duration = 0
     for li in lines:
         if "BEGIN" in li:
             event = re_search(r'(^[a-zA-Z\-]*)', li).groups(1)[0]
+
+            # Filter only the events that we care about
+            if event not in event_allow_list and "Verify" not in event:
+                continue
+
             start_ticks = int(re_search(ticks_re_str, li).groups(1)[0])
             start_ts = get_ts_from_ticks(start_ticks)
             end_ticks = get_end_ticks(lines, event)
             end_ts = get_ts_from_ticks(end_ticks)
-            real_duration = (end_ticks - start_ticks) / start_freq
-            print("Event '{}' lasted {} s".format(event, end_ts - start_ts))
-            print("Event '{}' really lasted {} s".format(event, real_duration))
-            events_ts.append(("Start" + event, start_ts))
-            events_ts.append(("End" + event, end_ts))
+
+            if event in event_allow_list:
+                events_ts.append(("StartOVMF" + event, start_ts))
+                events_ts.append(("EndOVMF" + event, end_ts))
+            else:
+                if verify_start_ts < 0 or start_ts < verify_start_ts:
+                    verify_start_ts = start_ts
+
+                verify_duration += end_ts - start_ts
+
+    events_ts.append(("StartOVMFVerify", verify_start_ts))
+    events_ts.append(("EndOVMFVerify", verify_start_ts + verify_duration))
 
     return events_ts

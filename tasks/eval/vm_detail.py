@@ -274,8 +274,10 @@ def plot(ctx):
         "pre-attestation": ("StartPreAtt", "EndPreAtt"),
         "guest-setup": ("EndVMStarted", "AgentStarted"),
         "ovmf-booting": ("StartOVMFBoot", "EndOVMFBoot"),
-        "guest-kernel-booting": ("StartGuestKernelBoot", "EndGuestKernelBoot"),
-        "kata-agent-booting": ("EndGuestKernelBoot", "AgentStarted"),
+        "ovmf-dxe": ("StartOVMFDxeMain", "EndOVMFDxeMain"),
+        "ovmf-measure-verify": ("StartOVMFVerify", "EndOVMFVerify"),
+        "guest-kernel": ("StartGuestKernelBoot", "EndGuestKernelBoot"),
+        "kata-agent": ("EndGuestKernelBoot", "AgentStarted"),
     }
     height_for_event = {
         "make-pod-sandbox": 0,
@@ -284,8 +286,10 @@ def plot(ctx):
         "pre-attestation": 3,
         "guest-setup": 1,
         "ovmf-booting": 2,
-        "guest-kernel-booting": 2,
-        "kata-agent-booting": 2,
+        "ovmf-dxe": 3,
+        "ovmf-measure-verify": 4,
+        "guest-kernel": 2,
+        "kata-agent": 2,
     }
     color_for_event = {
         "make-pod-sandbox": "red",
@@ -294,8 +298,10 @@ def plot(ctx):
         "pre-attestation": "green",
         "guest-setup": "yellow",
         "ovmf-booting": "gray",
-        "guest-kernel-booting": "blue",
-        "kata-agent-booting": "pink",
+        "ovmf-dxe": "brown",
+        "ovmf-measure-verify": "olive",
+        "guest-kernel": "blue",
+        "kata-agent": "pink",
     }
     assert list(ordered_events.keys()) == list(height_for_event.keys())
     assert list(color_for_event.keys()) == list(height_for_event.keys())
@@ -315,6 +321,16 @@ def plot(ctx):
     labels = []
     colors = []
 
+    # Helper list to know which labels don't fit in their bar. Alas, I have not
+    # found a way to programatically place them well, so the (x, y) coordinates
+    # for this labels will have to be hard-coded
+    short_bars = {
+        "pre-attestation": (1, bar_height * 3.5),
+        "kata-agent": (5.5, bar_height * 3.1),
+        "ovmf-measure-verify": (4.5, bar_height * 4.5),
+        "guest-kernel": (5.2, bar_height * 2.5),
+    }
+
     x_origin = results_dict["StartRunPodSandbox"]["mean"]
     for event in ordered_events:
         start_ev = ordered_events[event][0]
@@ -326,6 +342,16 @@ def plot(ctx):
         ys.append(height_for_event[event] * bar_height)
         labels.append(event)
         colors.append(color_for_event[event])
+
+        # Print the label inside the bar
+        if event in list(short_bars.keys()):
+            x_text = short_bars[event][0]
+            y_text = short_bars[event][1]
+        else:
+            x_text = x_left - x_origin + (x_right - x_left) / 4
+            y_text = (height_for_event[event] + 0.4) * bar_height
+
+        ax.text(x_text, y_text, event)
 
     ax.barh(
         ys,
@@ -341,7 +367,6 @@ def plot(ctx):
     ax.set_xlabel("Time [s]")
     ax.tick_params(axis="y", which="both", left=False, right=False, labelbottom=False)
     ax.set_yticklabels([])
-    ax.legend()
     title_str = "Breakdown of the time to start a CoCo sandbox\n"
     title_str += "(baseline: {})".format(
         baseline,
