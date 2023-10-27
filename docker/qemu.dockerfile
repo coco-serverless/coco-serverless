@@ -15,6 +15,8 @@ RUN apt update \
         python3-venv \
         wget
 
+# The QEMU configure flags are picked to match those in Kata's QEMU build here:
+# https://github.com/kata-containers/kata-containers/blob/main/tools/packaging/scripts/configure-hypervisor.sh
 RUN mkdir -p /usr/src \
     && git clone \
         -b v8.1.2 \

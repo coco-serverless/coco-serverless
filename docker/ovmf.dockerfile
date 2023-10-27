@@ -32,6 +32,5 @@ RUN mkdir -p /usr/src/edk2 \
         -b ${TARGET} \
         -D DEBUG_ON_SERIAL_PORT \
         -p OvmfPkg/AmdSev/AmdSevX64.dsc
-        # -D DEBUG_VERBOSE \
 
 WORKDIR /usr/src/edk2
