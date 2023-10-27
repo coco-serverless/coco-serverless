@@ -39,6 +39,7 @@ COCO_ROOT = join("/opt", "confidential-containers")
 # Kata config
 KATA_CONFIG_DIR = join(COCO_ROOT, "share", "defaults", "kata-containers")
 KATA_IMG_DIR = join(COCO_ROOT, "share", "kata-containers")
+KATA_RUNTIMES = ["qemu", "qemu-sev"]
 
 # Apps config
 

@@ -2,10 +2,9 @@ from invoke import task
 from os import makedirs
 from os.path import dirname, join
 from subprocess import run
-from tasks.util.env import KATA_CONFIG_DIR, KATA_IMG_DIR, PROJ_ROOT
+from tasks.util.env import KATA_CONFIG_DIR, KATA_IMG_DIR, KATA_RUNTIMES, PROJ_ROOT
 from tasks.util.toml import remove_entry_from_toml, update_toml
 
-KATA_RUNTIMES = ["qemu", "qemu-sev"]
 KATA_SOURCE_DIR = join(PROJ_ROOT, "..", "kata-containers")
 KATA_AGENT_SOURCE_DIR = join(KATA_SOURCE_DIR, "src", "agent")
 
