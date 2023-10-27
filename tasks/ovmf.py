@@ -1,7 +1,7 @@
 from invoke import task
 from os.path import join
 from subprocess import run
-from tasks.util.env import BIN_DIR, KATA_CONFIG_DIR, KATA_RUNTIMES, PROJ_ROOT
+from tasks.util.env import BIN_DIR, KATA_CONFIG_DIR, PROJ_ROOT
 from tasks.util.toml import update_toml
 
 OVMF_IMAGE_TAG = "ovmf-build"

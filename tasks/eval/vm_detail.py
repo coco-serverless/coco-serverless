@@ -1,17 +1,13 @@
-from glob import glob
 from invoke import task
-from matplotlib.patches import Patch
 from matplotlib.pyplot import subplots
-from numpy import array as np_array, mean as np_mean
 from os import makedirs
-from os.path import basename, exists, join
+from os.path import exists, join
 from pandas import read_csv
 from re import search as re_search
 from tasks.eval.util.clean import cleanup_after_run
 from tasks.eval.util.csv import init_csv_file, write_csv_line
 from tasks.eval.util.env import (
     APPS_DIR,
-    BASELINE_FLAVOURS,
     BASELINES,
     EXPERIMENT_IMAGE_REPO,
     EVAL_TEMPLATED_DIR,
@@ -30,7 +26,7 @@ from tasks.util.containerd import (
     get_ts_for_containerd_event,
 )
 from tasks.util.flame import generate_flame_graph
-from tasks.util.k8s import get_container_id_from_pod, template_k8s_file
+from tasks.util.k8s import template_k8s_file
 from tasks.util.kubeadm import get_pod_names_in_ns, run_kubectl_command
 from tasks.util.qemu import get_qemu_pid
 from tasks.util.ovmf import get_ovmf_boot_events
@@ -51,7 +47,6 @@ def get_guest_kernel_start_ts(lower_bound=None):
         start_kernel_string, start_kernel_string, 1
     )[0]
 
-    # print(event_json["MESSAGE"])
     guest_kernel_ts = float(
         re_search(r'vmconsole="\[ *([\.0-9]*)\]', event_json["MESSAGE"]).groups(1)[0]
     )
@@ -120,8 +115,6 @@ def do_run(result_file, num_run, service_file, flavour, warmup=False):
         events_ts.append(("StartVMStarted", start_ts_vms))
 
         # Pre-attestation
-        # What to do with this event? It is just a set-up step I think
-        # start_ts_preatt = get_ts_for_containerd_event("Set up prelaunch attestation", sandbox_id, lower_bound=start_ts_vms)
         start_ts_preatt = get_ts_for_containerd_event(
             "Processing prelaunch attestation", sandbox_id, lower_bound=start_ts_vms
         )
@@ -216,7 +209,7 @@ def run(ctx):
         # Second, run any baseline-specific set-up
         setup_baseline(bline, used_images)
 
-        for flavour in ["cold"]:  # BASELINE_FLAVOURS:
+        for flavour in ["cold"]:
             # Prepare the result file
             result_file = join(results_dir, "{}_{}.csv".format(bline, flavour))
             init_csv_file(result_file, "Run,Event,TimeStampMs")

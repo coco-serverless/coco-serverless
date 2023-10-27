@@ -20,11 +20,11 @@ def get_ovmf_boot_events(events_ts, guest_kernel_start_ts):
     lines = [li for li in lines if magic in li]
 
     # Get the overall time elapsed
-    ticks_re_str = r'\(ticks\): ([0-9]*)'
+    ticks_re_str = r"\(ticks\): ([0-9]*)"
     start_ticks = int(re_search(ticks_re_str, lines[0]).groups(1)[0])
-    start_freq = int(re_search(r'Freq: ([0-9]*)', lines[0]).groups(1)[0])
+    start_freq = int(re_search(r"Freq: ([0-9]*)", lines[0]).groups(1)[0])
     end_ticks = int(re_search(ticks_re_str, lines[-1]).groups(1)[0])
-    end_freq = int(re_search(r'Freq: ([0-9]*)', lines[-1]).groups(1)[0])
+    end_freq = int(re_search(r"Freq: ([0-9]*)", lines[-1]).groups(1)[0])
 
     # Establish OVMF's relative 0 timestamp
     assert start_freq == end_freq, "Different frequencies!"
@@ -61,7 +61,7 @@ def get_ovmf_boot_events(events_ts, guest_kernel_start_ts):
                 ind_to_remove.append(ind)
     lines = [li for ind, li in enumerate(lines) if ind not in ind_to_remove]
     # for li in lines:
-        # print(li.strip())
+    # print(li.strip())
 
     def get_end_ticks(lines, event):
         for li in lines:
@@ -79,7 +79,7 @@ def get_ovmf_boot_events(events_ts, guest_kernel_start_ts):
     verify_duration = 0
     for li in lines:
         if "BEGIN" in li:
-            event = re_search(r'(^[a-zA-Z\-]*)', li).groups(1)[0]
+            event = re_search(r"(^[a-zA-Z\-]*)", li).groups(1)[0]
 
             # Filter only the events that we care about
             if event not in event_allow_list and "Verify" not in event:
