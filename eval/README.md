@@ -46,6 +46,7 @@ Now you are ready to run one of the experiments:
 * [Instantiation Throughput](#instantiation-throughput) - throughput-latency of service instantiation.
 * [Memory Size](#memory-size) - impact on initial VM memory size on start-up time.
 * [VM Start-Up](#vm-start-up) - breakdown of the cVM start-up costs
+* [Image Pull Costs](#image-pull) - breakdown of the costs associated to pulling an image on the guest.
 
 ### Start-Up Costs
 
@@ -96,6 +97,12 @@ To run the benchmark, you may run:
 inv eval.xput.run
 ```
 
+and then plot the results with:
+
+```bash
+inv eval.xput.plot
+```
+
 which generates a plot in [`./plots/xput/xput.png`](
 ./plots/xput/xput.png). You can also see the plot below:
 
@@ -113,6 +120,12 @@ To run the experiment you may run:
 
 ```bash
 inv eval.mem-size.run
+```
+
+and plot the results with:
+
+```bash
+inv eval.mem-size.plot
 ```
 
 which generates a plot in [`./plots/mem-size/mem_size.png`](
@@ -149,10 +162,50 @@ To generate a flame graph-like plot with the detailed costs, you may run:
 inv eval.vm-detail.run
 ```
 
+and plot the results with:
+
+```bash
+inv eval.vm-detail.plot
+```
+
 which generates a plot in [`./plots/vm-detail/vm_detail.png`](
 ./plots/vm-detail/vm_detail.png). You can also see the plot below:
 
 ![plot](./plots/vm-detail/vm_detail.png)
+
+### Image Pull
+
+This experiment breaks down the costs associated to pulling a container image
+on the guest. We consider the baseline where all security features are
+enabled. This means that the container images we use are both signed and
+encrypted.
+
+To get the timing measurements for the image pulling, we need to patch the
+`image-rs` crate in the Kata Agent. We do so in our fork of the
+[`guest-components`](https://github.com/csegarragonz/guest-components) repo.
+To re-build the Kata Agent, you may see the [docs](./docs/kata.md), and then
+run:
+
+```bash
+inv kata.replace-agent
+```
+
+After that, you may run the experiment with:
+
+```bash
+inv eval.image-pull.run
+```
+
+and plot the results with:
+
+```bash
+inv eval.image-pull.plot
+```
+
+which generates a plot in [`./plots/image-pull/image_pull.png`](
+./plots/image-pull/image_pull.png). You can also see the plot below:
+
+![plot](./plots/image-pull/image_pull.png)
 
 ## Benchmarks
 
