@@ -203,7 +203,15 @@ inv eval.image-pull.plot
 ```
 
 which generates a plot in [`./plots/image-pull/image_pull.png`](
-./plots/image-pull/image_pull.png). You can also see the plot below:
+./plots/image-pull/image_pull.png). Note that, by default, the `image-rs`
+crate will pull different layers concurrently. For each layer, fetching the
+bytes from the internet, and decompressing (+ decrypting) them happens
+(forcefully) in serial. Thus, to divide the time pulling layers (in general)
+between time fetching bytes from the internet, and handling them, we aggreagte
+the overall serial times for each operation, and calculate the ratio between
+them.
+
+You can see the plot below:
 
 ![plot](./plots/image-pull/image_pull.png)
 

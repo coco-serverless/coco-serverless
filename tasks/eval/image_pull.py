@@ -16,23 +16,64 @@ from tasks.eval.util.env import (
     RESULTS_DIR,
     PLOTS_DIR,
 )
-from tasks.eval.util.pod import (
-    get_sandbox_id_from_pod_name,
-    wait_for_pod_ready_and_get_ts,
-)
+from tasks.eval.util.pod import wait_for_pod_ready_and_get_ts
 from tasks.eval.util.setup import setup_baseline
 from tasks.util.containerd import (
-    get_event_from_containerd_logs,
-    get_start_end_ts_for_containerd_event,
+    get_all_events_in_between,
     get_ts_for_containerd_event,
 )
-from tasks.util.flame import generate_flame_graph
 from tasks.util.k8s import template_k8s_file
 from tasks.util.kubeadm import get_pod_names_in_ns, run_kubectl_command
 from time import sleep, time
 
 
 USED_IMAGES = ["csegarragonz/coco-knative-sidecar", "csegarragonz/coco-helloworld-py"]
+CSG_MAGIC_BEGIN = "CSG-M4GIC: B3G1N: {}"
+CSG_MAGIC_END = "CSG-M4GIC: END: {}"
+
+
+def aggregate_layered_events(layered_events, event):
+    """
+    Given a sequence of BEGIN/END events, return the overall duration time
+    (not real time, as some may happen in parallel)
+    """
+    sorted_events = sorted(layered_events, key=lambda x: int(x["__REALTIME_TIMESTAMP"]))
+
+    actual_csg_magic_begin = CSG_MAGIC_BEGIN.format(event)
+    actual_csg_magic_end = CSG_MAGIC_END.format(event)
+
+    def get_ts_from_json(ev_json):
+        return int(ev_json["__REALTIME_TIMESTAMP"]) / 1e6
+
+    def get_digest_from_json(ev_json):
+        return re_search(r"sha256:([a-z0-9]*)", ev_json["MESSAGE"]).groups(1)[0]
+
+    def find_end_ts(ev_json):
+        digest = get_digest_from_json(ev_json)
+        for ev in sorted_events:
+            if actual_csg_magic_end in ev["MESSAGE"] and digest in ev["MESSAGE"]:
+                return get_ts_from_json(ev)
+
+    overall_duration = 0
+
+    for ev in sorted_events:
+        # Make sure event is either begingin or end
+        is_begin = actual_csg_magic_begin in ev["MESSAGE"]
+        is_end = actual_csg_magic_end in ev["MESSAGE"]
+        assert is_begin != is_end, "BEGIN/END XOR failed! (msg: {})".format(
+            ev["MESSAGE"]
+        )
+
+        if is_end:
+            continue
+
+        start_ts = get_ts_from_json(ev)
+        end_ts = find_end_ts(ev)
+        assert end_ts >= start_ts, "End and start duration swapped!"
+
+        overall_duration += end_ts - start_ts
+
+    return overall_duration
 
 
 def do_run(result_file, num_run, service_file, flavour, warmup=False):
@@ -53,38 +94,82 @@ def do_run(result_file, num_run, service_file, flavour, warmup=False):
     wait_for_pod_ready_and_get_ts(pod_name)
 
     if not warmup:
-
-        # sandbox_id = get_sandbox_id_from_pod_name(pod_name)
-
-        csg_magic_begin = "CSG-M4GIC: B3G1N: {}"
-        csg_magic_end = "CSG-M4GIC: END: {}"
-
-        ordered_events = ["GC Image Pull", "Pull Manifest", "Signature Validation", "Pull Layers"]
+        ordered_events = [
+            "GC Image Pull",
+            "Pull Manifest",
+            "Signature Validation",
+            "Pull Layers",
+        ]
         for image in USED_IMAGES:
             events_ts = []
 
             for event in ordered_events:
                 start_ts = get_ts_for_containerd_event(
-                    csg_magic_begin.format(event),
-                    image,
-                    global_start_ts
+                    CSG_MAGIC_BEGIN.format(event), image, global_start_ts
                 )
 
                 end_ts = get_ts_for_containerd_event(
-                    csg_magic_end.format(event),
-                    image,
-                    global_start_ts
+                    CSG_MAGIC_END.format(event), image, global_start_ts
                 )
 
                 events_ts.append(("Start{}".format(event.replace(" ", "")), start_ts))
                 events_ts.append(("End{}".format(event.replace(" ", "")), end_ts))
+
+            # Also aggregate all events associated to pulling and handling
+            # singlye layers into one blob
+            # NOTE: pulling and handling happens serially _per layer_ but
+            # layers can be downloaded concurrently depending on an `image-rs`
+            # config flag. Thus, to report the time spent pulling and the
+            # time spent handling, we measure the ratios, and assume they
+            # occupy all the time
+            pull_layer_events = get_all_events_in_between(
+                CSG_MAGIC_BEGIN.format("Pull Layers"),
+                image,
+                CSG_MAGIC_END.format("Pull Layers"),
+                image,
+                "Pull Single Layer",
+            )
+            pull_duration = aggregate_layered_events(
+                pull_layer_events, "Pull Single Layer"
+            )
+
+            handle_layer_events = get_all_events_in_between(
+                CSG_MAGIC_BEGIN.format(event),
+                image,
+                CSG_MAGIC_END.format(event),
+                image,
+                "Handle Single Layer",
+            )
+            handle_duration = aggregate_layered_events(
+                handle_layer_events, "Handle Single Layer"
+            )
+
+            # Express durations as ratios from the parent "Pull Layers" event
+            pull_start_ts = get_ts_for_containerd_event(
+                CSG_MAGIC_BEGIN.format("Pull Layers"), image, global_start_ts
+            )
+            pull_end_ts = get_ts_for_containerd_event(
+                CSG_MAGIC_END.format("Pull Layers"), image, global_start_ts
+            )
+            overall_duration = pull_end_ts - pull_start_ts
+            pull_ratio = pull_duration / (pull_duration + handle_duration)
+            events_ts.append(("StartPullSingleLayer", pull_start_ts))
+            events_ts.append(
+                ("EndPullSingleLayer", pull_start_ts + pull_ratio * overall_duration)
+            )
+            events_ts.append(
+                (
+                    "StartHandleSingleLayer",
+                    pull_start_ts + pull_ratio * overall_duration,
+                )
+            )
+            events_ts.append(("EndHandleSingleLayer", pull_end_ts))
 
             # Sort the events by timestamp and write them to a file
             image_name = "sidecar" if "sidecar" in image else "app"
             events_ts = sorted(events_ts, key=lambda x: x[1])
             for event in events_ts:
                 write_csv_line(result_file, num_run, image_name, event[0], event[1])
-
 
     # Wait for pod to finish
     run_kubectl_command("delete -f {}".format(service_file), capture_output=True)
@@ -179,7 +264,9 @@ def plot(ctx):
         for event in events:
             # NOTE: these timestamps are in seconds
             results_dict[image_name][event] = {
-                "mean": image_results[image_results.Event == event]["TimeStampMs"].mean(),
+                "mean": image_results[image_results.Event == event][
+                    "TimeStampMs"
+                ].mean(),
                 "sem": image_results[image_results.Event == event]["TimeStampMs"].sem(),
             }
 
@@ -190,18 +277,24 @@ def plot(ctx):
         "pull-manifest": ("StartPullManifest", "EndPullManifest"),
         "signature-validation": ("StartSignatureValidation", "EndSignatureValidation"),
         "pull-layers": ("StartPullLayers", "EndPullLayers"),
+        "pull-single-layer": ("StartPullSingleLayer", "EndPullSingleLayer"),
+        "handle-single-layer": ("StartHandleSingleLayer", "EndHandleSingleLayer"),
     }
     height_for_event = {
         "image-pull": 0,
         "pull-manifest": 1,
         "signature-validation": 1,
         "pull-layers": 1,
+        "pull-single-layer": 2,
+        "handle-single-layer": 2,
     }
     color_for_event = {
         "image-pull": "red",
         "pull-manifest": "purple",
         "signature-validation": "orange",
-        "pull-layers": "green"
+        "pull-layers": "green",
+        "pull-single-layer": "blue",
+        "handle-single-layer": "brown",
     }
     assert list(ordered_events.keys()) == list(height_for_event.keys())
     assert list(color_for_event.keys()) == list(height_for_event.keys())
@@ -225,9 +318,17 @@ def plot(ctx):
     # Helper list to know which labels don't fit in their bar. Alas, I have not
     # found a way to programatically place them well, so the (x, y) coordinates
     # for this labels will have to be hard-coded
-    events_to_rotate = ["pull-manifest", "signature-validation"]
+    events_to_rotate = [
+        "pull-manifest",
+        "signature-validation",
+        "pull-single-layer",
+        "handle-single-layer",
+    ]
 
-    x_origin = min(results_dict["app"]["StartGCImagePull"]["mean"], results_dict["sidecar"]["StartGCImagePull"]["mean"])
+    x_origin = min(
+        results_dict["app"]["StartGCImagePull"]["mean"],
+        results_dict["sidecar"]["StartGCImagePull"]["mean"],
+    )
     for image in ["app", "sidecar"]:
         for event in ordered_events:
             start_ev = ordered_events[event][0]
@@ -253,7 +354,7 @@ def plot(ctx):
                 bbox={
                     "facecolor": "white",
                     "edgecolor": "black",
-                }
+                },
             )
 
     ax.barh(
@@ -272,8 +373,8 @@ def plot(ctx):
     ax.set_ylim(bottom=0)
     ax.tick_params(axis="y", which="both", left=False, right=False, labelbottom=False)
     ax.set_yticklabels([])
-    title_str = "Breakdown of the time to pull and encrypted and signed OCI image\n"
-    title_str += "(baseline: {})".format(
+    title_str = "Breakdown of the time pulling OCI images\n"
+    title_str += "(baseline: {})\n".format(
         baseline,
     )
     ax.set_title(title_str)
@@ -281,9 +382,28 @@ def plot(ctx):
     # Manually craft the legend
     legend_handles = []
     for image in pattern_for_image:
-        legend_handles.append(Patch(hatch=pattern_for_image[image], facecolor="white", edgecolor="black", label=image))
-    ax.legend(handles=legend_handles, bbox_to_anchor=(1.1, 1.05))
+        legend_handles.append(
+            Patch(
+                hatch=pattern_for_image[image],
+                facecolor="white",
+                edgecolor="black",
+                label=image,
+            )
+        )
+    ax.legend(handles=legend_handles, bbox_to_anchor=(1.05, 1.05))
 
     for plot_format in ["pdf", "png"]:
         plot_file = join(plots_dir, "image_pull.{}".format(plot_format))
         fig.savefig(plot_file, format=plot_format, bbox_inches="tight")
+
+
+@task
+def foo(ctx):
+    pull_layer_events = get_all_events_in_between(
+        CSG_MAGIC_BEGIN.format("Pull Layers"),
+        "sidecar",
+        CSG_MAGIC_END.format("Pull Layers"),
+        "sidecar",
+        "Pull Single Layer",
+    )
+    start_ts, end_ts = aggregate_layered_events(pull_layer_events, "Pull Single Layer")
