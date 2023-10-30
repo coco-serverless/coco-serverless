@@ -109,3 +109,47 @@ def get_start_end_ts_for_containerd_event(event_name, event_id, lower_bound=None
         )
 
     return start_ts, end_ts
+
+
+def get_all_events_in_between(
+    start_event, start_event_id, end_event, end_event_id, event_to_find
+):
+    """
+    Return all events with `event_to_find` in their message that happen between
+    events with `start_event` and `start_event_id` in their message and
+    `end_event` and `end_event_id`.
+    """
+    out = get_journalctl_containerd_logs()
+    events_json = []
+
+    # First, find the sub-list containing all events between our begining
+    # and end event
+    start_event_idx = -1
+    end_event_idx = -1
+    for idx, o in enumerate(out):
+        o_json = json_loads(o)
+        if o_json is None or "MESSAGE" not in o_json or o_json["MESSAGE"] is None:
+            continue
+
+        if start_event in o_json["MESSAGE"] and start_event_id in o_json["MESSAGE"]:
+            start_event_idx = idx
+
+        if end_event in o_json["MESSAGE"] and end_event_id in o_json["MESSAGE"]:
+            end_event_idx = idx
+
+    # Sanity check the indexes
+    assert start_event_idx >= 0, "Could not find start event: {} (id: {})".format(
+        start_event, start_event_id
+    )
+    assert end_event_idx >= 0, "Could not find end event: {} (id: {})".format(
+        end_event, end_event_id
+    )
+    assert end_event_idx > start_event_idx, "End event earlier than start event"
+
+    # Then filter the sub-list for the events we are interested in
+    for o in out[start_event_idx:end_event_idx]:
+        o_json = json_loads(o)
+        if event_to_find in o_json["MESSAGE"]:
+            events_json.append(o_json)
+
+    return events_json
