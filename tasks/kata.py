@@ -2,11 +2,12 @@ from invoke import task
 from os import makedirs
 from os.path import dirname, join
 from subprocess import run
-from tasks.util.env import KATA_CONFIG_DIR, KATA_IMG_DIR, KATA_RUNTIMES, PROJ_ROOT
+from tasks.util.env import COCO_ROOT, KATA_CONFIG_DIR, KATA_IMG_DIR, KATA_RUNTIMES, PROJ_ROOT
 from tasks.util.toml import remove_entry_from_toml, update_toml
 
 KATA_SOURCE_DIR = join(PROJ_ROOT, "..", "kata-containers")
 KATA_AGENT_SOURCE_DIR = join(KATA_SOURCE_DIR, "src", "agent")
+KATA_SHIM_SOURCE_DIR = join(KATA_SOURCE_DIR, "src", "runtime")
 
 
 @task
@@ -115,3 +116,26 @@ def replace_agent(ctx, agent_source_dir=KATA_AGENT_SOURCE_DIR):
 
         if runtime == "qemu":
             remove_entry_from_toml(conf_file_path, "hypervisor.qemu.image")
+
+
+@task
+def replace_shim(ctx, shim_source_dir=KATA_SHIM_SOURCE_DIR, revert=False):
+    """
+    Replace the containerd-kata-shim with a custom one
+
+    To replace the agent, we just need to change the soft-link from the right
+    shim to our re-built one
+    """
+    # First, copy the binary from the source tree
+    src_shim_binary = join(shim_source_dir, "containerd-shim-kata-v2")
+    dst_shim_binary = join(COCO_ROOT, "bin", "containerd-shim-kata-v2-csg")
+    run("sudo cp {} {}".format(src_shim_binary, dst_shim_binary), shell=True, check=True)
+
+    # Second, soft-link the SEV runtime to the right shim binary
+    if revert:
+        dst_shim_binary = join(COCO_ROOT, "bin", "containerd-shim-kata-v2")
+
+    # This path is hardcoded in the containerd config/operator
+    sev_shim_binary = "/usr/local/bin/containerd-shim-kata-qemu-sev-v2"
+
+    run("sudo ln -sf {} {}".format(dst_shim_binary, sev_shim_binary), shell=True, check=True)

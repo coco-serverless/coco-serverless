@@ -5,6 +5,7 @@ from . import mem_size
 from . import startup
 from . import vm_detail
 from . import xput
+from . import xput_detail
 
 ns = Collection(
     image_pull,
@@ -12,4 +13,5 @@ ns = Collection(
     startup,
     vm_detail,
     xput,
+    xput_detail,
 )
