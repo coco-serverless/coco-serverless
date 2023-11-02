@@ -3,7 +3,7 @@ from os import makedirs
 from os.path import exists, join
 from subprocess import run
 from tasks.util.docker import is_ctr_running
-from tasks.util.env import CONF_FILES_DIR, K8S_CONFIG_DIR
+from tasks.util.env import CONF_FILES_DIR, K8S_CONFIG_DIR, LOCAL_REGISTRY_URL
 # TODO: rename and move this method elsewhere
 from tasks.util.env import get_kbs_url
 from tasks.util.kata import replace_agent
@@ -27,7 +27,6 @@ def start(ctx):
     """
     Configure a local container registry reachable from CoCo guests in K8s
     """
-    registry_url = "registry.coco-csg.com"
     this_ip = get_kbs_url()
 
     # ----------
@@ -39,13 +38,18 @@ def start(ctx):
     dns_contents = run("sudo cat {}".format(dns_file), shell=True, capture_output=True).stdout.decode("utf-8").strip().split("\n")
 
     # Only write the DNS entry if it is not there yet
-    dns_line = "{} {}".format(this_ip, registry_url)
+    dns_line = "{} {}".format(this_ip, LOCAL_REGISTRY_URL)
     must_write = not any([dns_line in line for line in dns_contents])
 
     if must_write:
         actual_dns_line = "\n# CSG: DNS entry for local registry\n{}".format(dns_line)
         write_cmd = "sudo sh -c \"echo '{}' >> {}\"".format(actual_dns_line, dns_file)
         run(write_cmd, shell=True, check=True)
+
+        # If creating a new registry, also update the local SSL certificates
+        system_cert_path = "/usr/share/ca-certificates/coco_csg_registry.crt"
+        run("sudo cp {} {}".format(HOST_CERT_PATH, system_cert_path), shell=True, check=True)
+        run("sudo dpkg-reconfigure ca-certificates")
 
     # ----------
     # Docker Registry Config
@@ -60,7 +64,7 @@ def start(ctx):
         "-newkey rsa:4096",
         "-nodes -sha256",
         "-keyout {}".format(HOST_KEY_PATH),
-        "-addext \"subjectAltName = DNS:{}\"".format(registry_url),
+        "-addext \"subjectAltName = DNS:{}\"".format(LOCAL_REGISTRY_URL),
         "-x509 -days 365",
         "-out {}".format(HOST_CERT_PATH),
     ]
@@ -88,7 +92,7 @@ def start(ctx):
         print("WARNING: skipping starting container as it is already running...")
 
     # Configure docker to be able to push to this registry
-    docker_certs_dir = join("/etc/docker/certs.d", registry_url)
+    docker_certs_dir = join("/etc/docker/certs.d", LOCAL_REGISTRY_URL)
     if not exists(docker_certs_dir):
         run("sudo mkdir -p {}".format(docker_certs_dir), shell=True, check=True)
 
@@ -108,7 +112,7 @@ def start(ctx):
     update_toml("/etc/containerd/config.toml", updated_toml_str)
 
     # Add the correspnding configuration to containerd
-    containerd_certs_dir = join(containerd_base_certs_dir, registry_url)
+    containerd_certs_dir = join(containerd_base_certs_dir, LOCAL_REGISTRY_URL)
     if not exists(containerd_certs_dir):
         run("sudo mkdir -p {}".format(containerd_certs_dir), shell=True, check=True)
 
@@ -117,7 +121,7 @@ server = "https://{registry_url}"
 
 [host."https://{registry_url}"]
   skip_verify = true
-    """.format(registry_url=registry_url)
+    """.format(registry_url=LOCAL_REGISTRY_URL)
     run("sudo sh -c \"echo '{}' > {}\"".format(containerd_certs_file, join(containerd_certs_dir, "hosts.toml")), shell=True, check=True)
 
     # Restart containerd to pick up the changes (?)

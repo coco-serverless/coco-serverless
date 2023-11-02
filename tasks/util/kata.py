@@ -69,7 +69,6 @@ def replace_agent(agent_source_dir=KATA_AGENT_SOURCE_DIR, extra_files=None):
             if not exists(dirname(guest_path)):
                 run("sudo mkdir -p {}".format(dirname(guest_path)), shell=True, check=True)
 
-            print(host_path, extra_files[host_path], workdir, guest_path, join(workdir, extra_files[host_path]))
             run("sudo cp {} {}".format(host_path, guest_path), shell=True, check=True)
 
     # Pack the initrd again

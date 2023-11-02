@@ -33,12 +33,9 @@ Signing and encryption is an interactive process, hence why we do it once,
 in advance of the evaluation:
 
 ```bash
-# First encrypt (and sign) the image
-inv skopeo.encrypt-container-image "ghcr.io/csegarragonz/coco-helloworld-py:unencrypted" --sign
-
-# Then sign the unencrypted images used
-inv cosign.sign-container-image "ghcr.io/csegarragonz/coco-helloworld-py:unencrypted"
-inv cosign.sign-container-image "ghcr.io/csegarragonz/coco-knative-sidecar:unencrypted"
+# Enter an empty passphrase or click 'y' when prompted (it will happen
+# many times)
+inv eval.images.upload
 ```
 
 Now you are ready to run one of the experiments:
