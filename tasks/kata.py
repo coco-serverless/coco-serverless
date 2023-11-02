@@ -2,7 +2,13 @@ from invoke import task
 from os import makedirs
 from os.path import dirname, join
 from subprocess import run
-from tasks.util.env import COCO_ROOT, KATA_CONFIG_DIR, KATA_IMG_DIR, KATA_RUNTIMES, PROJ_ROOT
+from tasks.util.env import (
+    COCO_ROOT,
+    KATA_CONFIG_DIR,
+    KATA_IMG_DIR,
+    KATA_RUNTIMES,
+    PROJ_ROOT,
+)
 from tasks.util.toml import remove_entry_from_toml, update_toml
 
 KATA_SOURCE_DIR = join(PROJ_ROOT, "..", "kata-containers")
@@ -129,7 +135,9 @@ def replace_shim(ctx, shim_source_dir=KATA_SHIM_SOURCE_DIR, revert=False):
     # First, copy the binary from the source tree
     src_shim_binary = join(shim_source_dir, "containerd-shim-kata-v2")
     dst_shim_binary = join(COCO_ROOT, "bin", "containerd-shim-kata-v2-csg")
-    run("sudo cp {} {}".format(src_shim_binary, dst_shim_binary), shell=True, check=True)
+    run(
+        "sudo cp {} {}".format(src_shim_binary, dst_shim_binary), shell=True, check=True
+    )
 
     # Second, soft-link the SEV runtime to the right shim binary
     if revert:
@@ -138,4 +146,8 @@ def replace_shim(ctx, shim_source_dir=KATA_SHIM_SOURCE_DIR, revert=False):
     # This path is hardcoded in the containerd config/operator
     sev_shim_binary = "/usr/local/bin/containerd-shim-kata-qemu-sev-v2"
 
-    run("sudo ln -sf {} {}".format(dst_shim_binary, sev_shim_binary), shell=True, check=True)
+    run(
+        "sudo ln -sf {} {}".format(dst_shim_binary, sev_shim_binary),
+        shell=True,
+        check=True,
+    )

@@ -49,7 +49,9 @@ def get_sandbox_id_from_pod_name(pod_name, timeout_mins=1):
     Get the sandbox ID from a pod name
     """
     # The sandbox ID is in the ending pair of the RunPodSandbox event
-    event_json = get_event_from_containerd_logs("RunPodSandbox", pod_name, 1, timeout_mins=timeout_mins)[0]
+    event_json = get_event_from_containerd_logs(
+        "RunPodSandbox", pod_name, 1, timeout_mins=timeout_mins
+    )[0]
     sbox_id = re_search(
         r'returns sandbox id \\"([a-zA-Z0-9]*)\\"', event_json["MESSAGE"]
     ).groups(1)[0]

@@ -17,17 +17,14 @@ from tasks.eval.util.env import (
     PLOTS_DIR,
     RESULTS_DIR,
 )
-from tasks.eval.util.pod import get_sandbox_id_from_pod_name
 from tasks.eval.util.setup import setup_baseline
 from tasks.util.containerd import get_ts_for_containerd_event
 from tasks.util.k8s import template_k8s_file
 from tasks.util.kubeadm import get_pod_names_in_ns, run_kubectl_command
-from time import sleep, time
+from time import sleep
 
 
 def do_run(result_file, baseline, num_run, num_par_inst):
-    start_ts = time()
-
     service_files = [
         "apps_xput_{}_service_{}.yaml".format(baseline, i) for i in range(num_par_inst)
     ]
@@ -79,11 +76,15 @@ def do_run(result_file, baseline, num_run, num_par_inst):
         def get_events_for_pod(pod_id, pod_name):
             events_ts = []
 
-            kube_cmd = "get pod {} -o jsonpath='{{..status.conditions}}'".format(pod_name)
+            kube_cmd = "get pod {} -o jsonpath='{{..status.conditions}}'".format(
+                pod_name
+            )
             conditions = run_kubectl_command(kube_cmd, capture_output=True)
             cond_json = json_loads(conditions)
 
-            assert all([cond["status"] == "True" for cond in cond_json]), "Pod {} is not ready".format(pod_name)
+            assert all(
+                [cond["status"] == "True" for cond in cond_json]
+            ), "Pod {} is not ready".format(pod_name)
 
             for cond in cond_json:
                 events_ts.append(
@@ -98,8 +99,6 @@ def do_run(result_file, baseline, num_run, num_par_inst):
             # Also get one event from containerd that indicates that the
             # sandbox is ready
             timeout_mins = 5
-            # sandbox_id = get_sandbox_id_from_pod_name(pod_name, timeout_mins=timeout_mins)
-            # print("Sandbox ID:", sandbox_id)
             vm_ready_ts = get_ts_for_containerd_event(
                 "RunPodSandbox",
                 pod_name,
@@ -166,7 +165,8 @@ def run(ctx):
         # Template as many service files as parallel instances
         for i in range(max(num_parallel_instances)):
             service_file = join(
-                EVAL_TEMPLATED_DIR, "apps_xput-detail_{}_service_{}.yaml".format(bline, i)
+                EVAL_TEMPLATED_DIR,
+                "apps_xput-detail_{}_service_{}.yaml".format(bline, i),
             )
             template_vars = {
                 "image_repo": EXPERIMENT_IMAGE_REPO,
@@ -224,7 +224,9 @@ def plot(ctx):
                 "mean": service_results[service_results.Event == event][
                     "TimeStampSecs"
                 ].mean(),
-                "sem": service_results[service_results.Event == event]["TimeStampSecs"].sem(),
+                "sem": service_results[service_results.Event == event][
+                    "TimeStampSecs"
+                ].sem(),
             }
 
     ordered_events = {
@@ -251,14 +253,15 @@ def plot(ctx):
     widths = []
     # x-axis offset of each bar
     xs = []
-    labels = []
+    # labels = []
     colors = []
 
     x_origin = min([results_dict[s_id]["PodScheduled"]["mean"] for s_id in service_ids])
 
     service_ids = sorted(
         service_ids,
-        key=lambda x: results_dict[x]["ContainersReady"]["mean"] - results_dict[x]["PodScheduled"]["mean"]
+        key=lambda x: results_dict[x]["ContainersReady"]["mean"]
+        - results_dict[x]["PodScheduled"]["mean"],
     )
 
     for num, service_id in enumerate(service_ids):
@@ -276,16 +279,16 @@ def plot(ctx):
             # x_text = x_left - x_origin + (x_right - x_left) / 4
             # y_text = (height_for_event[event] + 0.2) * bar_height
 
-#             ax.text(
-#                 x_text,
-#                 y_text,
-#                 event,
-#                 rotation=90 if event in events_to_rotate else 0,
-#                 bbox={
-#                     "facecolor": "white",
-#                     "edgecolor": "black",
-#                 },
-#             )
+    #             ax.text(
+    #                 x_text,
+    #                 y_text,
+    #                 event,
+    #                 rotation=90 if event in events_to_rotate else 0,
+    #                 bbox={
+    #                     "facecolor": "white",
+    #                     "edgecolor": "black",
+    #                 },
+    #             )
 
     ax.barh(
         ys,

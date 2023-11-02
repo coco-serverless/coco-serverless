@@ -11,7 +11,7 @@ def get_journalctl_containerd_logs(timeout_mins=1):
     clipped (or at least remove the chance of it being so)
     """
     tmp_file = "/tmp/journalctl.log"
-    journalctl_cmd = 'sudo journalctl -xeu containerd --no-tail '
+    journalctl_cmd = "sudo journalctl -xeu containerd --no-tail "
     journalctl_cmd += '--since "{} min ago" -o json > {}'.format(timeout_mins, tmp_file)
     run(journalctl_cmd, shell=True, check=True)
 
@@ -22,11 +22,7 @@ def get_journalctl_containerd_logs(timeout_mins=1):
 
 
 def get_event_from_containerd_logs(
-    event_name,
-    event_id,
-    num_events,
-    extra_event_id=None,
-    timeout_mins=1
+    event_name, event_id, num_events, extra_event_id=None, timeout_mins=1
 ):
     """
     Get the last `num_events` events in containerd logs that correspond to
@@ -58,7 +54,10 @@ def get_event_from_containerd_logs(
                         event_name in o_json["MESSAGE"]
                         and event_id in o_json["MESSAGE"]
                     ):
-                        if extra_event_id is None or extra_event_id in o_json["MESSAGE"]:
+                        if (
+                            extra_event_id is None
+                            or extra_event_id in o_json["MESSAGE"]
+                        ):
                             event_json.append(o_json)
                 except TypeError as e:
                     print(o_json)
@@ -95,11 +94,7 @@ def get_ts_for_containerd_event(
     Get the journalctl timestamp for one event in the containerd logs
     """
     event_json = get_event_from_containerd_logs(
-        event_name,
-        event_id,
-        1,
-        extra_event_id=None,
-        timeout_mins=timeout_mins
+        event_name, event_id, 1, extra_event_id=None, timeout_mins=timeout_mins
     )[0]
     ts = int(event_json["__REALTIME_TIMESTAMP"]) / 1e6
 
