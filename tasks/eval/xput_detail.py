@@ -28,7 +28,7 @@ from time import sleep
 
 def do_run(result_file, baseline, image_repo, num_run, num_par_inst):
     service_files = [
-        "apps_xput_{}_{}_service_{}.yaml".format(image_repo, baseline, i) for i in range(num_par_inst)
+        "apps_xput-detail_{}_{}_service_{}.yaml".format(image_repo, baseline, i) for i in range(num_par_inst)
     ]
     for service_file in service_files:
         # Capture output to avoid verbose Knative logging
@@ -171,11 +171,6 @@ def run(ctx, repo=None):
     for image_repo in image_repos:
         replace_sidecar(image_repo=image_repo, quiet=True)
 
-        # If we are using a local registry, we need to configure Knative to
-        # accept our self-signed certificates
-        if image_repo == LOCAL_REGISTRY_URL:
-            configure_self_signed_certs(join(K8S_CONFIG_DIR, "local-registry"))
-
         for bline in baselines_to_run:
             baseline_traits = BASELINES[bline]
 
@@ -209,7 +204,7 @@ def run(ctx, repo=None):
                             bline, num_par, image_repo, nr + 1, num_runs
                         )
                     )
-                    do_run(result_file, image_repo, bline, nr, num_par)
+                    do_run(result_file, bline, image_repo, nr, num_par)
                     sleep(INTER_RUN_SLEEP_SECS)
                     cleanup_after_run(bline, used_images)
 
