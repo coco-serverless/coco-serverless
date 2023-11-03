@@ -1,9 +1,10 @@
 from invoke import task
-from os import makedirs
-from os.path import exists, join
-from subprocess import run
-from tasks.util.env import CONF_FILES_DIR, TEMPLATED_FILES_DIR
-from tasks.util.k8s import template_k8s_file
+from os.path import join
+from tasks.util.env import CONF_FILES_DIR
+from tasks.util.knative import (
+    configure_self_signed_certs as do_configure_self_signed_certs,
+    replace_sidecar as do_replace_sidecar,
+)
 from tasks.util.kubeadm import run_kubectl_command, wait_for_pods_in_ns
 from time import sleep
 
@@ -19,12 +20,6 @@ KNATIVE_BASE_URL = "https://github.com/knative/serving/releases/download"
 KNATIVE_BASE_URL += "/knative-v{}".format(KNATIVE_VERSION)
 KOURIER_BASE_URL = "https://github.com/knative/net-kourier/releases/download"
 KOURIER_BASE_URL += "/knative-v{}".format(KNATIVE_VERSION)
-
-# Knative Serving Side-Car Tag
-KNATIVE_SIDECAR_IMAGE_TAG = "gcr.io/knative-releases/knative.dev/serving/cmd/"
-KNATIVE_SIDECAR_IMAGE_TAG += (
-    "queue@sha256:987f53e3ead58627e3022c8ccbb199ed71b965f10c59485bab8015ecf18b44af"
-)
 
 
 def install_kourier():
@@ -147,7 +142,7 @@ def install(ctx):
     wait_for_pods_in_ns(KNATIVE_NAMESPACE, label="app=default-domain")
 
     # Replace the sidecar to use an image we control
-    replace_sidecar(ctx)
+    do_replace_sidecar()
 
     print("Succesfully deployed Knative! The external IP is: {}".format(actual_ip))
 
@@ -181,7 +176,7 @@ def uninstall(ctx):
 
 
 @task
-def replace_sidecar(ctx, reset_default=False):
+def replace_sidecar(ctx, reset_default=False, image_repo="ghcr.io"):
     """
     Replace Knative's side-car image with an image we control
 
@@ -190,58 +185,12 @@ def replace_sidecar(ctx, reset_default=False):
     default side-car image. Instead, we re-tag the corresponding image, and
     update Knative's deployment ConfigMap to use our image.
     """
-    k8s_filename = "knative_replace_sidecar.yaml"
+    do_replace_sidecar(reset_default, image_repo)
 
-    if reset_default:
-        in_k8s_file = join(CONF_FILES_DIR, "{}.j2".format(k8s_filename))
-        out_k8s_file = join(TEMPLATED_FILES_DIR, k8s_filename)
-        template_k8s_file(
-            in_k8s_file,
-            out_k8s_file,
-            {"knative_sidecar_image_url": KNATIVE_SIDECAR_IMAGE_TAG},
-        )
-        run_kubectl_command("apply -f {}".format(out_k8s_file))
-        return
 
-    # Pull the right Knative Serving side-car image tag
-    docker_cmd = "docker pull {}".format(KNATIVE_SIDECAR_IMAGE_TAG)
-    run(docker_cmd, shell=True, check=True)
-
-    # Re-tag it, and push it to our controlled registry
-    image_repo = "ghcr.io"
-    image_name = "csegarragonz/coco-knative-sidecar"
-    image_tag = "unencrypted"
-    new_image_url = "{}/{}:{}".format(image_repo, image_name, image_tag)
-    docker_cmd = "docker tag {} {}".format(KNATIVE_SIDECAR_IMAGE_TAG, new_image_url)
-    run(docker_cmd, shell=True, check=True)
-
-    docker_cmd = "docker push {}".format(new_image_url)
-    run(docker_cmd, shell=True, check=True)
-
-    # Get the digest for the recently pulled image, and use it to update
-    # Knative's deployment configmap
-    docker_cmd = 'docker images {} --digests --format "{{{{.Digest}}}}"'.format(
-        join(image_repo, image_name),
-    )
-    image_digest = (
-        run(docker_cmd, shell=True, capture_output=True).stdout.decode("utf-8").strip()
-    )
-    assert len(image_digest) > 0
-
-    if not exists(TEMPLATED_FILES_DIR):
-        makedirs(TEMPLATED_FILES_DIR)
-
-    in_k8s_file = join(CONF_FILES_DIR, "{}.j2".format(k8s_filename))
-    out_k8s_file = join(TEMPLATED_FILES_DIR, k8s_filename)
-    new_image_url_digest = "{}/{}@{}".format(image_repo, image_name, image_digest)
-    template_k8s_file(
-        in_k8s_file, out_k8s_file, {"knative_sidecar_image_url": new_image_url_digest}
-    )
-    run_kubectl_command("apply -f {}".format(out_k8s_file))
-
-    # Finally, make sure to remove all pulled container images to avoid
-    # unintended caching issues with CoCo
-    docker_cmd = "docker rmi {}".format(KNATIVE_SIDECAR_IMAGE_TAG)
-    run(docker_cmd, shell=True, check=True)
-    docker_cmd = "docker rmi {}".format(new_image_url)
-    run(docker_cmd, shell=True, check=True)
+@task
+def configure_self_signed_certs(ctx, path_to_certs_dir):
+    """
+    Configure Knative to like our self-signed certificates
+    """
+    do_configure_self_signed_certs(path_to_certs_dir)

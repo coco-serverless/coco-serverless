@@ -4,7 +4,7 @@ from tasks.util.coco import guest_attestation, signature_verification
 from tasks.util.kbs import clear_kbs_db, provision_launch_digest
 
 
-def setup_baseline(baseline, used_images):
+def setup_baseline(baseline, used_images, image_repo=EXPERIMENT_IMAGE_REPO):
     """
     Configure the system for a specific baseline
 
@@ -30,7 +30,7 @@ def setup_baseline(baseline, used_images):
     # Configure signature policy (check image signature or not). We must do
     # this at the very end as it relies on: (i) the KBS DB being clear, and
     # (ii) the configuration file populated by the previous methods
-    images_to_sign = [join(EXPERIMENT_IMAGE_REPO, image) for image in used_images]
+    images_to_sign = [join(image_repo, image) for image in used_images]
     provision_launch_digest(
         images_to_sign,
         signature_policy=baseline_traits["signature_policy"],

@@ -55,9 +55,10 @@ def encrypt_container_image(image_tag, sign=False):
     # to encrypt the OCI image. To that extent, we need to mount the encryption
     # key somewhere that the attestation agent (in the keyprovider) can find
     # it
-    start_coco_keyprovider(SKOPEO_ENCRYPTION_KEY, AA_CTR_ENCRYPTION_KEY)
+    # start_coco_keyprovider(SKOPEO_ENCRYPTION_KEY, AA_CTR_ENCRYPTION_KEY)
 
     encrypted_image_tag = image_tag.split(":")[0] + ":encrypted"
+    """
     skopeo_cmd = [
         "copy --insecure-policy",
         "--authfile /config.json",
@@ -75,6 +76,7 @@ def encrypt_container_image(image_tag, sign=False):
 
     # Stop the keyprovider when we are done encrypting layers
     stop_coco_keyprovider()
+    """
 
     # Sanity check that the image is actually encrypted
     inspect_jsonstr = run_skopeo_cmd(
@@ -102,8 +104,8 @@ def encrypt_container_image(image_tag, sign=False):
     try:
         create_kbs_secret(encryption_key_resource_id, key_b64)
     except IntegrityError:
+        print("WARNING: error creating KBS secret...")
         pass
-
 
     if sign:
         sign_container_image(encrypted_image_tag)

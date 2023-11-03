@@ -6,3 +6,4 @@ metadata:
 data:
   kubernetes.podspec-runtimeclassname: "enabled"
   kubernetes.podspec-securitycontext: "enabled"
+  registriesSkippingTagResolving: registry.csg-coco.com

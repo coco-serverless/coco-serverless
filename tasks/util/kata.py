@@ -24,6 +24,7 @@ def replace_agent(agent_source_dir=KATA_AGENT_SOURCE_DIR, extra_files=None):
     By using the extra_flags optional argument, you can pass a dictionary of
     host_path: guest_path pairs of files you want to be included in the initrd.
     """
+
     # Use a hardcoded path, as we want to always start from a _clean_ initrd
     initrd_path = join(KATA_IMG_DIR, "kata-containers-initrd-sev.img")
 
@@ -34,7 +35,8 @@ def replace_agent(agent_source_dir=KATA_AGENT_SOURCE_DIR, extra_files=None):
 
     # sudo unpack the initrd filesystem
     zcat_cmd = "sudo bash -c 'zcat {} | cpio -idmv'".format(initrd_path)
-    run(zcat_cmd, shell=True, check=True, cwd=workdir)
+    out = run(zcat_cmd, shell=True, capture_output=True, cwd=workdir)
+    assert out.returncode == 0, "Error unpacking initrd: {}".format(out.stderr)
 
     # Copy our newly built kata-agent into `/usr/bin/kata-agent` as this is the
     # path expected by the kata initrd_builder.sh script
@@ -61,7 +63,7 @@ def replace_agent(agent_source_dir=KATA_AGENT_SOURCE_DIR, extra_files=None):
         for host_path in extra_files:
             # Trim any absolute paths expressed as "guest" paths to be able to
             # append the rootfs
-            rel_guest_path = extra_files[host_path]
+            rel_guest_path = extra_files[host_path]["path"]
             if rel_guest_path.startswith("/"):
                 rel_guest_path = rel_guest_path[1:]
 
@@ -69,7 +71,10 @@ def replace_agent(agent_source_dir=KATA_AGENT_SOURCE_DIR, extra_files=None):
             if not exists(dirname(guest_path)):
                 run("sudo mkdir -p {}".format(dirname(guest_path)), shell=True, check=True)
 
-            run("sudo cp {} {}".format(host_path, guest_path), shell=True, check=True)
+            if exists(guest_path) and extra_files[host_path]["mode"] == "a":
+                run("sudo sh -c \"cat {} >> {}\"".format(host_path, guest_path), shell=True, check=True)
+            else:
+                run("sudo cp {} {}".format(host_path, guest_path), shell=True, check=True)
 
     # Pack the initrd again
     initrd_builder_path = join(

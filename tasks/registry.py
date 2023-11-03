@@ -7,6 +7,7 @@ from tasks.util.env import CONF_FILES_DIR, K8S_CONFIG_DIR, LOCAL_REGISTRY_URL
 # TODO: rename and move this method elsewhere
 from tasks.util.env import get_kbs_url
 from tasks.util.kata import replace_agent
+from tasks.util.knative import configure_self_signed_certs
 from tasks.util.kubeadm import run_kubectl_command
 from tasks.util.pid import get_pid
 from tasks.util.toml import update_toml
@@ -133,10 +134,22 @@ server = "https://{registry_url}"
 
     # Populate the right DNS config and certificate files in the agent
     extra_files = {
-        dns_file: "/etc/hosts",
-        HOST_CERT_PATH: "/etc/ssl/certs/ca-certificates.crt"
+        dns_file: {"path": "/etc/hosts", "mode": "w"},
+        HOST_CERT_PATH: {"path": "/etc/ssl/certs/ca-certificates.crt", "mode": "a"},
     }
     replace_agent(ctx, extra_files=extra_files)
+
+    # ----------
+    # Knative config
+    # ----------
+
+    # First, create a k8s secret with the credentials
+    secret_name = "csg-coco-registry-customca"
+    kube_cmd = "-n knative-serving create secret generic {} --from-file=ca.crt={}".format(secret_name, HOST_CERT_PATH)
+    run_kubectl_command(kube_cmd)
+
+    # Second, patch the controller deployment
+    configure_self_signed_certs(HOST_CERT_PATH, secret_name)
 
 
 @task
@@ -151,3 +164,5 @@ def stop(ctx):
     registry_k8s_file = join(CONF_FILES_DIR, "k8s_registry.yaml")
     # TODO: is this enough to clean the images?
     run_kubectl_command("delete -f {}".format(registry_k8s_file))
+
+    # TODO: more cleanup!

@@ -18,7 +18,8 @@ spec:
       runtimeClassName: kata-qemu-sev
       containers:
       - name: helloworld-py
-        image: registry.coco-csg.com/csegarragonz/coco-helloworld-py:unencrypted
+        image: registry.coco-csg.com/csegarragonz/coco-helloworld-py:encrypted
+        # image: ghcr.io/csegarragonz/coco-helloworld-py:encrypted
         imagePullPolicy: Always
         ports:
         - containerPort: 8080

@@ -19,14 +19,16 @@ from tasks.eval.util.env import (
 )
 from tasks.eval.util.setup import setup_baseline
 from tasks.util.containerd import get_ts_for_containerd_event
+from tasks.util.env import K8S_CONFIG_DIR, LOCAL_REGISTRY_URL
 from tasks.util.k8s import template_k8s_file
+from tasks.util.knative import configure_self_signed_certs, replace_sidecar
 from tasks.util.kubeadm import get_pod_names_in_ns, run_kubectl_command
 from time import sleep
 
 
-def do_run(result_file, baseline, num_run, num_par_inst):
+def do_run(result_file, baseline, image_repo, num_run, num_par_inst):
     service_files = [
-        "apps_xput_{}_service_{}.yaml".format(baseline, i) for i in range(num_par_inst)
+        "apps_xput_{}_{}_service_{}.yaml".format(image_repo, baseline, i) for i in range(num_par_inst)
     ]
     for service_file in service_files:
         # Capture output to avoid verbose Knative logging
@@ -139,14 +141,21 @@ def do_run(result_file, baseline, num_run, num_par_inst):
 
 
 @task
-def run(ctx):
+def run(ctx, repo=None):
     """
     Measure the costs associated with starting a fixed number of concurrent
     services
     """
     baselines_to_run = ["coco-fw-sig-enc"]
+    image_repos = [EXPERIMENT_IMAGE_REPO, LOCAL_REGISTRY_URL]
     num_parallel_instances = [16]
     num_runs = 1
+
+    if repo is not None:
+        if repo in image_repos:
+            image_repos = [repo]
+        else:
+            raise RuntimeError("Unrecognised image repository: {}".format(repo))
 
     results_dir = join(RESULTS_DIR, "xput-detail")
     if not exists(results_dir):
@@ -159,42 +168,50 @@ def run(ctx):
     image_name = "csegarragonz/coco-helloworld-py"
     used_images = ["csegarragonz/coco-knative-sidecar", image_name]
 
-    for bline in baselines_to_run:
-        baseline_traits = BASELINES[bline]
+    for image_repo in image_repos:
+        replace_sidecar(image_repo=image_repo, quiet=True)
 
-        # Template as many service files as parallel instances
-        for i in range(max(num_parallel_instances)):
-            service_file = join(
-                EVAL_TEMPLATED_DIR,
-                "apps_xput-detail_{}_service_{}.yaml".format(bline, i),
-            )
-            template_vars = {
-                "image_repo": EXPERIMENT_IMAGE_REPO,
-                "image_name": image_name,
-                "image_tag": baseline_traits["image_tag"],
-                "service_num": i,
-            }
-            if len(baseline_traits["runtime_class"]) > 0:
-                template_vars["runtime_class"] = baseline_traits["runtime_class"]
-            template_k8s_file(service_template_file, service_file, template_vars)
+        # If we are using a local registry, we need to configure Knative to
+        # accept our self-signed certificates
+        if image_repo == LOCAL_REGISTRY_URL:
+            configure_self_signed_certs(join(K8S_CONFIG_DIR, "local-registry"))
 
-        # Second, run any baseline-specific set-up
-        setup_baseline(bline, used_images)
+        for bline in baselines_to_run:
+            baseline_traits = BASELINES[bline]
 
-        for num_par in num_parallel_instances:
-            # Prepare the result file
-            result_file = join(results_dir, "{}_{}.csv".format(bline, num_par))
-            init_csv_file(result_file, "ServiceId,Event,TimeStampSecs")
-
-            for nr in range(num_runs):
-                print(
-                    "Executing baseline {} ({} parallel srv) run {}/{}...".format(
-                        bline, num_par, nr + 1, num_runs
-                    )
+            # Template as many service files as parallel instances
+            for i in range(max(num_parallel_instances)):
+                service_file = join(
+                    EVAL_TEMPLATED_DIR,
+                    "apps_xput-detail_{}_{}_service_{}.yaml".format(image_repo, bline, i),
                 )
-                do_run(result_file, bline, nr, num_par)
-                sleep(INTER_RUN_SLEEP_SECS)
-                cleanup_after_run(bline, used_images)
+                template_vars = {
+                    "image_repo": image_repo,
+                    "image_name": image_name,
+                    "image_tag": baseline_traits["image_tag"],
+                    "service_num": i,
+                }
+                if len(baseline_traits["runtime_class"]) > 0:
+                    template_vars["runtime_class"] = baseline_traits["runtime_class"]
+                template_k8s_file(service_template_file, service_file, template_vars)
+
+            # Second, run any baseline-specific set-up
+            setup_baseline(bline, used_images, image_repo)
+
+            for num_par in num_parallel_instances:
+                # Prepare the result file
+                result_file = join(results_dir, "{}_{}_{}.csv".format(image_repo, bline, num_par))
+                init_csv_file(result_file, "ServiceId,Event,TimeStampSecs")
+
+                for nr in range(num_runs):
+                    print(
+                        "Executing baseline {} ({} parallel srv, {}) run {}/{}...".format(
+                            bline, num_par, image_repo, nr + 1, num_runs
+                        )
+                    )
+                    do_run(result_file, image_repo, bline, nr, num_par)
+                    sleep(INTER_RUN_SLEEP_SECS)
+                    cleanup_after_run(bline, used_images)
 
 
 @task

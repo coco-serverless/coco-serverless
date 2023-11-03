@@ -1,0 +1,17 @@
+spec:
+  template:
+    spec:
+      containers:
+        - name: controller
+          volumeMounts:
+            - name: custom-certs
+              mountPath: {{ path_to_certs }}
+          env:
+            - name: SSL_CERT_DIR
+              value: {{ path_to_certs }}
+      dnsPolicy: ClusterFirstWithHostNet
+      hostNetwork: true
+      volumes:
+        - name: custom-certs
+          secret:
+            secretName: {{ secret_name }}
