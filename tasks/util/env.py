@@ -54,9 +54,11 @@ APPS_SOURCE_DIR = join(PROJ_ROOT, "apps")
 KBS_PORT = 44444
 
 
-def get_kbs_url():
+def get_node_url():
     """
-    Get the external KBS IP that can be reached from both host and guest
+    Get the external node IP that can be reached from both host and guest
+
+    This IP is both used for the KBS, and for deploying a local docker registry.
 
     If the KBS is deployed using docker compose with host networking and the
     port is forwarded to the host (i.e. KBS is bound to :${KBS_PORT}, then

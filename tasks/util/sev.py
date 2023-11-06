@@ -6,7 +6,7 @@ from sevsnpmeasure.sev_mode import SevMode
 from sevsnpmeasure.vmm_types import VMMType
 from sevsnpmeasure.vcpu_types import cpu_sig as sev_snp_cpu_sig
 from subprocess import run
-from tasks.util.env import KATA_CONFIG_DIR, KBS_PORT, get_kbs_url
+from tasks.util.env import KATA_CONFIG_DIR, KBS_PORT, get_node_url
 from tasks.util.toml import read_value_from_toml
 
 
@@ -34,7 +34,7 @@ def get_kernel_append():
         "console=hvc1",
         "debug" if agent_log else "quiet",
         "panic=1 nr_cpus=1 selinux=0",
-        "agent.aa_kbc_params=online_sev_kbc::{}:{}".format(get_kbs_url(), KBS_PORT),
+        "agent.aa_kbc_params=online_sev_kbc::{}:{}".format(get_node_url(), KBS_PORT),
         "scsi_mod.scan=none",
         "agent.log=debug" if agent_log else "",
         "agent.debug_console agent.debug_console_vport=1026" if debug_console else "",

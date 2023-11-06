@@ -3,14 +3,11 @@ from os import makedirs
 from os.path import exists, join
 from subprocess import run
 from tasks.util.docker import is_ctr_running
-from tasks.util.env import CONF_FILES_DIR, K8S_CONFIG_DIR, LOCAL_REGISTRY_URL
-
-# TODO: rename and move this method elsewhere
-from tasks.util.env import get_kbs_url
+from tasks.util.env import K8S_CONFIG_DIR, LOCAL_REGISTRY_URL
+from tasks.util.env import get_node_url
 from tasks.util.kata import replace_agent
 from tasks.util.knative import configure_self_signed_certs
 from tasks.util.kubeadm import run_kubectl_command
-from tasks.util.pid import get_pid
 from tasks.util.toml import update_toml
 
 HOST_CERT_DIR = join(K8S_CONFIG_DIR, "local-registry")
@@ -23,13 +20,15 @@ REGISTRY_CTR_NAME = "csg-coco-registry"
 
 REGISTRY_IMAGE_TAG = "registry:2.7"
 
+K8S_SECRET_NAME = "csg-coco-registry-customca"
+
 
 @task
 def start(ctx):
     """
     Configure a local container registry reachable from CoCo guests in K8s
     """
-    this_ip = get_kbs_url()
+    this_ip = get_node_url()
 
     # ----------
     # DNS Config
@@ -168,29 +167,31 @@ server = "https://{registry_url}"
     # ----------
 
     # First, create a k8s secret with the credentials
-    secret_name = "csg-coco-registry-customca"
     kube_cmd = (
         "-n knative-serving create secret generic {} --from-file=ca.crt={}".format(
-            secret_name, HOST_CERT_PATH
+            K8S_SECRET_NAME, HOST_CERT_PATH
         )
     )
     run_kubectl_command(kube_cmd)
 
     # Second, patch the controller deployment
-    configure_self_signed_certs(HOST_CERT_PATH, secret_name)
+    configure_self_signed_certs(HOST_CERT_PATH, K8S_SECRET_NAME)
 
 
 @task
 def stop(ctx):
     """
     Remove the container registry in the k8s cluster
+
+    We follow the steps in start in reverse order, paying particular interest
+    to the steps that are not idempotent (e.g. creating a k8s secret).
     """
-    # First, kill the prot-forward process running in the background
-    pid = get_pid("kubectl")
-    run("kill -9 {}".format(pid), shell=True, check=True)
+    # For Knative, we only need to delete the secret, as the other bit is a
+    # patch to the controller deployment that can be applied again
+    kube_cmd = "-n knative-serving delete secret {}".format(K8S_SECRET_NAME)
+    run_kubectl_command(kube_cmd)
 
-    registry_k8s_file = join(CONF_FILES_DIR, "k8s_registry.yaml")
-    # TODO: is this enough to clean the images?
-    run_kubectl_command("delete -f {}".format(registry_k8s_file))
-
-    # TODO: more cleanup!
+    # For Kata and containerd, all configuration is reversible, so we only
+    # need to sop the container image
+    docker_cmd = "docker run --rm -f {}".format(REGISTRY_CTR_NAME)
+    run(docker_cmd, shell=True, check=True)
