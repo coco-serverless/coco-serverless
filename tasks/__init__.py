@@ -14,6 +14,7 @@ from . import kubeadm
 from . import operator
 from . import ovmf
 from . import qemu
+from . import registry
 from . import sev
 from . import skopeo
 
@@ -34,6 +35,7 @@ ns = Collection(
     operator,
     ovmf,
     qemu,
+    registry,
     sev,
     skopeo,
 )

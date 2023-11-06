@@ -3,18 +3,27 @@ from subprocess import run
 from time import sleep
 
 
-def get_journalctl_containerd_logs():
-    journalctl_cmd = 'sudo journalctl -xeu containerd --since "1 min ago" -o json'
-    out = (
-        run(journalctl_cmd, shell=True, capture_output=True)
-        .stdout.decode("utf-8")
-        .strip()
-        .split("\n")
-    )
-    return out
+def get_journalctl_containerd_logs(timeout_mins=1):
+    """
+    Get the journalctl logs for containerd
+
+    We dump them to a temporary file to prevent the Popen output from being
+    clipped (or at least remove the chance of it being so)
+    """
+    tmp_file = "/tmp/journalctl.log"
+    journalctl_cmd = "sudo journalctl -xeu containerd --no-tail "
+    journalctl_cmd += '--since "{} min ago" -o json > {}'.format(timeout_mins, tmp_file)
+    run(journalctl_cmd, shell=True, check=True)
+
+    with open(tmp_file, "r") as fh:
+        lines = fh.readlines()
+
+    return lines
 
 
-def get_event_from_containerd_logs(event_name, event_id, num_events):
+def get_event_from_containerd_logs(
+    event_name, event_id, num_events, extra_event_id=None, timeout_mins=1
+):
     """
     Get the last `num_events` events in containerd logs that correspond to
     the `event_name` for sandbox/pod/container id `event_id`
@@ -26,7 +35,7 @@ def get_event_from_containerd_logs(event_name, event_id, num_events):
     backoff_secs = 3
     for i in range(num_repeats):
         try:
-            out = get_journalctl_containerd_logs()
+            out = get_journalctl_containerd_logs(timeout_mins)
 
             event_json = []
             for o in out:
@@ -45,7 +54,11 @@ def get_event_from_containerd_logs(event_name, event_id, num_events):
                         event_name in o_json["MESSAGE"]
                         and event_id in o_json["MESSAGE"]
                     ):
-                        event_json.append(o_json)
+                        if (
+                            extra_event_id is None
+                            or extra_event_id in o_json["MESSAGE"]
+                        ):
+                            event_json.append(o_json)
                 except TypeError as e:
                     print(o_json)
                     print(e)
@@ -70,11 +83,19 @@ def get_event_from_containerd_logs(event_name, event_id, num_events):
             continue
 
 
-def get_ts_for_containerd_event(event_name, event_id, lower_bound=None):
+def get_ts_for_containerd_event(
+    event_name,
+    event_id,
+    lower_bound=None,
+    extra_event_id=None,
+    timeout_mins=1,
+):
     """
     Get the journalctl timestamp for one event in the containerd logs
     """
-    event_json = get_event_from_containerd_logs(event_name, event_id, 1)[0]
+    event_json = get_event_from_containerd_logs(
+        event_name, event_id, 1, extra_event_id=None, timeout_mins=timeout_mins
+    )[0]
     ts = int(event_json["__REALTIME_TIMESTAMP"]) / 1e6
 
     if lower_bound is not None:
@@ -87,12 +108,24 @@ def get_ts_for_containerd_event(event_name, event_id, lower_bound=None):
     return ts
 
 
-def get_start_end_ts_for_containerd_event(event_name, event_id, lower_bound=None):
+def get_start_end_ts_for_containerd_event(
+    event_name,
+    event_id,
+    lower_bound=None,
+    extra_event_id=None,
+    timeout_mins=1,
+):
     """
     Get the start and end timestamps (in epoch floating seconds) for a given
     event from the containerd journalctl logs
     """
-    event_json = get_event_from_containerd_logs(event_name, event_id, 2)
+    event_json = get_event_from_containerd_logs(
+        event_name,
+        event_id,
+        2,
+        extra_event_id=extra_event_id,
+        timeout_mins=timeout_mins,
+    )
 
     start_ts = int(event_json[-2]["__REALTIME_TIMESTAMP"]) / 1e6
     end_ts = int(event_json[-1]["__REALTIME_TIMESTAMP"]) / 1e6

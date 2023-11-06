@@ -1,5 +1,5 @@
 from os.path import join
-from tasks.util.env import KATA_CONFIG_DIR, KBS_PORT, get_kbs_url
+from tasks.util.env import KATA_CONFIG_DIR, KBS_PORT, get_node_url
 from tasks.util.toml import read_value_from_toml, update_toml
 
 
@@ -30,7 +30,7 @@ def guest_attestation(mode="off"):
         [hypervisor.qemu]
         guest_pre_attestation_kbs_uri = "{kbs_url}:{kbs_port}"
         """.format(
-            kbs_url=get_kbs_url(), kbs_port=KBS_PORT
+            kbs_url=get_node_url(), kbs_port=KBS_PORT
         )
         update_toml(conf_file_path, updated_toml_str)
 
