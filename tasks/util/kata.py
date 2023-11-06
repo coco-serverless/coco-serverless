@@ -69,12 +69,24 @@ def replace_agent(agent_source_dir=KATA_AGENT_SOURCE_DIR, extra_files=None):
 
             guest_path = join(workdir, rel_guest_path)
             if not exists(dirname(guest_path)):
-                run("sudo mkdir -p {}".format(dirname(guest_path)), shell=True, check=True)
+                run(
+                    "sudo mkdir -p {}".format(dirname(guest_path)),
+                    shell=True,
+                    check=True,
+                )
 
             if exists(guest_path) and extra_files[host_path]["mode"] == "a":
-                run("sudo sh -c \"cat {} >> {}\"".format(host_path, guest_path), shell=True, check=True)
+                run(
+                    'sudo sh -c "cat {} >> {}"'.format(host_path, guest_path),
+                    shell=True,
+                    check=True,
+                )
             else:
-                run("sudo cp {} {}".format(host_path, guest_path), shell=True, check=True)
+                run(
+                    "sudo cp {} {}".format(host_path, guest_path),
+                    shell=True,
+                    check=True,
+                )
 
     # Pack the initrd again
     initrd_builder_path = join(

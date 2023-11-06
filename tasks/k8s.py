@@ -3,13 +3,7 @@ from os import makedirs
 from os.path import exists, join
 from subprocess import run
 from tasks.util.env import BIN_DIR, CONF_FILES_DIR, K8S_VERSION
-from tasks.util.kubeadm import (
-    get_pod_names_in_ns,
-    wait_for_pods_in_ns,
-    run_kubectl_command,
-)
 from tasks.util.network import download_binary, symlink_global_bin
-from tasks.util.pid import get_pid
 
 
 def install_cni(clean=False):

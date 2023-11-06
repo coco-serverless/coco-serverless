@@ -13,11 +13,12 @@ KNATIVE_SIDECAR_IMAGE_TAG += (
 
 
 def replace_sidecar(reset_default=False, image_repo="ghcr.io", quiet=False):
-
     def do_run(cmd, quiet):
         if quiet:
             out = run(cmd, shell=True, capture_output=True)
-            assert out.returncode == 0, "Error running cmd: {} (error: {})".format(cmd, out.stderr)
+            assert out.returncode == 0, "Error running cmd: {} (error: {})".format(
+                cmd, out.stderr
+            )
         else:
             out = run(cmd, shell=True, check=True)
 
@@ -85,6 +86,12 @@ def configure_self_signed_certs(path_to_certs_dir, secret_name):
     in_k8s_file = join(CONF_FILES_DIR, "{}.j2".format(k8s_filename))
     out_k8s_file = join(TEMPLATED_FILES_DIR, k8s_filename)
     template_k8s_file(
-        in_k8s_file, out_k8s_file, {"path_to_certs": path_to_certs_dir, "secret_name": secret_name}
+        in_k8s_file,
+        out_k8s_file,
+        {"path_to_certs": path_to_certs_dir, "secret_name": secret_name},
     )
-    run_kubectl_command("-n knative-serving patch deployment controller --patch-file {}".format(out_k8s_file))
+    run_kubectl_command(
+        "-n knative-serving patch deployment controller --patch-file {}".format(
+            out_k8s_file
+        )
+    )

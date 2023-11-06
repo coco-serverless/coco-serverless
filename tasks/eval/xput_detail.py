@@ -19,16 +19,17 @@ from tasks.eval.util.env import (
 )
 from tasks.eval.util.setup import setup_baseline
 from tasks.util.containerd import get_ts_for_containerd_event
-from tasks.util.env import K8S_CONFIG_DIR, LOCAL_REGISTRY_URL
+from tasks.util.env import LOCAL_REGISTRY_URL
 from tasks.util.k8s import template_k8s_file
-from tasks.util.knative import configure_self_signed_certs, replace_sidecar
+from tasks.util.knative import replace_sidecar
 from tasks.util.kubeadm import get_pod_names_in_ns, run_kubectl_command
 from time import sleep
 
 
 def do_run(result_file, baseline, image_repo, num_run, num_par_inst):
     service_files = [
-        "apps_xput-detail_{}_{}_service_{}.yaml".format(image_repo, baseline, i) for i in range(num_par_inst)
+        "apps_xput-detail_{}_{}_service_{}.yaml".format(image_repo, baseline, i)
+        for i in range(num_par_inst)
     ]
     for service_file in service_files:
         # Capture output to avoid verbose Knative logging
@@ -178,7 +179,9 @@ def run(ctx, repo=None):
             for i in range(max(num_parallel_instances)):
                 service_file = join(
                     EVAL_TEMPLATED_DIR,
-                    "apps_xput-detail_{}_{}_service_{}.yaml".format(image_repo, bline, i),
+                    "apps_xput-detail_{}_{}_service_{}.yaml".format(
+                        image_repo, bline, i
+                    ),
                 )
                 template_vars = {
                     "image_repo": image_repo,
@@ -195,12 +198,14 @@ def run(ctx, repo=None):
 
             for num_par in num_parallel_instances:
                 # Prepare the result file
-                result_file = join(results_dir, "{}_{}_{}.csv".format(image_repo, bline, num_par))
+                result_file = join(
+                    results_dir, "{}_{}_{}.csv".format(image_repo, bline, num_par)
+                )
                 init_csv_file(result_file, "ServiceId,Event,TimeStampSecs")
 
                 for nr in range(num_runs):
                     print(
-                        "Executing baseline {} ({} parallel srv, {}) run {}/{}...".format(
+                        "Executing baseline {} ({} par srv, {}) run {}/{}...".format(
                             bline, num_par, image_repo, nr + 1, num_runs
                         )
                     )
@@ -226,7 +231,9 @@ def plot(ctx):
     # Collect results
     results_dict = {}
     for image_repo in image_repos:
-        results_file = join(results_dir, "{}_{}_{}.csv".format(image_repo, baseline, num_par_instances))
+        results_file = join(
+            results_dir, "{}_{}_{}.csv".format(image_repo, baseline, num_par_instances)
+        )
         results_dict[image_repo] = {}
         results = read_csv(results_file)
         service_ids = set(results["ServiceId"].to_list())
@@ -277,7 +284,9 @@ def plot(ctx):
         # labels = []
         colors = []
 
-        x_origin = min([results_dict[repo][s_id]["PodScheduled"]["mean"] for s_id in service_ids])
+        x_origin = min(
+            [results_dict[repo][s_id]["PodScheduled"]["mean"] for s_id in service_ids]
+        )
 
         service_ids = sorted(
             service_ids,

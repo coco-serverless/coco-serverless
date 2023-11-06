@@ -6,7 +6,11 @@ from tasks.util.env import (
     KATA_CONFIG_DIR,
     KATA_RUNTIMES,
 )
-from tasks.util.kata import KATA_AGENT_SOURCE_DIR, KATA_SOURCE_DIR, replace_agent as do_replace_agent
+from tasks.util.kata import (
+    KATA_AGENT_SOURCE_DIR,
+    KATA_SOURCE_DIR,
+    replace_agent as do_replace_agent,
+)
 from tasks.util.toml import update_toml
 
 KATA_SHIM_SOURCE_DIR = join(KATA_SOURCE_DIR, "src", "runtime")

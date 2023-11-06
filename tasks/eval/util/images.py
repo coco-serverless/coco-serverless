@@ -24,10 +24,18 @@ def copy_images_to_registry(src_repo, dst_repo):
 
                 # Push regular images
                 run("docker pull {}".format(src_path), shell=True, check=True)
-                run("docker tag {} {}".format(src_path, dst_path), shell=True, check=True)
+                run(
+                    "docker tag {} {}".format(src_path, dst_path),
+                    shell=True,
+                    check=True,
+                )
                 run("docker push {}".format(dst_path), shell=True, check=True)
                 # Tolerate rmi failing, as images should not be there to start off with
-                run("docker rmi {} {}".format(src_path, dst_path), shell=True, capture_output=True)
+                run(
+                    "docker rmi {} {}".format(src_path, dst_path),
+                    shell=True,
+                    capture_output=True,
+                )
 
                 # Push signature for the image too
                 sign_container_image(dst_path)

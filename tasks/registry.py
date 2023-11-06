@@ -4,6 +4,7 @@ from os.path import exists, join
 from subprocess import run
 from tasks.util.docker import is_ctr_running
 from tasks.util.env import CONF_FILES_DIR, K8S_CONFIG_DIR, LOCAL_REGISTRY_URL
+
 # TODO: rename and move this method elsewhere
 from tasks.util.env import get_kbs_url
 from tasks.util.kata import replace_agent
@@ -36,7 +37,12 @@ def start(ctx):
 
     # Add DNS entry (careful to be able to sudo-edit the file)
     dns_file = "/etc/hosts"
-    dns_contents = run("sudo cat {}".format(dns_file), shell=True, capture_output=True).stdout.decode("utf-8").strip().split("\n")
+    dns_contents = (
+        run("sudo cat {}".format(dns_file), shell=True, capture_output=True)
+        .stdout.decode("utf-8")
+        .strip()
+        .split("\n")
+    )
 
     # Only write the DNS entry if it is not there yet
     dns_line = "{} {}".format(this_ip, LOCAL_REGISTRY_URL)
@@ -49,7 +55,11 @@ def start(ctx):
 
         # If creating a new registry, also update the local SSL certificates
         system_cert_path = "/usr/share/ca-certificates/coco_csg_registry.crt"
-        run("sudo cp {} {}".format(HOST_CERT_PATH, system_cert_path), shell=True, check=True)
+        run(
+            "sudo cp {} {}".format(HOST_CERT_PATH, system_cert_path),
+            shell=True,
+            check=True,
+        )
         run("sudo dpkg-reconfigure ca-certificates")
 
     # ----------
@@ -65,7 +75,7 @@ def start(ctx):
         "-newkey rsa:4096",
         "-nodes -sha256",
         "-keyout {}".format(HOST_KEY_PATH),
-        "-addext \"subjectAltName = DNS:{}\"".format(LOCAL_REGISTRY_URL),
+        '-addext "subjectAltName = DNS:{}"'.format(LOCAL_REGISTRY_URL),
         "-x509 -days 365",
         "-out {}".format(HOST_CERT_PATH),
     ]
@@ -80,7 +90,9 @@ def start(ctx):
         "--name {}".format(REGISTRY_CTR_NAME),
         "-v {}:{}".format(HOST_CERT_DIR, GUEST_CERT_DIR),
         "-e REGISTRY_HTTP_ADDR=0.0.0.0:443",
-        "-e REGISTRY_HTTP_TLS_CERTIFICATE={}".format(join(GUEST_CERT_DIR, REGISTRY_CERT_FILE)),
+        "-e REGISTRY_HTTP_TLS_CERTIFICATE={}".format(
+            join(GUEST_CERT_DIR, REGISTRY_CERT_FILE)
+        ),
         "-e REGISTRY_HTTP_TLS_KEY={}".format(join(GUEST_CERT_DIR, REGISTRY_KEY_FILE)),
         "-p 443:443",
         REGISTRY_IMAGE_TAG,
@@ -88,7 +100,9 @@ def start(ctx):
     docker_cmd = " ".join(docker_cmd)
     if not is_ctr_running(REGISTRY_CTR_NAME):
         out = run(docker_cmd, shell=True, capture_output=True)
-        assert out.returncode == 0, "Failed starting docker container: {}".format(out.stderr)
+        assert out.returncode == 0, "Failed starting docker container: {}".format(
+            out.stderr
+        )
     else:
         print("WARNING: skipping starting container as it is already running...")
 
@@ -109,7 +123,9 @@ def start(ctx):
     updated_toml_str = """
     [plugins."io.containerd.grpc.v1.cri".registry]
     config_path = "{containerd_base_certs_dir}"
-    """.format(containerd_base_certs_dir=containerd_base_certs_dir)
+    """.format(
+        containerd_base_certs_dir=containerd_base_certs_dir
+    )
     update_toml("/etc/containerd/config.toml", updated_toml_str)
 
     # Add the correspnding configuration to containerd
@@ -122,8 +138,16 @@ server = "https://{registry_url}"
 
 [host."https://{registry_url}"]
   skip_verify = true
-    """.format(registry_url=LOCAL_REGISTRY_URL)
-    run("sudo sh -c \"echo '{}' > {}\"".format(containerd_certs_file, join(containerd_certs_dir, "hosts.toml")), shell=True, check=True)
+    """.format(
+        registry_url=LOCAL_REGISTRY_URL
+    )
+    run(
+        "sudo sh -c \"echo '{}' > {}\"".format(
+            containerd_certs_file, join(containerd_certs_dir, "hosts.toml")
+        ),
+        shell=True,
+        check=True,
+    )
 
     # Restart containerd to pick up the changes (?)
     run("sudo service containerd restart", shell=True, check=True)
@@ -145,7 +169,11 @@ server = "https://{registry_url}"
 
     # First, create a k8s secret with the credentials
     secret_name = "csg-coco-registry-customca"
-    kube_cmd = "-n knative-serving create secret generic {} --from-file=ca.crt={}".format(secret_name, HOST_CERT_PATH)
+    kube_cmd = (
+        "-n knative-serving create secret generic {} --from-file=ca.crt={}".format(
+            secret_name, HOST_CERT_PATH
+        )
+    )
     run_kubectl_command(kube_cmd)
 
     # Second, patch the controller deployment
