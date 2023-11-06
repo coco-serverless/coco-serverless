@@ -50,11 +50,11 @@ def stop(ctx):
 
 
 @task
-def clear_db(ctx):
+def clear_db(ctx, skip_secrets=False):
     """
     Clear the contents of the KBS DB
     """
-    clear_kbs_db()
+    clear_kbs_db(skip_secrets=skip_secrets)
 
 
 @task
@@ -84,7 +84,11 @@ def provision_launch_digest(ctx, signature_policy=SIGNATURE_POLICY_NONE, clean=F
     # policy to be included in the signature policy
     images_to_sign = [
         "docker.io/csegarragonz/coco-helloworld-py",
-        "docker.io/csegarragonz/coco-knatve-sidecar",
+        "docker.io/csegarragonz/coco-knative-sidecar",
+        "ghcr.io/csegarragonz/coco-helloworld-py",
+        "ghcr.io/csegarragonz/coco-knative-sidecar",
+        "registry.coco-csg.com/csegarragonz/coco-helloworld-py",
+        "registry.coco-csg.com/csegarragonz/coco-knative-sidecar",
     ]
 
     do_provision_launch_digest(

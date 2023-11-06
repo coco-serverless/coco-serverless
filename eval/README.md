@@ -33,12 +33,9 @@ Signing and encryption is an interactive process, hence why we do it once,
 in advance of the evaluation:
 
 ```bash
-# First encrypt (and sign) the image
-inv skopeo.encrypt-container-image "ghcr.io/csegarragonz/coco-helloworld-py:unencrypted" --sign
-
-# Then sign the unencrypted images used
-inv cosign.sign-container-image "ghcr.io/csegarragonz/coco-helloworld-py:unencrypted"
-inv cosign.sign-container-image "ghcr.io/csegarragonz/coco-knative-sidecar:unencrypted"
+# Enter an empty passphrase or click 'y' when prompted (it will happen
+# many times)
+inv eval.images.upload
 ```
 
 Now you are ready to run one of the experiments:
@@ -47,6 +44,7 @@ Now you are ready to run one of the experiments:
 * [Memory Size](#memory-size) - impact on initial VM memory size on start-up time.
 * [VM Start-Up](#vm-start-up) - breakdown of the cVM start-up costs
 * [Image Pull Costs](#image-pull) - breakdown of the costs associated to pulling an image on the guest.
+* [Throughput Detail](#throughput-detail) - breakdown of the costs associated to starting many services concurrently.
 
 ### Start-Up Costs
 
@@ -190,6 +188,12 @@ run:
 inv kata.replace-agent
 ```
 
+In addition, we want to configure the right debug logging settings:
+
+```bash
+inv kata.set-log-level debug containerd.set-log-level debug ovmf.set-log-level info
+```
+
 After that, you may run the experiment with:
 
 ```bash
@@ -214,6 +218,45 @@ them.
 You can see the plot below:
 
 ![plot](./plots/image-pull/image_pull.png)
+
+### Throughput Detail
+
+In this experiment, we pick one of the baselines in the [instantiation throughput](
+#instantiation-throughput) experiment, and try to analyze why the start-up
+latency increases linearly with the number of concurrent requests.
+
+To do so, we pick one of the data points in the aforementioned plot. In
+particular, we pick the most secure baseline (`coco-fw-sig-enc`), and the
+highest concurrency level (`16`), and record the timestamps of the basic VM
+creation events (as reported in the [start-up costs](#start-up-costs) plot).
+
+Given the amount of concurrent services, we want to use a more succinct
+logging configuration:
+
+```bash
+inv kata.set-log-level info containerd.set-log-level info
+```
+
+> Note that, given the volume of services we spin up, getting the logs from
+> `containerd` is unreliable, as `journalctl` will drop lines. Thus, for this
+> experiment we use the slightly less precise Kubernetes event's timestamps.
+
+To run the experiment you may run:
+
+```bash
+inv eval.xput-detail.run
+```
+
+and you may plot the results using:
+
+```bash
+inv eval.xput-detail.plot
+```
+
+which generates a plot in [`./plots/xput-detail/xput_detail.png`](
+./plots/xput-detail/xput_detail.png). You can also see the plot below:
+
+![plot](./plots/xput-detail/xput_detail.png)
 
 ## Benchmarks
 
