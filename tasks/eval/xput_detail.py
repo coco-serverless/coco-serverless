@@ -219,27 +219,31 @@ def plot(ctx):
     plots_dir = join(PLOTS_DIR, "xput-detail")
     baseline = "coco-fw-sig-enc"
     num_par_instances = 16
+    image_repos = [EXPERIMENT_IMAGE_REPO, LOCAL_REGISTRY_URL]
+
     results_file = join(results_dir, "{}_{}.csv".format(baseline, num_par_instances))
 
     # Collect results
     results_dict = {}
-    results = read_csv(results_file)
-    service_ids = set(results["ServiceId"].to_list())
-    for service_id in service_ids:
-        results_dict[service_id] = {}
-        service_results = results[results.ServiceId == service_id]
-        groupped = service_results.groupby("Event", as_index=False)
-        events = list(groupped.groups.keys())
-        for event in events:
-            # NOTE: these timestamps are in seconds
-            results_dict[service_id][event] = {
-                "mean": service_results[service_results.Event == event][
-                    "TimeStampSecs"
-                ].mean(),
-                "sem": service_results[service_results.Event == event][
-                    "TimeStampSecs"
-                ].sem(),
-            }
+    for image_repo in image_repos:
+        results_file = join(results_dir, "{}_{}_{}.csv".format(image_repo, baseline, num_par_instances))
+        results_dict[image_repo] = {}
+        results = read_csv(results_file)
+        service_ids = set(results["ServiceId"].to_list())
+        for service_id in service_ids:
+            results_dict[image_repo][service_id] = {}
+            service_results = results[results.ServiceId == service_id]
+            groupped = service_results.groupby("Event", as_index=False)
+            events = list(groupped.groups.keys())
+            for event in events:
+                results_dict[image_repo][service_id][event] = {
+                    "mean": service_results[service_results.Event == event][
+                        "TimeStampSecs"
+                    ].mean(),
+                    "sem": service_results[service_results.Event == event][
+                        "TimeStampSecs"
+                    ].sem(),
+                }
 
     ordered_events = {
         "schedule + make-pod-sandbox": ("PodScheduled", "SandboxReady"),
@@ -249,8 +253,11 @@ def plot(ctx):
         "schedule + make-pod-sandbox": "blue",
         "pull-images + start-containrs": "yellow",
     }
+    pattern_for_repo = {EXPERIMENT_IMAGE_REPO: "x", LOCAL_REGISTRY_URL: "|"}
+    name_for_repo = {EXPERIMENT_IMAGE_REPO: "ghcr", LOCAL_REGISTRY_URL: "local"}
 
     assert list(color_for_event.keys()) == list(ordered_events.keys())
+    assert list(pattern_for_repo.keys()) == list(name_for_repo.keys())
 
     # --------------------------
     # Time-series of the different services instantiation
@@ -259,71 +266,60 @@ def plot(ctx):
     fig, ax = subplots()
 
     bar_height = 0.5
-    # Y coordinate of the bar
-    ys = []
-    # Width of each bar
-    widths = []
-    # x-axis offset of each bar
-    xs = []
-    # labels = []
-    colors = []
 
-    x_origin = min([results_dict[s_id]["PodScheduled"]["mean"] for s_id in service_ids])
+    for ind, repo in enumerate(image_repos):
+        # Y coordinate of the bar
+        ys = []
+        # Width of each bar
+        widths = []
+        # x-axis offset of each bar
+        xs = []
+        # labels = []
+        colors = []
 
-    service_ids = sorted(
-        service_ids,
-        key=lambda x: results_dict[x]["ContainersReady"]["mean"]
-        - results_dict[x]["PodScheduled"]["mean"],
-    )
+        x_origin = min([results_dict[repo][s_id]["PodScheduled"]["mean"] for s_id in service_ids])
 
-    for num, service_id in enumerate(service_ids):
-        for event in ordered_events:
-            start_ev = ordered_events[event][0]
-            end_ev = ordered_events[event][1]
-            x_left = results_dict[service_id][start_ev]["mean"]
-            x_right = results_dict[service_id][end_ev]["mean"]
-            widths.append(x_right - x_left)
-            xs.append(x_left - x_origin)
-            ys.append(num * bar_height)
-            colors.append(color_for_event[event])
+        service_ids = sorted(
+            service_ids,
+            key=lambda x: results_dict[repo][x]["ContainersReady"]["mean"]
+            - results_dict[repo][x]["PodScheduled"]["mean"],
+        )
 
-            # Print the label inside the bar
-            # x_text = x_left - x_origin + (x_right - x_left) / 4
-            # y_text = (height_for_event[event] + 0.2) * bar_height
+        for num, service_id in enumerate(service_ids):
+            for event in ordered_events:
+                start_ev = ordered_events[event][0]
+                end_ev = ordered_events[event][1]
+                x_left = results_dict[repo][service_id][start_ev]["mean"]
+                x_right = results_dict[repo][service_id][end_ev]["mean"]
+                widths.append(x_right - x_left)
+                xs.append(x_left - x_origin)
+                ys.append(num * (bar_height * 2) + bar_height * ind)
+                colors.append(color_for_event[event])
 
-    #             ax.text(
-    #                 x_text,
-    #                 y_text,
-    #                 event,
-    #                 rotation=90 if event in events_to_rotate else 0,
-    #                 bbox={
-    #                     "facecolor": "white",
-    #                     "edgecolor": "black",
-    #                 },
-    #             )
-
-    ax.barh(
-        ys,
-        widths,
-        height=bar_height,
-        left=xs,
-        align="edge",
-        edgecolor="black",
-        color=colors,
-    )
+        ax.barh(
+            ys,
+            widths,
+            height=bar_height,
+            left=xs,
+            align="edge",
+            edgecolor="black",
+            color=colors,
+            hatch=pattern_for_repo[repo],
+            alpha=1 - 0.7 * ind,
+        )
 
     # Misc
     ax.set_xlabel("Time [s]")
-    ax.set_ylim(bottom=0, top=(len(service_ids)) * bar_height)
+    ax.set_ylim(bottom=0, top=(len(service_ids)) * (bar_height * 2))
     ax.set_ylabel("Knative Service Id")
-    yticks = [i * bar_height for i in range(len(service_ids) + 1)]
-    yticks_minor = [(i + 0.5) * bar_height for i in range(len(service_ids))]
+    yticks = [i * (bar_height * 2) for i in range(len(service_ids) + 1)]
+    yticks_minor = [(i + 0.5) * (bar_height * 2) for i in range(len(service_ids))]
     ytick_labels = ["S{}".format(i) for i in range(len(service_ids))]
     ax.set_yticks(yticks)
     ax.set_yticks(yticks_minor, minor=True)
     ax.set_yticklabels(ytick_labels, minor=True)
     ax.set_yticklabels([])
-    title_str = "Breakdown of the time pulling OCI images\n"
+    title_str = "Breakdown of the time spent starting 16 services in parallel\n"
     title_str += "(baseline: {})\n".format(
         baseline,
     )
@@ -337,6 +333,15 @@ def plot(ctx):
                 facecolor=color_for_event[event],
                 edgecolor="black",
                 label=event,
+            )
+        )
+    for ind, repo in enumerate(image_repos):
+        legend_handles.append(
+            Patch(
+                hatch=pattern_for_repo[repo],
+                facecolor="white",
+                edgecolor="black",
+                label="Image registry: {}".format(name_for_repo[repo]),
             )
         )
     ax.legend(handles=legend_handles, bbox_to_anchor=(1.05, 1.05))
