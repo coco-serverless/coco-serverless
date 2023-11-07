@@ -3,15 +3,15 @@ from tasks.util.env import KATA_CONFIG_DIR, KBS_PORT, get_node_url
 from tasks.util.toml import read_value_from_toml, update_toml
 
 
-def guest_attestation(mode="off"):
+def guest_attestation(
+    conf_file_path=join(KATA_CONFIG_DIR, "configuration-qemu-sev.toml"), mode="off"
+):
     """
     This method toggles the signature verification parameter in the Kata
     configration file. The guest_pre_attestation flag indicates whether the
     kata shim is going to try to ping the KBS and establish a secure channel
     between the KBS and the PSP.
     """
-    conf_file_path = join(KATA_CONFIG_DIR, "configuration-qemu-sev.toml")
-
     # Update the pre_attestation flag
     att_val = str(mode == "on").lower()
     updated_toml_str = """
@@ -35,7 +35,9 @@ def guest_attestation(mode="off"):
         update_toml(conf_file_path, updated_toml_str)
 
 
-def signature_verification(mode="off"):
+def signature_verification(
+    conf_file_path=join(KATA_CONFIG_DIR, "configuration-qemu-sev.toml"), mode="off"
+):
     """
     This method configures the signature verification process in the Kata
     config file. This flag is not only an on/off switch, but also

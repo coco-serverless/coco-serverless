@@ -74,7 +74,9 @@ def do_run(result_file, num_run, service_file, flavour, warmup=False):
         events_ts.append(("EndRunPodSandbox", end_ts_ps))
 
         # Work-out the time spent pulling container images
-        skip_image_pull = "docker" in service_file and flavour == "warm"
+        skip_image_pull = (
+            "docker" in service_file or "kata" in service_file
+        ) and flavour == "warm"
         if skip_image_pull:
             start_ts_pi_srv = end_ts_ps
             end_ts_pi_srv = end_ts_ps
@@ -361,7 +363,11 @@ def plot(ctx):
     ax.set_xticks(xs, xlabels, rotation=45)
     ax.set_xlabel("Baseline")
     ax.set_ylabel("Time [s]")
-    ax.set_title("End-to-end latency to start a pod\n(cold start='/' - warm start='.')")
+    ax.set_title(
+        "End-to-end latency to start a pod\n(cold start='{}' - warm start='{}')".format(
+            pattern_for_flavour["cold"], pattern_for_flavour["warm"]
+        )
+    )
 
     # Manually craft the legend
     legend_handles = []

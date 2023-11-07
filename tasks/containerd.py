@@ -2,12 +2,11 @@ from invoke import task
 from os import makedirs
 from os.path import join
 from subprocess import CalledProcessError, run
-from tasks.util.env import CONF_FILES_DIR, PROJ_ROOT
+from tasks.util.env import CONF_FILES_DIR, CONTAINERD_CONFIG_FILE, PROJ_ROOT
 from tasks.util.toml import update_toml
 
 CONTAINERD_IMAGE_TAG = "containerd-build"
 CONTAINERD_SOURCE_CHECKOUT = join(PROJ_ROOT, "..", "containerd")
-CONTAINERD_CONFIG_FILE = "/etc/containerd/config.toml"
 
 
 def restart_containerd():
