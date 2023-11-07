@@ -1,5 +1,7 @@
 from json import loads as json_loads
 from subprocess import run
+from tasks.util.env import CONTAINERD_CONFIG_FILE
+from tasks.util.toml import update_toml
 from time import sleep
 
 
@@ -186,3 +188,18 @@ def get_all_events_in_between(
             events_json.append(o_json)
 
     return events_json
+
+
+def set_cri_handler(runtime_class, cri_handler):
+    """
+    Set the CRI handler for a given runtime class
+    """
+    updated_toml_str = """
+    [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.{runtime_class}]
+    cri_handler = "{cri_handler}"
+    """.format(
+        runtime_class=runtime_class, cri_handler=cri_handler
+    )
+    update_toml(CONTAINERD_CONFIG_FILE, updated_toml_str)
+
+    run("sudo service containerd restart", shell=True, check=True)
