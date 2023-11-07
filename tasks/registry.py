@@ -3,8 +3,13 @@ from os import makedirs
 from os.path import exists, join
 from subprocess import run
 from tasks.util.docker import is_ctr_running
-from tasks.util.env import K8S_CONFIG_DIR, LOCAL_REGISTRY_URL
-from tasks.util.env import get_node_url
+from tasks.util.env import (
+    CONTAINERD_CONFIG_FILE,
+    CONTAINERD_CONFIG_ROOT,
+    K8S_CONFIG_DIR,
+    LOCAL_REGISTRY_URL,
+    get_node_url,
+)
 from tasks.util.kata import replace_agent
 from tasks.util.knative import configure_self_signed_certs
 from tasks.util.kubeadm import run_kubectl_command
@@ -118,14 +123,14 @@ def start(ctx):
     # containerd config
     # ----------
 
-    containerd_base_certs_dir = "/etc/containerd/certs.d"
+    containerd_base_certs_dir = join(CONTAINERD_CONFIG_ROOT, "certs.d")
     updated_toml_str = """
     [plugins."io.containerd.grpc.v1.cri".registry]
     config_path = "{containerd_base_certs_dir}"
     """.format(
         containerd_base_certs_dir=containerd_base_certs_dir
     )
-    update_toml("/etc/containerd/config.toml", updated_toml_str)
+    update_toml(CONTAINERD_CONFIG_FILE, updated_toml_str)
 
     # Add the correspnding configuration to containerd
     containerd_certs_dir = join(containerd_base_certs_dir, LOCAL_REGISTRY_URL)

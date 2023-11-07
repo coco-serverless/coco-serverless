@@ -1,4 +1,4 @@
-from tasks.util.env import PROJ_ROOT
+from tasks.util.env import KATA_CONFIG_DIR, PROJ_ROOT
 from os.path import join
 
 EVAL_ROOT = join(PROJ_ROOT, "eval")
@@ -18,26 +18,33 @@ INTER_RUN_SLEEP_SECS = 1
 BASELINES = {
     # This baseline uses plain Knative on docker containrs
     "docker": {
+        "conf_file": "",
         "runtime_class": "",
         "image_tag": "unencrypted",
-        "guest_attestation": "",
-        "signature_verification": "",
-        "signature_policy": "",
     },
     # This baseline uses plain Knative on CoCo, but without SEV-enabled VMs
     # (so all CoCo machinery, but no runtime memory encryption)
     "kata": {
-        "runtime_class": "kata-qemu",
+        "conf_file": join(KATA_CONFIG_DIR, "configuration-qemu.toml"),
+        "runtime_class": "kata",
+        "cri_handler": "",
         "image_tag": "unencrypted",
-        "guest_attestation": "",
-        "signature_verification": "",
-        "signature_policy": "",
+    },
+    # This baseline uses plain Knative on CoCo, but without SEV-enabled VMs
+    # (so all CoCo machinery, but no runtime memory encryption)
+    "coco-nosev": {
+        "conf_file": join(KATA_CONFIG_DIR, "configuration-qemu.toml"),
+        "runtime_class": "kata-qemu",
+        "cri_handler": "cc",
+        "image_tag": "unencrypted",
     },
     # This baseline uses Knative on confidential VMs with Kata, but does not
     # have any kind of attestation feature. This is an _insecure_ baseline,
     # and only included for demonstration purposes
     "coco": {
+        "conf_file": join(KATA_CONFIG_DIR, "configuration-qemu-sev.toml"),
         "runtime_class": "kata-qemu-sev",
+        "cri_handler": "cc",
         "image_tag": "unencrypted",
         "guest_attestation": "off",
         "signature_verification": "off",
@@ -46,7 +53,9 @@ BASELINES = {
     # This baseline is the same as the previous one, but the hardware is
     # attested
     "coco-fw": {
+        "conf_file": join(KATA_CONFIG_DIR, "configuration-qemu-sev.toml"),
         "runtime_class": "kata-qemu-sev",
+        "cri_handler": "cc",
         "image_tag": "unencrypted",
         "guest_attestation": "on",
         "signature_verification": "on",
@@ -55,7 +64,9 @@ BASELINES = {
     # This baseline is the same as the previous one, but in addition the
     # container images used are signed, and the signature is verified
     "coco-fw-sig": {
+        "conf_file": join(KATA_CONFIG_DIR, "configuration-qemu-sev.toml"),
         "runtime_class": "kata-qemu-sev",
+        "cri_handler": "cc",
         "image_tag": "unencrypted",
         "guest_attestation": "on",
         "signature_verification": "on",
@@ -64,7 +75,9 @@ BASELINES = {
     # This baseline is the same as the previous one, but the container images
     # are also encrypted
     "coco-fw-sig-enc": {
+        "conf_file": join(KATA_CONFIG_DIR, "configuration-qemu-sev.toml"),
         "runtime_class": "kata-qemu-sev",
+        "cri_handler": "cc",
         "image_tag": "encrypted",
         "guest_attestation": "on",
         "signature_verification": "on",

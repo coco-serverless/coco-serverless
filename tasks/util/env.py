@@ -22,6 +22,11 @@ K8S_CONFIG_FILE = "/etc/kubernetes/admin.conf"
 CRI_RUNTIME_SOCKET = "unix:///run/containerd/containerd.sock"
 FLANNEL_INSTALL_DIR = join(GLOBAL_INSTALL_DIR, "flannel")
 
+# Containerd
+
+CONTAINERD_CONFIG_ROOT = "/etc/containerd"
+CONTAINERD_CONFIG_FILE = join(CONTAINERD_CONFIG_ROOT, "config.toml")
+
 # Image Registry config
 
 LOCAL_REGISTRY_URL = "registry.coco-csg.com"
