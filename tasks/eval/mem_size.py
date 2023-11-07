@@ -37,15 +37,10 @@ def get_default_vm_mem_size():
     return mem
 
 
-def update_vm_mem_size(baseline, new_mem_size):
+def update_vm_mem_size(toml_path, new_mem_size):
     """
     Update the default VM memory size in the Kata config file
     """
-    if baseline == "kata":
-        toml_path = join(KATA_CONFIG_DIR, "configuration-qemu.toml")
-    else:
-        toml_path = join(KATA_CONFIG_DIR, "configuration-qemu-sev.toml")
-
     updated_toml_str = """
     [hypervisor.qemu]
     default_memory = {mem_size}
@@ -101,9 +96,9 @@ def run(ctx, baseline=None, mem_size_mult=None):
             raise RuntimeError("Unrecognised baseline")
         baselines_to_run = [baseline]
 
-    mem_size_multiplier = [1, 2, 4, 8, 16]
+    mem_size_multiplier = [1, 2, 4, 8, 16, 32, 64]
     if mem_size_mult is not None:
-        mem_size_multiplier = [mem_size_mult]
+        mem_size_multiplier = [int(mem_size_mult)]
 
     results_dir = join(RESULTS_DIR, "mem-size")
     if not exists(results_dir):
@@ -115,7 +110,7 @@ def run(ctx, baseline=None, mem_size_mult=None):
     service_template_file = join(APPS_DIR, "mem-size", "service.yaml.j2")
     image_name = "csegarragonz/coco-helloworld-py"
     used_images = ["csegarragonz/coco-knative-sidecar", image_name]
-    num_runs = 3
+    num_runs = 1
 
     # Get the default memory size
     default_vm_mem_size = get_default_vm_mem_size()
@@ -145,11 +140,13 @@ def run(ctx, baseline=None, mem_size_mult=None):
             init_csv_file(result_file, "Run,StartTimeStampSec,EndTimeStampSec")
 
             # Update the configuration file to start VMs with more memory
-            update_vm_mem_size(bline, mem_size_mult * default_vm_mem_size)
+            update_vm_mem_size(
+                baseline_traits["conf_file"], mem_size_mult * default_vm_mem_size
+            )
 
             for nr in range(num_runs):
                 print(
-                    "Executing baseline {} ({} * {} mem) run {}/{}...".format(
+                    "Executing baseline {} ({} * {} MB mem) run {}/{}...".format(
                         bline, mem_size_mult, default_vm_mem_size, nr + 1, num_runs
                     )
                 )
@@ -159,7 +156,7 @@ def run(ctx, baseline=None, mem_size_mult=None):
 
         # Reset the VM memory size to the default value (different baselines
         # may use different Kata config files)
-        update_vm_mem_size(bline, default_vm_mem_size)
+        update_vm_mem_size(baseline_traits["conf_file"], default_vm_mem_size)
 
 
 @task
@@ -209,9 +206,9 @@ def plot(ctx):
         )
 
     # Misc
-    xlabels = ["{} * {}".format(x, get_default_vm_mem_size()) for x in xs]
-    ax.set_xticks(xs, xlabels, rotation=30)
-    ax.set_xlabel("Initial VM memory size")
+    xlabels = ["{}".format(int(x * get_default_vm_mem_size() / 1024)) for x in xs]
+    ax.set_xticks(xs, xlabels)
+    ax.set_xlabel("Initial VM memory size [GB]")
     ax.set_ylabel("Time [s]")
     ax.set_ylim(bottom=0)
     ax.set_title("Impact of initial VM memory size on start-up time")
