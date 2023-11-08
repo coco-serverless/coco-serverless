@@ -171,6 +171,24 @@ which generates a plot in [`./plots/vm-detail/vm_detail.png`](
 
 ![plot](./plots/vm-detail/vm_detail.png)
 
+We also generate additional plots where we compare two flame graphs of the
+start-up times of VMs with different configurations.
+
+We have a plot comparing SEV vs no-SEV in [`./plots/vm-detail/vm_detail_multisev.png`](
+./plots/vm-detail/vm_detail_multisev.png):
+
+![plot](./plots/vm-detail/vm_detail_multisev.png)
+
+another one where we compare the impact of the inital VM memory size
+[`./plots/vm-detail/vm_detail_multimem.png`](./plots/vm-detail/vm_detail_multimem.png):
+
+![plot](./plots/vm-detail/vm_detail_multimem.png)
+
+and another one where we compare the impact of the firmware size
+[`./plots/vm-detail/vm_detail_multiovmf.png`](./plots/vm-detail/vm_detail_multiovmf.png):
+
+![plot](./plots/vm-detail/vm_detail_multiovmf.png)
+
 ### Image Pull
 
 This experiment breaks down the costs associated to pulling a container image

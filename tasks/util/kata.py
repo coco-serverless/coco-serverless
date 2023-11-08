@@ -2,7 +2,7 @@ from os import makedirs
 from os.path import dirname, exists, join
 from subprocess import run
 from tasks.util.env import KATA_CONFIG_DIR, KATA_IMG_DIR, KATA_RUNTIMES, PROJ_ROOT
-from tasks.util.toml import remove_entry_from_toml, update_toml
+from tasks.util.toml import read_value_from_toml, remove_entry_from_toml, update_toml
 
 KATA_SOURCE_DIR = join(PROJ_ROOT, "..", "kata-containers")
 KATA_AGENT_SOURCE_DIR = join(KATA_SOURCE_DIR, "src", "agent")
@@ -114,3 +114,29 @@ def replace_agent(agent_source_dir=KATA_AGENT_SOURCE_DIR, extra_files=None):
 
         if runtime == "qemu":
             remove_entry_from_toml(conf_file_path, "hypervisor.qemu.image")
+
+
+def get_default_vm_mem_size(toml_path=join(KATA_CONFIG_DIR, "configuration-qemu-sev.toml")):
+    """
+    Get the default memory assigned to each new VM from the Kata config file.
+    This value is expressed in MB. We also take by default, accross baselines,
+    the value used for the qemu-sev runtime class.
+    """
+    mem = int(read_value_from_toml(toml_path, "hypervisor.qemu.default_memory"))
+    assert mem > 0, "Read non-positive default memory size: {}".format(mem)
+    return mem
+
+
+def update_vm_mem_size(toml_path, new_mem_size):
+    """
+    Update the default VM memory size in the Kata config file
+    """
+    updated_toml_str = """
+    [hypervisor.qemu]
+    default_memory = {mem_size}
+    """.format(
+        mem_size=new_mem_size
+    )
+    update_toml(toml_path, updated_toml_str)
+
+
