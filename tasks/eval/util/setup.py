@@ -1,6 +1,6 @@
 from os.path import join
 from tasks.eval.util.env import BASELINES, EXPERIMENT_IMAGE_REPO
-from tasks.util.coco import guest_attestation, signature_verification
+from tasks.util.coco import guest_attestation, signature_verification, set_firmware
 from tasks.util.containerd import set_cri_handler
 from tasks.util.kbs import clear_kbs_db, provision_launch_digest
 
@@ -19,6 +19,12 @@ def setup_baseline(baseline, used_images, image_repo=EXPERIMENT_IMAGE_REPO):
     if "cri_handler" in baseline_traits:
         set_cri_handler(
             baseline_traits["runtime_class"], baseline_traits["cri_handler"]
+        )
+
+    # Change the firmware
+    if "firmware" in baseline_traits:
+        set_firmware(
+            baseline_traits["conf_file"], baseline_traits["firmware"]
         )
 
     # Turn guest pre-attestation on/off (connect KBS to PSP)

@@ -67,6 +67,9 @@ def get_guest_kernel_start_ts(lower_bound=None):
 
 
 def do_run(result_file, num_run, service_file, flavour, warmup=False):
+    # Work out if it is an SEV-enabled run
+    is_sev = "nosev" not in service_file
+
     start_ts = time()
 
     # Silently start
@@ -119,12 +122,16 @@ def do_run(result_file, num_run, service_file, flavour, warmup=False):
         events_ts.append(("StartVMStarted", start_ts_vms))
 
         # Pre-attestation
-        start_ts_preatt = get_ts_for_containerd_event(
-            "Processing prelaunch attestation", sandbox_id, lower_bound=start_ts_vms
-        )
-        end_ts_preatt = get_ts_for_containerd_event(
-            "Launch secrets injected", sandbox_id, lower_bound=start_ts_preatt
-        )
+        if is_sev:
+            start_ts_preatt = get_ts_for_containerd_event(
+                "Processing prelaunch attestation", sandbox_id, lower_bound=start_ts_vms
+            )
+            end_ts_preatt = get_ts_for_containerd_event(
+                "Launch secrets injected", sandbox_id, lower_bound=start_ts_preatt
+            )
+        else:
+            start_ts_preatt = start_ts_vms
+            end_ts_preatt = start_ts_vms
         events_ts.append(("StartPreAtt", start_ts_preatt))
         events_ts.append(("EndPreAtt", end_ts_preatt))
 
@@ -151,7 +158,8 @@ def do_run(result_file, num_run, service_file, flavour, warmup=False):
         # so we can only use relative timestamps based on one performance
         # counter and the CPU frequency. Thus, we ARBITRARILY anchor the end
         # of OVMF execution to the start of the guest kernel
-        events_ts = get_ovmf_boot_events(events_ts, start_ts_gk)
+        if is_sev:
+            events_ts = get_ovmf_boot_events(events_ts, start_ts_gk)
 
         # Get the agent started event
         ts_as = get_ts_for_containerd_event(
@@ -173,7 +181,7 @@ def do_run(result_file, num_run, service_file, flavour, warmup=False):
 
 
 @task
-def run(ctx):
+def run(ctx, baseline=None):
     """
     Detailed break-down of the start-up latency of the cVM in the service
 
@@ -181,9 +189,19 @@ def run(ctx):
     the confidnetial VM (and kata agent) as part of the bootstrap of a Knative
     service on CoCo
     """
-    # baselines_to_run = ["coco-fw-sig-enc"]
-    baselines_to_run = ["coco-nosev"]
-    mem_size_mult = [1] # , 64]
+    # Initialise the environment
+    # TODO: finish initialising the environment and cleaning up
+    # The problem is that, in order to run the coco-nosev-ovmf we need to change
+    # the qemu-sev config to use the OVMF.fd firmware and our overwrite script
+    # and it is not clear how to revert it
+
+    baselines_to_run = ["coco-fw-sig-enc", "coco-nosev", "coco-nosev-ovmf"]
+    if baseline is not None:
+        if baseline not in baselines_to_run:
+            raise RuntimeError("Unrecognised baseline ({}) must be one in: {}".format(baseline, baselines_to_run))
+        baselines_to_run = [baseline]
+
+    mem_size_mult = [1, 64]
     service_template_file = join(APPS_DIR, "vm-detail", "service.yaml.j2")
     image_name = "csegarragonz/coco-helloworld-py"
     used_images = ["csegarragonz/coco-knative-sidecar", image_name]
@@ -298,7 +316,7 @@ color_for_event = {
 }
 
 
-def do_flame_plot(ax, results_dict, legend_on_bars=False):
+def do_flame_plot(ax, results_dict, legend_on_bars=False, nosev=False):
     assert list(ordered_events.keys()) == list(height_for_event.keys())
     assert list(color_for_event.keys()) == list(height_for_event.keys())
 
@@ -321,10 +339,15 @@ def do_flame_plot(ax, results_dict, legend_on_bars=False):
         "ovmf-measure-verify": (4.5, bar_height * 4.5),
         "guest-kernel": (5.2, bar_height * 2.5),
     }
+    nosev_skip_events = ["pre-attestation", "ovmf-booting", "ovmf-dxe", "ovmf-measure-verify"]
 
     x_rlim = 0
     x_origin = results_dict["StartRunPodSandbox"]["mean"]
     for event in ordered_events:
+        # Skip events that don't happen in a non-SEV boot
+        if nosev and event in nosev_skip_events:
+            continue
+
         start_ev = ordered_events[event][0]
         end_ev = ordered_events[event][1]
         x_left = results_dict[start_ev]["mean"]
@@ -369,23 +392,27 @@ def plot(ctx):
     """
     results_dir = join(RESULTS_DIR, "vm-detail")
     plots_dir = join(PLOTS_DIR, "vm-detail")
-    baseline = "coco-fw-sig-enc"
+    # baseline = "coco-fw-sig-enc"
     # results_file = join(results_dir, "{}_cold.csv".format(baseline))
-    glob_str = join(results_dir, "{}_*_cold.csv".format(baseline))
+    glob_str = join(results_dir, "*_cold.csv")
 
     # Collect results
     results_dict = {}
     for result_file in glob(glob_str):
         baseline = basename(result_file).split("_")[0]
         mem_mult = basename(result_file).split("_")[1]
-        results_dict[mem_mult] = {}
+
+        if baseline not in results_dict:
+            results_dict[baseline] = {}
+        if mem_mult not in results_dict[baseline]:
+            results_dict[baseline][mem_mult] = {}
 
         results = read_csv(result_file)
         groupped = results.groupby("Event", as_index=False)
         events = groupped.mean()["Event"].to_list()
         for ind, event in enumerate(events):
             # NOTE: these timestamps are in seconds
-            results_dict[mem_mult][event] = {
+            results_dict[baseline][mem_mult][event] = {
                 "mean": groupped.mean()["TimeStampMs"].to_list()[ind],
                 "sem": groupped.sem()["TimeStampMs"].to_list()[ind],
                 "list": groupped.get_group(event)["TimeStampMs"].to_list(),
@@ -396,16 +423,15 @@ def plot(ctx):
     # -----------------------
 
     # (baseline = "coco-fw-sig-enc" and mem_mult=1)
-    default_mem_mult = "1"
     fig, ax = subplots()
-    do_flame_plot(ax, results_dict[default_mem_mult], legend_on_bars=True)
+    do_flame_plot(ax, results_dict["coco-fw-sig-enc"]["1"], legend_on_bars=True)
     ax.set_xlabel("Time [s]")
     ax.tick_params(axis="y", which="both", left=False, right=False, labelbottom=False)
     ax.set_yticklabels([])
     title_str = "Breakdown of the time to start a CoCo sandbox\n"
     title_str += "(baseline: {}, mem_size: {} GB)".format(
         baseline,
-        int(int(default_mem_mult) * get_default_vm_mem_size() / 1024),
+        int(get_default_vm_mem_size() / 1024),
     )
     ax.set_title(title_str)
     for plot_format in ["pdf", "png"]:
@@ -420,7 +446,7 @@ def plot(ctx):
     fig, axes = subplots(ncols=1, nrows=2)
     x_rlim = 0
     for ax, mem_mult in zip(axes, ["1", "64"]):
-        this_x_rlim = do_flame_plot(ax, results_dict[mem_mult], legend_on_bars=False)
+        this_x_rlim = do_flame_plot(ax, results_dict["coco-fw-sig-enc"][mem_mult], legend_on_bars=False)
         x_rlim = max(x_rlim, this_x_rlim)
         ax.set_xlabel("Time [s]")
         ax.tick_params(axis="y", which="both", left=False, right=False, labelbottom=False)
@@ -443,14 +469,81 @@ def plot(ctx):
         )
     axes[0].legend(handles=legend_handles, ncols=2)
 
-    title_str = "Breakdown of the time to start a CoCo sandbox\n"
-    title_str += "(baseline: {}, mem_size: {} GB)".format(
-        baseline,
-        int(int(default_mem_mult) * get_default_vm_mem_size() / 1024),
-    )
     fig.suptitle("VM Start-Up with different guest memory sizes")
     fig.subplots_adjust(hspace=0.5)
 
     for plot_format in ["pdf", "png"]:
         plot_file = join(plots_dir, "vm_detail_multimem.{}".format(plot_format))
+        fig.savefig(plot_file, format=plot_format, bbox_inches="tight")
+
+    # -----------------------
+    # Third, two flame graphs on top of each other with SEV/no-SEV (w/ out OVMF)
+    # -----------------------
+
+    fig, axes = subplots(ncols=1, nrows=2)
+    x_rlim = 0
+    for ax, bline in zip(axes, ["coco-fw-sig-enc", "coco-nosev"]):
+        this_x_rlim = do_flame_plot(
+            ax,
+            results_dict[bline]["1"],
+            legend_on_bars=False,
+            nosev="nosev" in bline
+        )
+        x_rlim = max(x_rlim, this_x_rlim)
+        ax.set_xlabel("Time [s]")
+        ax.tick_params(axis="y", which="both", left=False, right=False, labelbottom=False)
+        ax.set_yticklabels([])
+        ax.set_title("Baseline: {}".format(bline))
+
+    # Update the x limit
+    for ax in axes:
+        ax.set_xlim(left=0, right=x_rlim)
+
+    # Manually craft the legend
+    legend_handles = []
+    for event in ordered_events:
+        legend_handles.append(
+            Patch(
+                facecolor=color_for_event[event],
+                edgecolor="black",
+                label=event,
+            )
+        )
+    axes[1].legend(handles=legend_handles, ncols=2)
+
+    fig.suptitle("VM Start-Up with different SEV configurations")
+    fig.subplots_adjust(hspace=0.5)
+
+    for plot_format in ["pdf", "png"]:
+        plot_file = join(plots_dir, "vm_detail_multisev.{}".format(plot_format))
+        fig.savefig(plot_file, format=plot_format, bbox_inches="tight")
+
+    # -----------------------
+    # Fourth, two flame graphs on top of each other with SEV/no-SEV (w/ OVMF)
+    # -----------------------
+
+    fig, axes = subplots(ncols=1, nrows=2)
+    x_rlim = 0
+    for ax, bline in zip(axes, ["coco-fw-sig-enc", "coco-nosev-ovmf"]):
+        this_x_rlim = do_flame_plot(
+            ax,
+            results_dict[bline]["1"],
+            legend_on_bars=False,
+            nosev="nosev" in bline
+        )
+        x_rlim = max(x_rlim, this_x_rlim)
+        ax.set_xlabel("Time [s]")
+        ax.tick_params(axis="y", which="both", left=False, right=False, labelbottom=False)
+        ax.set_yticklabels([])
+        ax.set_title("Baseline: {}".format(bline))
+
+    # Update the x limit
+    for ax in axes:
+        ax.set_xlim(left=0, right=x_rlim)
+
+    fig.suptitle("VM Start-Up with different SEV configurations")
+    fig.subplots_adjust(hspace=0.5)
+
+    for plot_format in ["pdf", "png"]:
+        plot_file = join(plots_dir, "vm_detail_multisev_ovmf.{}".format(plot_format))
         fig.savefig(plot_file, format=plot_format, bbox_inches="tight")

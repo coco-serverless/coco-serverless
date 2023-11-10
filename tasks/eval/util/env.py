@@ -1,4 +1,4 @@
-from tasks.util.env import KATA_CONFIG_DIR, PROJ_ROOT
+from tasks.util.env import COCO_ROOT, KATA_CONFIG_DIR, PROJ_ROOT
 from os.path import join
 
 EVAL_ROOT = join(PROJ_ROOT, "eval")
@@ -29,14 +29,26 @@ BASELINES = {
         "runtime_class": "kata",
         "cri_handler": "",
         "image_tag": "unencrypted",
+        "firmware": "",
     },
     # This baseline uses plain Knative on CoCo, but without SEV-enabled VMs
-    # (so all CoCo machinery, but no runtime memory encryption)
     "coco-nosev": {
         "conf_file": join(KATA_CONFIG_DIR, "configuration-qemu.toml"),
         "runtime_class": "kata-qemu",
         "cri_handler": "cc",
         "image_tag": "unencrypted",
+        "firmware": "",
+    },
+    # This baseline is the same one as before, but makes sure we use OVMF as
+    # firware (Kata may use something different byd efault)
+    "coco-nosev-ovmf": {
+        "conf_file": join(KATA_CONFIG_DIR, "configuration-qemu-sev.toml"),
+        "runtime_class": "kata-qemu-sev",
+        "cri_handler": "cc",
+        "image_tag": "unencrypted",
+        # TODO: probably instead of firmware we need to change the hypervisor
+        # "firmware": join(COCO_ROOT, "share", "ovmf", "OVMF_CSG.fd"),
+        # "hypervisor": replace_ovmf_sev.py
     },
     # This baseline uses Knative on confidential VMs with Kata, but does not
     # have any kind of attestation feature. This is an _insecure_ baseline,
