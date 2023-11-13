@@ -40,7 +40,7 @@ BASELINES = {
         "firmware": "",
     },
     # This baseline is the same one as before, but makes sure we use OVMF as
-    # firware (Kata may use something different byd efault)
+    # firware (Kata may use SeaBIOS by default)
     "coco-nosev-ovmf": {
         "conf_file": join(KATA_CONFIG_DIR, "configuration-qemu-sev.toml"),
         "runtime_class": "kata-qemu-sev",
