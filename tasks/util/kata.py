@@ -116,7 +116,9 @@ def replace_agent(agent_source_dir=KATA_AGENT_SOURCE_DIR, extra_files=None):
             remove_entry_from_toml(conf_file_path, "hypervisor.qemu.image")
 
 
-def get_default_vm_mem_size(toml_path=join(KATA_CONFIG_DIR, "configuration-qemu-sev.toml")):
+def get_default_vm_mem_size(
+    toml_path=join(KATA_CONFIG_DIR, "configuration-qemu-sev.toml")
+):
     """
     Get the default memory assigned to each new VM from the Kata config file.
     This value is expressed in MB. We also take by default, accross baselines,
@@ -138,5 +140,3 @@ def update_vm_mem_size(toml_path, new_mem_size):
         mem_size=new_mem_size
     )
     update_toml(toml_path, updated_toml_str)
-
-

@@ -58,9 +58,7 @@ def setup_baseline(baseline, used_images, image_repo=EXPERIMENT_IMAGE_REPO):
 
     # Change the path to the used hypervisor
     if "hypervisor" in baseline_traits:
-        set_hypervisor(
-            baseline_traits["conf_file"], baseline_traits["hypervisor"]
-        )
+        set_hypervisor(baseline_traits["conf_file"], baseline_traits["hypervisor"])
 
     # Change the CRI handler
     if "cri_handler" in baseline_traits:
@@ -70,9 +68,7 @@ def setup_baseline(baseline, used_images, image_repo=EXPERIMENT_IMAGE_REPO):
 
     # Change the firmware
     if "firmware" in baseline_traits:
-        set_firmware(
-            baseline_traits["conf_file"], baseline_traits["firmware"]
-        )
+        set_firmware(baseline_traits["conf_file"], baseline_traits["firmware"])
 
     # Turn guest pre-attestation on/off (connect KBS to PSP)
     if "guest_attestation" in baseline_traits:

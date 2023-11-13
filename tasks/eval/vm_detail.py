@@ -27,11 +27,9 @@ from tasks.util.containerd import (
     get_start_end_ts_for_containerd_event,
     get_ts_for_containerd_event,
 )
-from tasks.util.flame import generate_flame_graph
 from tasks.util.k8s import template_k8s_file
 from tasks.util.kata import get_default_vm_mem_size, update_vm_mem_size
 from tasks.util.kubeadm import get_pod_names_in_ns, run_kubectl_command
-from tasks.util.qemu import get_qemu_pid
 from tasks.util.ovmf import get_ovmf_boot_events
 from time import sleep, time
 
@@ -192,7 +190,11 @@ def run(ctx, baseline=None):
     baselines_to_run = ["coco-fw-sig-enc", "coco-nosev", "coco-nosev-ovmf"]
     if baseline is not None:
         if baseline not in baselines_to_run:
-            raise RuntimeError("Unrecognised baseline ({}) must be one in: {}".format(baseline, baselines_to_run))
+            raise RuntimeError(
+                "Unrecognised baseline ({}) must be one in: {}".format(
+                    baseline, baselines_to_run
+                )
+            )
         baselines_to_run = [baseline]
 
     mem_size_mult = [1, 64]
@@ -231,14 +233,15 @@ def run(ctx, baseline=None):
         default_vm_mem_size = get_default_vm_mem_size(baseline_traits["conf_file"])
 
         for mem_size in mem_size_mult:
-
             update_vm_mem_size(
                 baseline_traits["conf_file"], mem_size * default_vm_mem_size
             )
 
             for flavour in ["cold"]:
                 # Prepare the result file
-                result_file = join(results_dir, "{}_{}_{}.csv".format(bline, mem_size, flavour))
+                result_file = join(
+                    results_dir, "{}_{}_{}.csv".format(bline, mem_size, flavour)
+                )
                 init_csv_file(result_file, "Run,Event,TimeStampMs")
 
                 if flavour == "warm":
@@ -248,7 +251,9 @@ def run(ctx, baseline=None):
                     except TypeError:
                         cleanup_after_run(bline, used_images)
                         cleanup_baseline(bline)
-                        raise RuntimeError("Error executing {} warmup run!".format(bline))
+                        raise RuntimeError(
+                            "Error executing {} warmup run!".format(bline)
+                        )
 
                     sleep(INTER_RUN_SLEEP_SECS)
 
@@ -343,7 +348,12 @@ def do_flame_plot(ax, results_dict, legend_on_bars=False, nosev=False):
         "ovmf-measure-verify": (4.5, bar_height * 4.5),
         "guest-kernel": (5.2, bar_height * 2.5),
     }
-    nosev_skip_events = ["pre-attestation", "ovmf-booting", "ovmf-dxe", "ovmf-measure-verify"]
+    nosev_skip_events = [
+        "pre-attestation",
+        "ovmf-booting",
+        "ovmf-dxe",
+        "ovmf-measure-verify",
+    ]
 
     x_rlim = 0
     x_origin = results_dict["StartRunPodSandbox"]["mean"]
@@ -450,12 +460,20 @@ def plot(ctx):
     fig, axes = subplots(ncols=1, nrows=2)
     x_rlim = 0
     for ax, mem_mult in zip(axes, ["1", "64"]):
-        this_x_rlim = do_flame_plot(ax, results_dict["coco-fw-sig-enc"][mem_mult], legend_on_bars=False)
+        this_x_rlim = do_flame_plot(
+            ax, results_dict["coco-fw-sig-enc"][mem_mult], legend_on_bars=False
+        )
         x_rlim = max(x_rlim, this_x_rlim)
         ax.set_xlabel("Time [s]")
-        ax.tick_params(axis="y", which="both", left=False, right=False, labelbottom=False)
+        ax.tick_params(
+            axis="y", which="both", left=False, right=False, labelbottom=False
+        )
         ax.set_yticklabels([])
-        ax.set_title("Memory size: {} GB".format(int(int(mem_mult) * get_default_vm_mem_size() / 1024)))
+        ax.set_title(
+            "Memory size: {} GB".format(
+                int(int(mem_mult) * get_default_vm_mem_size() / 1024)
+            )
+        )
 
     # Update the x limit
     for ax in axes:
@@ -488,14 +506,13 @@ def plot(ctx):
     x_rlim = 0
     for ax, bline in zip(axes, ["coco-fw-sig-enc", "coco-nosev"]):
         this_x_rlim = do_flame_plot(
-            ax,
-            results_dict[bline]["1"],
-            legend_on_bars=False,
-            nosev="nosev" in bline
+            ax, results_dict[bline]["1"], legend_on_bars=False, nosev="nosev" in bline
         )
         x_rlim = max(x_rlim, this_x_rlim)
         ax.set_xlabel("Time [s]")
-        ax.tick_params(axis="y", which="both", left=False, right=False, labelbottom=False)
+        ax.tick_params(
+            axis="y", which="both", left=False, right=False, labelbottom=False
+        )
         ax.set_yticklabels([])
         ax.set_title("Baseline: {}".format(bline))
 
@@ -530,14 +547,13 @@ def plot(ctx):
     x_rlim = 0
     for ax, bline in zip(axes, ["coco-fw-sig-enc", "coco-nosev-ovmf"]):
         this_x_rlim = do_flame_plot(
-            ax,
-            results_dict[bline]["1"],
-            legend_on_bars=False,
-            nosev="nosev" in bline
+            ax, results_dict[bline]["1"], legend_on_bars=False, nosev="nosev" in bline
         )
         x_rlim = max(x_rlim, this_x_rlim)
         ax.set_xlabel("Time [s]")
-        ax.tick_params(axis="y", which="both", left=False, right=False, labelbottom=False)
+        ax.tick_params(
+            axis="y", which="both", left=False, right=False, labelbottom=False
+        )
         ax.set_yticklabels([])
         ax.set_title("Baseline: {}".format(bline))
 
