@@ -90,3 +90,13 @@ def set_hypervisor(conf_file_path, firmware):
         firmware=firmware
     )
     update_toml(conf_file_path, updated_toml_str)
+
+
+def set_initrd(conf_file_path, initrd):
+    updated_toml_str = """
+    [hypervisor.qemu]
+    initrd = "{initrd}"
+    """.format(
+        initrd=initrd
+    )
+    update_toml(conf_file_path, updated_toml_str)

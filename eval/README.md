@@ -42,6 +42,7 @@ Now you are ready to run one of the experiments:
 * [Start-Up Costs](#start-up-costs) - time required to spin-up a Knative service.
 * [Instantiation Throughput](#instantiation-throughput) - throughput-latency of service instantiation.
 * [Memory Size](#memory-size) - impact on initial VM memory size on start-up time.
+* [initrd Size](#initrd-size) - impact on the initial `initrd` size on the start-up time.
 * [VM Start-Up](#vm-start-up) - breakdown of the cVM start-up costs
 * [Image Pull Costs](#image-pull) - breakdown of the costs associated to pulling an image on the guest.
 * [Throughput Detail](#throughput-detail) - breakdown of the costs associated to starting many services concurrently.
@@ -130,6 +131,28 @@ which generates a plot in [`./plots/mem-size/mem_size.png`](
 ./plots/mem-size/mem_size.png). You can also see the plot below:
 
 ![plot](./plots/mem-size/mem_size.png)
+
+### Initrd Size
+
+This experiment explores the impact of the `initrd` image size on the start-up
+latency.
+
+You may run the experiment using:
+
+```bash
+inv eval.initrd-size.run
+```
+
+and plot the results with:
+
+```bash
+inv eval.initrd-size.plot
+```
+
+which generates a plot in [`./plots/initrd-size/initrd_size.png`](
+./plots/initrd-size/initrd_size.png). You can also see the plot below:
+
+![plot](./plots/initrd-size/initrd_size.png)
 
 ### VM Start-Up
 
