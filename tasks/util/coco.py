@@ -70,3 +70,23 @@ def signature_verification(
         updated_kernel_params=updated_kernel_params
     )
     update_toml(conf_file_path, updated_toml_str)
+
+
+def set_firmware(conf_file_path, firmware):
+    updated_toml_str = """
+    [hypervisor.qemu]
+    firmware = "{firmware}"
+    """.format(
+        firmware=firmware
+    )
+    update_toml(conf_file_path, updated_toml_str)
+
+
+def set_hypervisor(conf_file_path, firmware):
+    updated_toml_str = """
+    [hypervisor.qemu]
+    path = "{firmware}"
+    """.format(
+        firmware=firmware
+    )
+    update_toml(conf_file_path, updated_toml_str)

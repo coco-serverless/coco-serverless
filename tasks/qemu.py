@@ -37,35 +37,34 @@ def build(ctx):
 @task
 def standalone(ctx):
     """
-    Invoke a standalone confidential VM using QEMU
+    Invoke a standalone (non-)confidential VM using QEMU
 
-    By default, we read the relevant paths from the QEMU SEV command line.
+    So far, only non-confidential VMs work. Note that the /init process in the
+    default `initrd` is the Kata Agent, so the VM will not hang in the agent
+    init. It is still useful to assert that the VM can boot.
     """
-    conf_file_path = join(KATA_CONFIG_DIR, "configuration-qemu-sev.toml")
+    conf_file_path = join(KATA_CONFIG_DIR, "configuration-qemu.toml")
+    qemu_path = join(COCO_ROOT, "bin", "qemu-system-x86_64-csg")
+    fw_path = join(COCO_ROOT, "share", "ovmf", "OVMF.fd")
+    kernel_path = join(COCO_ROOT, "share", "kata-containers", "vmlinuz-5.19.2-109cc+")
 
     # Prepare QEMU command line
     qemu_cmd = [
         "sudo",
-        "/opt/confidential-containers/bin/qemu-system-x86_64-csg",
-        "-debugcon file:/dev/stdout -global isa-debugcon.iobase=0x402",
-        "-D /tmp/qemu-log",
-        # "-machine q35,accel=kvm,kernel_irqchip=split,confidential-guest-support=sev",
-        "-enable-kvm -cpu host -machine q35 -smp 1 -m 2G",
-        "-machine memory-encryption=sev0",
-        "-object sev-guest,id=sev0,cbitpos=51,reduced-phys-bits=1",
-        "-drive if=pflash,format=raw,readonly=on,file={}".format(
-            read_value_from_toml(conf_file_path, "hypervisor.qemu.firmware")
-        ),
-        "-kernel {}".format(
-            read_value_from_toml(conf_file_path, "hypervisor.qemu.kernel")
-        ),
-        '-append "console=ttyS0 earlyprintk=serial root=/dev/sda2"',
+        qemu_path,
+        "-machine q35,accel=kvm",
+        "-m 2048M,slots=10,maxmem=257720M",
+        "-kernel {}".format(kernel_path),
+        '-append "console=ttyS0 root=/dev/sda2 debug"',
         "-initrd {}".format(
             read_value_from_toml(conf_file_path, "hypervisor.qemu.initrd")
         ),
-        "-nographic",
+        "-no-user-config",
         "-nodefaults",
-        "--trace 'kvm_sev_*'",
+        "-nographic",
+        "--no-reboot",
+        "-drive if=pflash,format=raw,readonly=on,file={}".format(fw_path),
+        "--serial file:/tmp/qemu-serial-direct.log",
     ]
     qemu_cmd = " ".join(qemu_cmd)
 

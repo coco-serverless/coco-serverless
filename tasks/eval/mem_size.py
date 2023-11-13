@@ -18,36 +18,10 @@ from tasks.eval.util.env import (
 )
 from tasks.eval.util.pod import wait_for_pod_ready_and_get_ts
 from tasks.eval.util.setup import setup_baseline
-from tasks.util.env import KATA_CONFIG_DIR
 from tasks.util.k8s import template_k8s_file
+from tasks.util.kata import get_default_vm_mem_size, update_vm_mem_size
 from tasks.util.kubeadm import get_pod_names_in_ns, run_kubectl_command
-from tasks.util.toml import read_value_from_toml, update_toml
 from time import sleep, time
-
-
-def get_default_vm_mem_size():
-    """
-    Get the default memory assigned to each new VM from the Kata config file.
-    This value is expressed in MB. We also take by default, accross baselines,
-    the value used for the qemu-sev runtime class.
-    """
-    toml_path = join(KATA_CONFIG_DIR, "configuration-qemu-sev.toml")
-    mem = int(read_value_from_toml(toml_path, "hypervisor.qemu.default_memory"))
-    assert mem > 0, "Read non-positive default memory size: {}".format(mem)
-    return mem
-
-
-def update_vm_mem_size(toml_path, new_mem_size):
-    """
-    Update the default VM memory size in the Kata config file
-    """
-    updated_toml_str = """
-    [hypervisor.qemu]
-    default_memory = {mem_size}
-    """.format(
-        mem_size=new_mem_size
-    )
-    update_toml(toml_path, updated_toml_str)
 
 
 def do_run(result_file, baseline, num_run, num_par_inst):
