@@ -119,8 +119,7 @@ def run(ctx, baseline=None, initrd_size_mult=None):
             raise RuntimeError("Unrecognised baseline")
         baselines_to_run = [baseline]
 
-    initrd_size_multiplier = [0, 1, 3, 7, 15, 31, 63]
-    # initrd_size_multiplier = [0, 1, 2, 3, 4, 5, 6, 7, 8] # 16, 32, 64]
+    initrd_size_multiplier = [0, 1, 2, 3, 4, 5, 6, 7, 8]
     if initrd_size_mult is not None:
         initrd_size_multiplier = [int(initrd_size_mult)]
 
