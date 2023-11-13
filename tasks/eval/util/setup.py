@@ -17,7 +17,7 @@ def get_backup_file_path_from_conf_file(conf_file):
     if not exists(backup_dir):
         makedirs(backup_dir)
 
-    backup_file = basename(conf_file)
+    backup_file = join(backup_dir, basename(conf_file))
     return backup_file
 
 
