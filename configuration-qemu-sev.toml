@@ -1,0 +1,64 @@
+[factory]
+
+[runtime]
+internetworking_model = "tcfilter"
+disable_guest_seccomp = true
+sandbox_cgroup_only = false
+static_sandbox_resource_mgmt = true
+sandbox_bind_mounts = []
+vfio_mode = "guest-kernel"
+disable_guest_empty_dir = false
+experimental = []
+enable_debug = true
+
+[image]
+service_offload = true
+
+[hypervisor.qemu]
+path = "/opt/confidential-containers/bin/qemu-system-x86_64"
+kernel = "/opt/confidential-containers/share/kata-containers/vmlinuz-sev.container"
+initrd = "/opt/confidential-containers/share/kata-containers/kata-containers-initrd-sev-csg.img"
+machine_type = "q35"
+confidential_guest = true
+guest_pre_attestation = false
+guest_pre_attestation_kbs_uri = "10.160.40.149:44444"
+guest_pre_attestation_kbs_mode = "online"
+guest_pre_attestation_keyset = "KEYSET-1"
+sev_guest_policy = 3
+sev_cert_chain = "/opt/sev/cert_chain.cert"
+enable_annotations = [ "enable_iommu",]
+valid_hypervisor_paths = [ "/opt/confidential-containers/bin/qemu-system-x86_64",]
+kernel_params = "agent.config_file=/etc/agent-config.toml agent.enable_signature_verification=false "
+firmware = "/opt/confidential-containers/share/ovmf/OVMF_CSG.fd"
+firmware_volume = ""
+machine_accelerators = ""
+cpu_features = "pmu=off"
+default_vcpus = 1
+default_maxvcpus = 0
+default_bridges = 1
+default_memory = 2048
+default_maxmemory = 0
+disable_block_device_use = false
+shared_fs = "virtio-9p"
+virtio_fs_daemon = "/opt/confidential-containers/libexec/virtiofsd"
+valid_virtio_fs_daemon_paths = [ "/opt/confidential-containers/libexec/virtiofsd",]
+virtio_fs_cache_size = 0
+virtio_fs_extra_args = [ "--thread-pool-size=1", "--announce-submounts",]
+virtio_fs_cache = "auto"
+block_device_driver = "virtio-scsi"
+enable_iothreads = false
+enable_vhost_user_store = false
+vhost_user_store_path = "/var/run/kata-containers/vhost-user"
+valid_vhost_user_store_paths = [ "/var/run/kata-containers/vhost-user",]
+valid_file_mem_backends = [ "",]
+pflashes = []
+valid_entropy_sources = [ "/dev/urandom", "/dev/random", "",]
+disable_selinux = false
+disable_guest_selinux = true
+enable_debug = true
+
+[agent.kata]
+kernel_modules = []
+dial_timeout = 90
+enable_debug = true
+debug_console_enabled = true

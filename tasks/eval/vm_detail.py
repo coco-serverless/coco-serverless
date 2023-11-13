@@ -21,7 +21,7 @@ from tasks.eval.util.pod import (
     get_sandbox_id_from_pod_name,
     wait_for_pod_ready_and_get_ts,
 )
-from tasks.eval.util.setup import setup_baseline
+from tasks.eval.util.setup import cleanup_baseline, setup_baseline
 from tasks.util.containerd import (
     get_event_from_containerd_logs,
     get_start_end_ts_for_containerd_event,
@@ -189,12 +189,6 @@ def run(ctx, baseline=None):
     the confidnetial VM (and kata agent) as part of the bootstrap of a Knative
     service on CoCo
     """
-    # Initialise the environment
-    # TODO: finish initialising the environment and cleaning up
-    # The problem is that, in order to run the coco-nosev-ovmf we need to change
-    # the qemu-sev config to use the OVMF.fd firmware and our overwrite script
-    # and it is not clear how to revert it
-
     baselines_to_run = ["coco-fw-sig-enc", "coco-nosev", "coco-nosev-ovmf"]
     if baseline is not None:
         if baseline not in baselines_to_run:
@@ -219,7 +213,7 @@ def run(ctx, baseline=None):
 
         # First, template the service file
         service_file = join(
-            EVAL_TEMPLATED_DIR, "apps_startup_{}_service.yaml".format(bline)
+            EVAL_TEMPLATED_DIR, "apps_vm-detail_{}_service.yaml".format(bline)
         )
         template_vars = {
             "image_repo": EXPERIMENT_IMAGE_REPO,
@@ -249,7 +243,13 @@ def run(ctx, baseline=None):
 
                 if flavour == "warm":
                     print("Executing baseline {} warmup run...".format(bline))
-                    do_run(result_file, -1, service_file, flavour, warmup=True)
+                    try:
+                        do_run(result_file, -1, service_file, flavour, warmup=True)
+                    except TypeError:
+                        cleanup_after_run(bline, used_images)
+                        cleanup_baseline(bline)
+                        raise RuntimeError("Error executing {} warmup run!".format(bline))
+
                     sleep(INTER_RUN_SLEEP_SECS)
 
                 if flavour == "cold":
@@ -263,15 +263,19 @@ def run(ctx, baseline=None):
                             bline, flavour, mem_size, nr + 1, num_runs
                         )
                     )
-                    do_run(result_file, nr, service_file, flavour)
+                    try:
+                        do_run(result_file, nr, service_file, flavour)
+                    except TypeError:
+                        cleanup_after_run(bline, used_images)
+                        cleanup_baseline(bline)
+                        raise RuntimeError("Error executing {}!".format(bline))
+
                     sleep(INTER_RUN_SLEEP_SECS)
 
                     if flavour == "cold":
                         cleanup_after_run(bline, used_images)
 
-        update_vm_mem_size(
-            baseline_traits["conf_file"], default_vm_mem_size
-        )
+        cleanup_baseline(bline)
 
 
 # ---------

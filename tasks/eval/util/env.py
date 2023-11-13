@@ -1,4 +1,4 @@
-from tasks.util.env import COCO_ROOT, KATA_CONFIG_DIR, PROJ_ROOT
+from tasks.util.env import BIN_DIR, COCO_ROOT, KATA_CONFIG_DIR, PROJ_ROOT
 from os.path import join
 
 EVAL_ROOT = join(PROJ_ROOT, "eval")
@@ -46,9 +46,8 @@ BASELINES = {
         "runtime_class": "kata-qemu-sev",
         "cri_handler": "cc",
         "image_tag": "unencrypted",
-        # TODO: probably instead of firmware we need to change the hypervisor
-        # "firmware": join(COCO_ROOT, "share", "ovmf", "OVMF_CSG.fd"),
-        # "hypervisor": replace_ovmf_sev.py
+        "firmware": join(COCO_ROOT, "share", "ovmf", "OVMF_CSG.fd"),
+        "hypervisor": join(BIN_DIR, "qemu_wrapper_replace_bios_sev.py"),
     },
     # This baseline uses Knative on confidential VMs with Kata, but does not
     # have any kind of attestation feature. This is an _insecure_ baseline,
