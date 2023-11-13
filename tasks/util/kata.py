@@ -8,7 +8,11 @@ KATA_SOURCE_DIR = join(PROJ_ROOT, "..", "kata-containers")
 KATA_AGENT_SOURCE_DIR = join(KATA_SOURCE_DIR, "src", "agent")
 
 
-def replace_agent(agent_source_dir=KATA_AGENT_SOURCE_DIR, extra_files=None):
+def replace_agent(
+    dst_initrd_path=join(KATA_IMG_DIR, "kata-containers-initrd-sev-csg.img"),
+    agent_source_dir=KATA_AGENT_SOURCE_DIR,
+    extra_files=None
+):
     """
     Replace the kata-agent with a custom-built one
 
@@ -92,14 +96,14 @@ def replace_agent(agent_source_dir=KATA_AGENT_SOURCE_DIR, extra_files=None):
     initrd_builder_path = join(
         KATA_SOURCE_DIR, "tools", "osbuilder", "initrd-builder", "initrd_builder.sh"
     )
-    new_initrd_path = join(dirname(initrd_path), "kata-containers-initrd-sev-csg.img")
     work_env = {"AGENT_INIT": "yes"}
     initrd_pack_cmd = "env && sudo {} -o {} {}".format(
         initrd_builder_path,
-        new_initrd_path,
+        dst_initrd_path,
         workdir,
     )
-    run(initrd_pack_cmd, shell=True, check=True, env=work_env)
+    out = run(initrd_pack_cmd, shell=True, check=True, env=work_env, capture_output=True)
+    assert out.returncode == 0, "Error packing initrd: {}".format(out.stderr.decode("utf-8"))
 
     # Lastly, update the Kata config to point to the new initrd
     for runtime in KATA_RUNTIMES:
@@ -108,7 +112,7 @@ def replace_agent(agent_source_dir=KATA_AGENT_SOURCE_DIR, extra_files=None):
         [hypervisor.qemu]
         initrd = "{new_initrd_path}"
         """.format(
-            new_initrd_path=new_initrd_path
+            new_initrd_path=dst_initrd_path
         )
         update_toml(conf_file_path, updated_toml_str)
 
