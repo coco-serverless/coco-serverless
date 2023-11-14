@@ -71,9 +71,14 @@ def get_ovmf_boot_events(events_ts, guest_kernel_start_ts):
 
         raise RuntimeError("Could not find ending event for: {}".format(event))
 
-    # TODO: finish plotting this
-    # TODO: DxeMain seems to also start at tick 0?
-    event_allow_list = ["DxeMain"]
+    event_allow_list = ["DxeMain", "BdsEntry", "DxeLoadCore", "PeiCore"]
+
+    # DxeMain (where we spend most of the time) only starts reporting valid
+    # performance counter ticks after the timer lib has been initialised.
+    # Before that, it just returns zero. By manual inspection, we now that
+    # DxeMain happens right after DxeLoadCore, so we set the DxeMain zero
+    # to DxeLoadCoreEnd
+    real_start_dxe_main = -1
 
     verify_start_ts = -1
     verify_duration = 0
@@ -82,22 +87,43 @@ def get_ovmf_boot_events(events_ts, guest_kernel_start_ts):
             event = re_search(r"(^[a-zA-Z\-]*)", li).groups(1)[0]
 
             # Filter only the events that we care about
-            if event not in event_allow_list and "Verify" not in event:
-                continue
+            # if event not in event_allow_list and "Verify" not in event:
+                # continue
 
             start_ticks = int(re_search(ticks_re_str, li).groups(1)[0])
             start_ts = get_ts_from_ticks(start_ticks)
             end_ticks = get_end_ticks(lines, event)
             end_ts = get_ts_from_ticks(end_ticks)
 
-            if event in event_allow_list:
-                events_ts.append(("StartOVMF" + event, start_ts))
-                events_ts.append(("EndOVMF" + event, end_ts))
-            else:
+            if "Verify" in event:
                 if verify_start_ts < 0 or start_ts < verify_start_ts:
                     verify_start_ts = start_ts
 
                 verify_duration += end_ts - start_ts
+            elif "driver" in li:
+                continue
+            else:
+                events_ts.append(("StartOVMF" + event, start_ts))
+                events_ts.append(("EndOVMF" + event, end_ts))
+
+                if event == "DxeLoadCore":
+                    real_start_dxe_main = end_ts
+
+        if "TEMPP" in li:
+            event = re_search(r"(TEMPP-[0-9]*)", li).groups(1)[0]
+            start_ticks = int(re_search(ticks_re_str, li).groups(1)[0])
+            start_ts = get_ts_from_ticks(start_ticks)
+            events_ts.append((event, start_ts))
+
+    epsilon = 0.0001
+    for ind, pair in enumerate(events_ts):
+        event = events_ts[ind][0]
+        ts = max(events_ts[ind][1], real_start_dxe_main)
+        if event == "StartOVMFDxeMain" or "TEMPP" in event:
+            events_ts[ind] = (
+                event,
+                ts + epsilon,
+            )
 
     events_ts.append(("StartOVMFVerify", verify_start_ts))
     events_ts.append(("EndOVMFVerify", verify_start_ts + verify_duration))
