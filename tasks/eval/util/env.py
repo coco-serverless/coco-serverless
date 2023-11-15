@@ -47,7 +47,9 @@ BASELINES = {
         "cri_handler": "cc",
         "image_tag": "unencrypted",
         "firmware": join(COCO_ROOT, "share", "ovmf", "OVMF_CSG.fd"),
-        "hypervisor": join(BIN_DIR, "qemu_wrapper_replace_bios_sev.py"),
+        "hypervisor": join(BIN_DIR, "qemu_wrapper_remove_sev_blob.py"),
+        "guest_attestation": "off",
+        "signature_verification": "off",
     },
     # This baseline uses Knative on confidential VMs with Kata, but does not
     # have any kind of attestation feature. This is an _insecure_ baseline,
