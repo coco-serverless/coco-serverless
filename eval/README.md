@@ -48,6 +48,13 @@ Now you are ready to run one of the experiments:
 * [Image Pull Costs](#image-pull) - breakdown of the costs associated to pulling an image on the guest.
 * [Throughput Detail](#throughput-detail) - breakdown of the costs associated to starting many services concurrently.
 
+If at any point execution fails, or you want a hard reset between experiments,
+make sure to run:
+
+```bash
+inv eval.prune.pods
+```
+
 ### Start-Up Costs
 
 This benchmark compares the time required to spin-up a pod as measured from
