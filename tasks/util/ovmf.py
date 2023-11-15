@@ -72,8 +72,6 @@ def get_ovmf_boot_events(events_ts, guest_kernel_start_ts):
 
         raise RuntimeError("Could not find ending event for: {}".format(event))
 
-    event_allow_list = ["DxeMain", "BdsEntry", "DxeLoadCore", "PeiCore"]
-
     # DxeMain (where we spend most of the time) only starts reporting valid
     # performance counter ticks after the timer lib has been initialised.
     # Before that, it just returns zero. By manual inspection, we now that
@@ -89,7 +87,7 @@ def get_ovmf_boot_events(events_ts, guest_kernel_start_ts):
 
             # Filter only the events that we care about
             # if event not in event_allow_list and "Verify" not in event:
-                # continue
+            # continue
 
             start_ticks = int(re_search(ticks_re_str, li).groups(1)[0])
             start_ts = get_ts_from_ticks(start_ticks)

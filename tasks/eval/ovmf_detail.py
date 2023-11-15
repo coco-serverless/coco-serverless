@@ -1,7 +1,6 @@
 from glob import glob
 from invoke import task
-from matplotlib.patches import Patch
-from matplotlib.pyplot import figure, subplots
+from matplotlib.pyplot import figure
 from os import makedirs
 from os.path import basename, exists, join
 from pandas import read_csv
@@ -28,7 +27,6 @@ from tasks.util.containerd import (
     get_ts_for_containerd_event,
 )
 from tasks.util.k8s import template_k8s_file
-from tasks.util.kata import get_default_vm_mem_size, update_vm_mem_size
 from tasks.util.kubeadm import get_pod_names_in_ns, run_kubectl_command
 from tasks.util.ovmf import get_ovmf_boot_events
 from time import sleep, time
@@ -171,8 +169,7 @@ def do_run(result_file, num_run, service_file, flavour, warmup=False):
 
 @task
 def run(ctx, baseline=None):
-    """
-    """
+    """ """
     baselines_to_run = ["coco-fw-sig-enc", "coco-nosev-ovmf"]
     # baselines_to_run = ["coco-nosev-ovmf"] # , "coco-nosev", "coco-nosev-ovmf"]
     if baseline is not None:
@@ -217,9 +214,7 @@ def run(ctx, baseline=None):
 
         for flavour in ["cold"]:
             # Prepare the result file
-            result_file = join(
-                results_dir, "{}_{}.csv".format(bline, flavour)
-            )
+            result_file = join(results_dir, "{}_{}.csv".format(bline, flavour))
             init_csv_file(result_file, "Run,Event,TimeStampMs")
 
             if flavour == "warm":
@@ -229,9 +224,7 @@ def run(ctx, baseline=None):
                 except TypeError:
                     cleanup_after_run(bline, used_images)
                     cleanup_baseline(bline)
-                    raise RuntimeError(
-                        "Error executing {} warmup run!".format(bline)
-                    )
+                    raise RuntimeError("Error executing {} warmup run!".format(bline))
 
                 sleep(INTER_RUN_SLEEP_SECS)
 
@@ -328,7 +321,6 @@ def do_flame_plot(ax, results_dict):
     x_rlim = 0
     x_origin = results_dict["StartOVMFBoot"]["mean"]
     for event in ordered_events:
-
         start_ev = ordered_events[event][0]
         end_ev = ordered_events[event][1]
         x_left = results_dict[start_ev]["mean"]
@@ -456,13 +448,20 @@ def plot(ctx):
     ax3.tick_params(labeltop=False, bottom=False, labelbottom=False)
     ax4.xaxis.tick_bottom()
     # Diagonal lines in the axes
-    d = .5  # proportion of vertical to horizontal extent of the slanted line
-    kwargs = dict(marker=[(-1, -d), (1, d)], markersize=12,
-                  linestyle="none", color='k', mec='k', mew=1, clip_on=False)
+    d = 0.5  # proportion of vertical to horizontal extent of the slanted line
+    kwargs = dict(
+        marker=[(-1, -d), (1, d)],
+        markersize=12,
+        linestyle="none",
+        color="k",
+        mec="k",
+        mew=1,
+        clip_on=False,
+    )
     ax3.plot([0, 1], [0, 0], transform=ax3.transAxes, **kwargs)
     ax4.plot([0, 1], [1, 1], transform=ax4.transAxes, **kwargs)
     fig.subplots_adjust(hspace=0.05)  # adjust space between axes
-    ax4.axhline(y=1, color='black', linestyle='--')
+    ax4.axhline(y=1, color="black", linestyle="--")
     ax3.set_title("OVMF Boot Event Slowdown")
     ax4.set_ylabel("Slowdon [fw-sig-enc/nosev-ovmf]")
     ax4.yaxis.set_label_coords(-0.1, 1)
