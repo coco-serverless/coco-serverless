@@ -32,9 +32,6 @@ def launch_qemu(argv):
             "file:/tmp/qemu-serial.log",
         ]
     )
-    with open("/tmp/qemu_cmdline.log", "w") as fh:
-        fh.write("argv: {}\n".format(argv))
-        fh.write("{}\n".format(qemu_cmdline))
     # Use posix_spawn instead of the higher-level run, as the latter does
     # some `fd` re-direction that breaks the underlying QEMU command
     posix_spawn(qemu_binary, qemu_cmdline, environ)
