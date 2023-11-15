@@ -26,7 +26,7 @@ def run_kata_workon_ctr():
 
     docker_cmd = [
         "docker run",
-        "-d --it",
+        "-d -t",
         "--name {}".format(KATA_WORKON_CTR_NAME),
         KATA_WORKON_IMAGE_TAG,
         "bash",
@@ -44,7 +44,7 @@ def stop_kata_workon_ctr():
     run("docker rm -f {}".format(KATA_WORKON_CTR_NAME), shell=True, check=True)
 
 
-def copy_from_kata_workon_ctr(ctr_path, host_path):
+def copy_from_kata_workon_ctr(ctr_path, host_path, sudo=False):
     ctr_started = run_kata_workon_ctr()
 
     docker_cmd = "docker cp {}:{} {}".format(
@@ -52,6 +52,8 @@ def copy_from_kata_workon_ctr(ctr_path, host_path):
         ctr_path,
         host_path,
     )
+    if sudo:
+        docker_cmd = "sudo {}".format(docker_cmd)
     run(docker_cmd, shell=True, check=True)
 
     # If the Kata workon ctr was not running before, make sure we delete it
@@ -102,14 +104,13 @@ def replace_agent(
         "kata-agent",
     )
     agent_initrd_path = join(workdir, "usr/bin/kata-agent")
-    copy_from_kata_workon_ctr(agent_host_path, agent_initrd_path)
+    copy_from_kata_workon_ctr(agent_host_path, agent_initrd_path, sudo=True)
 
     # We also need to manually copy the agent to <root_fs>/sbin/init (note that
     # <root_fs>/init is a symlink to <root_fs>/sbin/init)
     alt_agent_initrd_path = join(workdir, "sbin", "init")
     run("sudo rm {}".format(alt_agent_initrd_path), shell=True, check=True)
-    cp_cmd = "sudo cp {} {}".format(agent_host_path, alt_agent_initrd_path)
-    run(cp_cmd, shell=True, check=True)
+    copy_from_kata_workon_ctr(agent_host_path, alt_agent_initrd_path, sudo=True)
 
     # Include any extra files that the caller may have provided
     if extra_files is not None:
@@ -141,12 +142,28 @@ def replace_agent(
                     check=True,
                 )
 
-    # Pack the initrd again
-    initrd_builder_path = join(
+    # Pack the initrd again (copy the script from the container into a
+    # temporarly location). Annoyingly, we also need to copy a bash script in
+    # the same relative directory structure (cuz bash).
+    kata_tmp_scripts = "/tmp/osbuilder"
+    run(
+        "rm -f {} && mkdir -p {} {}".format(
+            kata_tmp_scripts,
+            join(kata_tmp_scripts, "scripts"),
+            join(kata_tmp_scripts, "initrd-builder"),
+        ),
+        shell=True,
+        check=True,
+    )
+    ctr_initrd_builder_path = join(
         KATA_SOURCE_DIR, "tools", "osbuilder", "initrd-builder", "initrd_builder.sh"
     )
+    ctr_lib_path = join(KATA_SOURCE_DIR, "tools", "osbuilder", "scripts", "lib.sh")
+    initrd_builder_path = join(kata_tmp_scripts, "initrd-builder", "initrd_builder.sh")
+    copy_from_kata_workon_ctr(ctr_initrd_builder_path, initrd_builder_path)
+    copy_from_kata_workon_ctr(ctr_lib_path, join(kata_tmp_scripts, "scripts", "lib.sh"))
     work_env = {"AGENT_INIT": "yes"}
-    initrd_pack_cmd = "env && sudo {} -o {} {}".format(
+    initrd_pack_cmd = "sudo {} -o {} {}".format(
         initrd_builder_path,
         dst_initrd_path,
         workdir,

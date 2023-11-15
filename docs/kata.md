@@ -48,4 +48,23 @@ inv kata.replace-agent
 ```
 
 The new VMs you start should use the new `initrd` (and thus the updated
-`kata-agent`).
+`kata-agent`). Note that we replace the `initrd` for both `qemu` and `qemu-sev`
+runtime classes.
+
+# Replacing the Kata Shim
+
+To replace the Kata Shim for the `qemu-sev` runtime class, you can follow a
+very similar approach to [replacing the agent](#replacing-the-kata-agent):
+
+```bash
+inv kata.cli
+cd src/runtime
+...
+# Make changes
+...
+make
+exit
+inv kata.replace-shim
+```
+
+note that this changes will not affect other runtime classes.

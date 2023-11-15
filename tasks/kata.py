@@ -10,7 +10,6 @@ from tasks.util.env import (
     PROJ_ROOT,
 )
 from tasks.util.kata import (
-    KATA_AGENT_SOURCE_DIR,
     KATA_SOURCE_DIR,
     copy_from_kata_workon_ctr,
     replace_agent as do_replace_agent,
@@ -87,7 +86,7 @@ def set_log_level(ctx, log_level):
 
 
 @task
-def replace_agent(ctx, agent_source_dir=KATA_AGENT_SOURCE_DIR, extra_files=None):
+def replace_agent(ctx, extra_files=None):
     """
     Replace the kata-agent with a custom-built one
 
@@ -103,7 +102,7 @@ def replace_agent(ctx, agent_source_dir=KATA_AGENT_SOURCE_DIR, extra_files=None)
     By using the extra_flags optional argument, you can pass a dictionary of
     host_path: guest_path pairs of files you want to be included in the initrd.
     """
-    do_replace_agent(agent_source_dir=agent_source_dir, extra_files=extra_files)
+    do_replace_agent(extra_files=extra_files)
 
 
 @task
@@ -117,7 +116,7 @@ def replace_shim(ctx, revert=False):
     # First, copy the binary from the source tree
     src_shim_binary = join(KATA_SHIM_SOURCE_DIR, "containerd-shim-kata-v2")
     dst_shim_binary = join(COCO_ROOT, "bin", "containerd-shim-kata-v2-csg")
-    copy_from_kata_workon_ctr(src_shim_binary, dst_shim_binary)
+    copy_from_kata_workon_ctr(src_shim_binary, dst_shim_binary, sudo=True)
 
     # Second, soft-link the SEV runtime to the right shim binary
     if revert:
