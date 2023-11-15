@@ -8,37 +8,42 @@ get rid of the fork.
 
 ## Tweaking Kata
 
-To get a working environment to modify Kata, clone our fork and build/exec into
-the workon container. For convenience, it is recommended to clone the fork at
-the same directory level that this repo lives (i.e. ../kata-containers).
+We provide a containerised environment to develop/patch Kata. First, build the
+workon container image using:
 
 ```bash
-git clone https://github.com/csegarragonz/kata-containers
-cd kata-containers
-./csg-bin/build_docker.sh
-./csg-bin/cli.sh
+inv kata.build
 ```
+
+then you may get a shell by running:
+
+```bash
+inv kata.cli
+```
+
+> [!WARNING]
+> The changes you make inside the Kata environment won't be persisted across
+> container restarts. This is a deliberate design choice. You can hot-patch
+> the Kata Agent by following the instructions in the following section. To
+> permanently patch it, push the changes to the `csg-main` branch and re-build
+> the container: `inv kata.build --nocache`.
 
 ## Replacing the Kata Agent
 
 Replacing the Kata Agent is something we may do regularly, and is a fairly
 automated process.
 
-First, from our Kata fork, rebuild the `kata-agent` binary:
+First, enter the Kata CLI, make changes to the `kata-agent` binary, and re-build
+it:
 
-```bash
-cd ../kata-containers
-./csg-bin/cli.sh
+```bas
+inv kata.cli
 cd src/agent
+...
+# Make changes
+...
 make
 exit
-cd -
-```
-
-Second, from this repository, bake the new agent into the `initrd` image used
-by `qemu-sev` and update the config path:
-
-```bash
 inv kata.replace-agent
 ```
 

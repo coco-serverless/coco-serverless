@@ -1,16 +1,66 @@
 from os import makedirs
 from os.path import dirname, exists, join
 from subprocess import run
-from tasks.util.env import KATA_CONFIG_DIR, KATA_IMG_DIR, KATA_RUNTIMES, PROJ_ROOT
+from tasks.util.docker import is_ctr_running
+from tasks.util.env import (
+    KATA_CONFIG_DIR,
+    KATA_IMG_DIR,
+    KATA_RUNTIMES,
+    KATA_WORKON_CTR_NAME,
+    KATA_WORKON_IMAGE_TAG,
+)
 from tasks.util.toml import read_value_from_toml, remove_entry_from_toml, update_toml
 
-KATA_SOURCE_DIR = join(PROJ_ROOT, "..", "kata-containers")
+# This path is hardcoded in the docker image: ./docker/kata.dockerfile
+KATA_SOURCE_DIR = "/go/src/github.com/kata-containers/kata-containers"
 KATA_AGENT_SOURCE_DIR = join(KATA_SOURCE_DIR, "src", "agent")
+
+
+def run_kata_workon_ctr():
+    """
+    Start Kata workon container image if it is not running. Return `True` if
+    we actually did start the container
+    """
+    if is_ctr_running(KATA_WORKON_CTR_NAME):
+        return False
+
+    docker_cmd = [
+        "docker run",
+        "-d --it",
+        "--name {}".format(KATA_WORKON_CTR_NAME),
+        KATA_WORKON_IMAGE_TAG,
+        "bash",
+    ]
+    docker_cmd = " ".join(docker_cmd)
+    out = run(docker_cmd, shell=True, capture_output=True)
+    assert out.returncode == 0, "Error starting Kata workon ctr: {}".format(
+        out.stderr.decode("utf-8")
+    )
+
+    return True
+
+
+def stop_kata_workon_ctr():
+    run("docker rm -f {}".format(KATA_WORKON_CTR_NAME), shell=True, check=True)
+
+
+def copy_from_kata_workon_ctr(ctr_path, host_path):
+    ctr_started = run_kata_workon_ctr()
+
+    docker_cmd = "docker cp {}:{} {}".format(
+        KATA_WORKON_CTR_NAME,
+        ctr_path,
+        host_path,
+    )
+    run(docker_cmd, shell=True, check=True)
+
+    # If the Kata workon ctr was not running before, make sure we delete it
+    if ctr_started:
+        stop_kata_workon_ctr()
 
 
 def replace_agent(
     dst_initrd_path=join(KATA_IMG_DIR, "kata-containers-initrd-sev-csg.img"),
-    agent_source_dir=KATA_AGENT_SOURCE_DIR,
     extra_files=None,
 ):
     """
@@ -42,8 +92,8 @@ def replace_agent(
     out = run(zcat_cmd, shell=True, capture_output=True, cwd=workdir)
     assert out.returncode == 0, "Error unpacking initrd: {}".format(out.stderr)
 
-    # Copy our newly built kata-agent into `/usr/bin/kata-agent` as this is the
-    # path expected by the kata initrd_builder.sh script
+    # Copy the kata-agent in our docker image into `/usr/bin/kata-agent` as
+    # this is the path expected by the kata initrd_builder.sh script
     agent_host_path = join(
         KATA_AGENT_SOURCE_DIR,
         "target",
@@ -52,8 +102,7 @@ def replace_agent(
         "kata-agent",
     )
     agent_initrd_path = join(workdir, "usr/bin/kata-agent")
-    cp_cmd = "sudo cp {} {}".format(agent_host_path, agent_initrd_path)
-    run(cp_cmd, shell=True, check=True)
+    copy_from_kata_workon_ctr(agent_host_path, agent_initrd_path)
 
     # We also need to manually copy the agent to <root_fs>/sbin/init (note that
     # <root_fs>/init is a symlink to <root_fs>/sbin/init)
