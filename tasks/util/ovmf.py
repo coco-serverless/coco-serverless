@@ -40,10 +40,6 @@ def get_ovmf_boot_events(events_ts, guest_kernel_start_ts):
         delay_sec = (ticks - ovmf_zero_ticks) / start_freq
         return ovmf_zero_ts + delay_sec
 
-    # Now we can discard the overall timestamps, and calculate the intermediate
-    # bits
-    # lines = lines[1:-1]
-
     # We also discard additional calls to the entrypoint
     # TODO: why are these here?
     genesis_magic = "G3N3S1S"
@@ -124,6 +120,7 @@ def get_ovmf_boot_events(events_ts, guest_kernel_start_ts):
                 if event == "DxeLoadCore":
                     real_start_dxe_main = end_ts
 
+        # TODO: remove this lines once we fix #50
         if "TEMPP" in li:
             event = re_search(r"(TEMPP-[0-9]*)", li).groups(1)[0]
             start_ticks = int(re_search(ticks_re_str, li).groups(1)[0])
