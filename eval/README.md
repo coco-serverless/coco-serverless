@@ -222,8 +222,31 @@ using OVMF, compared to booting a non-SEV guest using OVMF too.
 > This plot is a WIP and we still do not know for sure what is going on.
 > In addition, the scripts and OVMF patches are experimental so use at your
 > own risk!
+> See: https://github.com/csegarragonz/coco-serverless/issues/50
 
-TODO: write OVMF patch
+To run this experiment, you need to patch OVMF with an experimental patch and
+set the rest of the logging levels accordingly:
+
+```bash
+inv containerd.set-log-level debug kata.set-log-level debug ovmf.set-log-level very-debug
+```
+
+then, you may run the experiment with:
+
+```bash
+inv eval.ovmf-detail.run
+```
+
+and plot the results with:
+
+```bash
+inv eval.ovmf-detail.plot
+```
+
+which generates a plot in [`./plots/ovmf-detail/ovmf_detail.png`](
+./plots/ovmf-detail/ovmf_detail.png). You can also see the plot below:
+
+![plot](./plots/ovmf-detail/ovmf_detail.png)
 
 ### Image Pull
 

@@ -14,7 +14,8 @@ RUN apt update \
         uuid-dev \
         vim
 
-COPY ./patches/ovmf_profile.patch /tmp/ovmf_profile.patch
+ARG OVMF_PATCH
+COPY ${OVMF_PATCH} /tmp/ovmf_profile.patch
 ARG TARGET
 RUN mkdir -p /usr/src/edk2 \
     && git clone \

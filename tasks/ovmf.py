@@ -7,18 +7,23 @@ from tasks.util.toml import update_toml
 OVMF_IMAGE_TAG = "ovmf-build"
 
 
-def do_ovmf_build(target):
-    docker_cmd = "docker build --build-arg TARGET={} -t {} -f {} .".format(
-        target, OVMF_IMAGE_TAG, join(PROJ_ROOT, "docker", "ovmf.dockerfile")
-    )
+def do_ovmf_build(target, patch):
+    docker_cmd = [
+        "docker build",
+        "--build-arg TARGET={}".format(target),
+        "--build-arg OVMF_PATCH={}".format(patch),
+        "-t {}".format(OVMF_IMAGE_TAG),
+        "-f {} .".format(join(PROJ_ROOT, "docker", "ovmf.dockerfile")),
+    ]
+    docker_cmd = " ".join(docker_cmd)
     run(docker_cmd, shell=True, check=True, cwd=PROJ_ROOT)
 
 
-def copy_ovmf_from_src(dst_path, target):
+def copy_ovmf_from_src(dst_path, target, patch):
     """
     Copy a custom build of OVMF into the destination path
     """
-    do_ovmf_build(target)
+    do_ovmf_build(target, patch)
 
     # Copy the debug-built OVMF into the destiantion path
     tmp_ctr_name = "tmp_ovmf"
@@ -37,17 +42,19 @@ def copy_ovmf_from_src(dst_path, target):
 
 
 @task
-def build(ctx, target="RELEASE"):
+def build(
+    ctx, target="RELEASE", patch=join(PROJ_ROOT, "patches", "ovmf_profile.patch")
+):
     """
     Build the OVMF work-on container image
     """
-    do_ovmf_build(target)
+    do_ovmf_build(target, patch)
 
 
 @task
 def set_log_level(ctx, log_level):
     """
-    Set OVMF's log level, must be one in: info, debug
+    Set OVMF's log level, must be one in: info, debug, very-debug
 
     In order to toggle debug logging in OVMF, we need to update the QEMU
     command line to include a couple of OVMF flags. To change the QEMU command
@@ -62,7 +69,7 @@ def set_log_level(ctx, log_level):
     a RELEASE target which introduces around 0.5 s of overhead to the boot
     process.
     """
-    allowed_log_levels = ["info", "debug"]
+    allowed_log_levels = ["info", "debug", "very-debug"]
     if log_level not in allowed_log_levels:
         print(
             "Unsupported log level '{}'. Must be one in: {}".format(
@@ -77,8 +84,12 @@ def set_log_level(ctx, log_level):
 
     default_fw_path = "/opt/confidential-containers/share/ovmf/AMDSEV.fd"
     debug_fw_path = "/opt/confidential-containers/share/ovmf/AMDSEV_CSG.fd"
-    if log_level == "debug":
-        copy_ovmf_from_src(debug_fw_path, "RELEASE")
+    if log_level != "info":
+        if log_level == "debug":
+            patch = join(PROJ_ROOT, "patches", "ovmf_profile.patch")
+        else:
+            patch = join(PROJ_ROOT, "patches", "ovmf_overhead_wip.patch")
+        copy_ovmf_from_src(debug_fw_path, "RELEASE", patch)
     fw_path = default_fw_path if log_level == "info" else debug_fw_path
 
     updated_toml_str = """
