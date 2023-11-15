@@ -62,7 +62,23 @@ def get_ovmf_boot_events(events_ts, guest_kernel_start_ts):
                 ind_to_remove.append(ind)
     lines = [li for ind, li in enumerate(lines) if ind not in ind_to_remove]
 
-    # TODO: discard CoreDispatcher repeated events
+    # The CoreDispatcher routine is called in different stages of OVMF
+    # execution. We only care about the first one, so we discard the subsequent
+    # ones
+    core_dispatcher_str = "CoreDispatcher"
+    first_core_dispatcher = -1
+    ind_to_remove = []
+    for ind, li in enumerate(lines):
+        if core_dispatcher_str in li:
+            if "BEGIN" in li:
+                if first_core_dispatcher < 0:
+                    first_core_dispatcher = ind
+                else:
+                    ind_to_remove.append(ind)
+            if "END" in li:
+                if len(ind_to_remove) > 0:
+                    ind_to_remove.append(ind)
+    lines = [li for ind, li in enumerate(lines) if ind not in ind_to_remove]
 
     def get_end_ticks(lines, event):
         for li in lines:

@@ -91,6 +91,7 @@ def do_run(result_file, num_run, service_file, flavour, warmup=False):
             "RunPodSandbox",
             pod_name,
             lower_bound=start_ts,
+            timeout_mins=3,
         )
         events_ts.append(("StartRunPodSandbox", start_ts_ps))
         events_ts.append(("EndRunPodSandbox", end_ts_ps))
@@ -169,9 +170,10 @@ def do_run(result_file, num_run, service_file, flavour, warmup=False):
 
 @task
 def run(ctx, baseline=None):
-    """ """
+    """
+    Run a comparison of SEV/non-SEV OVMF execution
+    """
     baselines_to_run = ["coco-fw-sig-enc", "coco-nosev-ovmf"]
-    # baselines_to_run = ["coco-nosev-ovmf"] # , "coco-nosev", "coco-nosev-ovmf"]
     if baseline is not None:
         if baseline not in baselines_to_run:
             raise RuntimeError(
