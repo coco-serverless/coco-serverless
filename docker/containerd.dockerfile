@@ -40,6 +40,8 @@ RUN apt update \
 
 # Clone and build CoCo's containerd fork
 RUN git clone \
+        # TODO: change this to an upstream release tag once the merge to
+        # main has happened
         -b CC-main \
         https://github.com/confidential-containers/containerd.git \
         /go/src/github.com/containerd/containerd \

@@ -2,11 +2,12 @@ from invoke import task
 from os import makedirs
 from os.path import join
 from subprocess import CalledProcessError, run
+from tasks.util.docker import is_ctr_running
 from tasks.util.env import CONF_FILES_DIR, CONTAINERD_CONFIG_FILE, PROJ_ROOT
 from tasks.util.toml import update_toml
 
+CONTAINERD_CTR_NAME = "containerd-workon"
 CONTAINERD_IMAGE_TAG = "containerd-build"
-CONTAINERD_SOURCE_CHECKOUT = join(PROJ_ROOT, "..", "containerd")
 
 
 def restart_containerd():
@@ -32,23 +33,27 @@ def cli(ctx):
     """
     Get a working environment for containerd
     """
-    containerd_guest_wdir = "/go/src/github.com/containerd/containerd"
-    docker_cmd = [
-        "docker run",
-        "--rm -it",
-        "--name containerd-cli",
-        "-v {}:{}".format(CONTAINERD_SOURCE_CHECKOUT, containerd_guest_wdir),
-        CONTAINERD_IMAGE_TAG,
-        "bash",
-    ]
-    docker_cmd = " ".join(docker_cmd)
+    if not is_ctr_running(CONTAINERD_CTR_NAME):
+        docker_cmd = [
+            "docker run",
+            "-d -it",
+            "--name {}".format(CONTAINERD_CTR_NAME),
+            CONTAINERD_IMAGE_TAG,
+            "bash",
+        ]
+        docker_cmd = " ".join(docker_cmd)
+        run(docker_cmd, shell=True, check=True, cwd=PROJ_ROOT)
 
-    run(docker_cmd, shell=True, check=True, cwd=PROJ_ROOT)
+    run("docker exec -it {} bash".format(CONTAINERD_CTR_NAME), shell=True, check=True)
 
 
 def configure_devmapper_snapshotter():
     """
     Configure the devmapper snapshotter in containerd's config file
+
+    This method was included at the begining, when we thought that we needed
+    the devmapper snapshotter to get containerd to work. In the end it turned
+    out that we did not, but we keep this method here for completeness.
     """
     data_dir = "/var/lib/containerd/devmapper"
     pool_name = "containerd-pool"
