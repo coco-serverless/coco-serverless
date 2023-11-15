@@ -17,7 +17,7 @@ def launch_qemu(argv):
     for ind, arg in enumerate(argv):
         if "sev-guest" in arg:
             sev_idx = ind - 1
-    new_argv = argv[:sev_idx] + argv[sev_idx + 2 :]
+    new_argv = argv[1:sev_idx] + argv[sev_idx + 2:]
 
     # Change the machine type
     m_idx = new_argv.index("-machine")
@@ -32,6 +32,9 @@ def launch_qemu(argv):
             "file:/tmp/qemu-serial.log",
         ]
     )
+    with open("/tmp/qemu_cmdline.log", "w") as fh:
+        fh.write("argv: {}\n".format(argv))
+        fh.write("{}\n".format(qemu_cmdline))
     # Use posix_spawn instead of the higher-level run, as the latter does
     # some `fd` re-direction that breaks the underlying QEMU command
     posix_spawn(qemu_binary, qemu_cmdline, environ)

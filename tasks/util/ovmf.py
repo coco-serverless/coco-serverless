@@ -24,7 +24,8 @@ def get_ovmf_boot_events(events_ts, guest_kernel_start_ts):
     start_ticks = int(re_search(ticks_re_str, lines[0]).groups(1)[0])
     start_freq = int(re_search(r"Freq: ([0-9]*)", lines[0]).groups(1)[0])
     end_ticks = int(re_search(ticks_re_str, lines[-1]).groups(1)[0])
-    end_freq = int(re_search(r"Freq: ([0-9]*)", lines[-1]).groups(1)[0])
+    # end_freq = int(re_search(r"Freq: ([0-9]*)", lines[-1]).groups(1)[0])
+    end_freq = start_freq
 
     # Establish OVMF's relative 0 timestamp
     assert start_freq == end_freq, "Different frequencies!"
@@ -41,7 +42,7 @@ def get_ovmf_boot_events(events_ts, guest_kernel_start_ts):
 
     # Now we can discard the overall timestamps, and calculate the intermediate
     # bits
-    lines = lines[1:-1]
+    # lines = lines[1:-1]
 
     # We also discard additional calls to the entrypoint
     # TODO: why are these here?
@@ -60,8 +61,8 @@ def get_ovmf_boot_events(events_ts, guest_kernel_start_ts):
             else:
                 ind_to_remove.append(ind)
     lines = [li for ind, li in enumerate(lines) if ind not in ind_to_remove]
-    # for li in lines:
-    # print(li.strip())
+
+    # TODO: discard CoreDispatcher repeated events
 
     def get_end_ticks(lines, event):
         for li in lines:
@@ -125,7 +126,10 @@ def get_ovmf_boot_events(events_ts, guest_kernel_start_ts):
                 ts + epsilon,
             )
 
-    events_ts.append(("StartOVMFVerify", verify_start_ts))
-    events_ts.append(("EndOVMFVerify", verify_start_ts + verify_duration))
+    # Only append the verify timestamp if we have been able to find the
+    # time verifying blobs
+    if verify_start_ts > -1:
+        events_ts.append(("StartOVMFVerify", verify_start_ts))
+        events_ts.append(("EndOVMFVerify", verify_start_ts + verify_duration))
 
     return events_ts

@@ -43,7 +43,8 @@ Now you are ready to run one of the experiments:
 * [Instantiation Throughput](#instantiation-throughput) - throughput-latency of service instantiation.
 * [Memory Size](#memory-size) - impact on initial VM memory size on start-up time.
 * [initrd Size](#initrd-size) - impact on the initial `initrd` size on the start-up time.
-* [VM Start-Up](#vm-start-up) - breakdown of the cVM start-up costs
+* [VM Start-Up](#vm-start-up) - breakdown of the cVM start-up costs.
+* [OVMF Detail](#ovmf-detail) - analysis of the OVMF start-up latency.
 * [Image Pull Costs](#image-pull) - breakdown of the costs associated to pulling an image on the guest.
 * [Throughput Detail](#throughput-detail) - breakdown of the costs associated to starting many services concurrently.
 
@@ -211,6 +212,18 @@ and another one where we compare the impact of the firmware size
 [`./plots/vm-detail/vm_detail_multiovmf.png`](./plots/vm-detail/vm_detail_multiovmf.png):
 
 ![plot](./plots/vm-detail/vm_detail_multiovmf.png)
+
+### OVMF Detail
+
+This experiment analyzes the sources of overhead when booting an SEV guest
+using OVMF, compared to booting a non-SEV guest using OVMF too.
+
+> [!WARNING]
+> This plot is a WIP and we still do not know for sure what is going on.
+> In addition, the scripts and OVMF patches are experimental so use at your
+> own risk!
+
+TODO: write OVMF patch
 
 ### Image Pull
 
