@@ -11,7 +11,7 @@ KATA_AGENT_SOURCE_DIR = join(KATA_SOURCE_DIR, "src", "agent")
 def replace_agent(
     dst_initrd_path=join(KATA_IMG_DIR, "kata-containers-initrd-sev-csg.img"),
     agent_source_dir=KATA_AGENT_SOURCE_DIR,
-    extra_files=None
+    extra_files=None,
 ):
     """
     Replace the kata-agent with a custom-built one
@@ -102,8 +102,12 @@ def replace_agent(
         dst_initrd_path,
         workdir,
     )
-    out = run(initrd_pack_cmd, shell=True, check=True, env=work_env, capture_output=True)
-    assert out.returncode == 0, "Error packing initrd: {}".format(out.stderr.decode("utf-8"))
+    out = run(
+        initrd_pack_cmd, shell=True, check=True, env=work_env, capture_output=True
+    )
+    assert out.returncode == 0, "Error packing initrd: {}".format(
+        out.stderr.decode("utf-8")
+    )
 
     # Lastly, update the Kata config to point to the new initrd
     for runtime in KATA_RUNTIMES:

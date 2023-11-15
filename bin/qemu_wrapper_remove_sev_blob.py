@@ -17,7 +17,7 @@ def launch_qemu(argv):
     for ind, arg in enumerate(argv):
         if "sev-guest" in arg:
             sev_idx = ind - 1
-    new_argv = argv[:sev_idx] + argv[sev_idx + 2 :]
+    new_argv = argv[1:sev_idx] + argv[sev_idx + 2 :]
 
     # Change the machine type
     m_idx = new_argv.index("-machine")

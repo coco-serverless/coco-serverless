@@ -59,9 +59,12 @@ def inflate_initrd(dst_initrd_path, initial_size_mb, size_mult):
     print("Inflating initird ({} * {})...".format(initial_size_mb, size_mult))
     if size_mult == 0:
         sp_run(
-            "sudo cp {} {}".format(join(KATA_IMG_DIR, "kata-containers-initrd-sev-csg.img"), dst_initrd_path),
+            "sudo cp {} {}".format(
+                join(KATA_IMG_DIR, "kata-containers-initrd-sev-csg.img"),
+                dst_initrd_path,
+            ),
             shell=True,
-            check=True
+            check=True,
         )
         return
 
@@ -71,7 +74,7 @@ def inflate_initrd(dst_initrd_path, initial_size_mb, size_mult):
     create_bloat_file(host_path, target_size_mb)
     replace_agent(
         dst_initrd_path=dst_initrd_path,
-        extra_files={host_path: {"path": guest_path, "mode": "w"}}
+        extra_files={host_path: {"path": guest_path, "mode": "w"}},
     )
     print("Done inflating!")
 
@@ -168,10 +171,7 @@ def run(ctx, baseline=None, initrd_size_mult=None):
                 baseline_traits["conf_file"],
                 "hypervisor.qemu.initrd",
             )
-            set_initrd(
-                baseline_traits["conf_file"],
-                get_initrd_path(initrd_size_mult)
-            )
+            set_initrd(baseline_traits["conf_file"], get_initrd_path(initrd_size_mult))
 
             # Second, run any baseline-specific set-up
             setup_baseline(bline, used_images)
@@ -248,7 +248,9 @@ def plot(ctx):
     # Misc
     xlabels = ["{}".format(x + 1) for x in xs]
     ax.set_xticks(xs, xlabels)
-    ax.set_xlabel("Multiples of default initrd size ({} MB)".format(get_default_initrd_size_mb()))
+    ax.set_xlabel(
+        "Multiples of default initrd size ({} MB)".format(get_default_initrd_size_mb())
+    )
     ax.set_ylabel("Time [s]")
     ax.set_ylim(bottom=0)
     ax.set_title("Impact of initrd size on start-up time")
