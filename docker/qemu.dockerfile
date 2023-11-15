@@ -17,6 +17,7 @@ RUN apt update \
 
 # The QEMU configure flags are picked to match those in Kata's QEMU build here:
 # https://github.com/kata-containers/kata-containers/blob/main/tools/packaging/scripts/configure-hypervisor.sh
+ARG QEMU_DATADIR
 RUN mkdir -p /usr/src \
     && git clone \
         -b v8.1.2 \
@@ -26,7 +27,10 @@ RUN mkdir -p /usr/src \
     && cd /usr/src/qemu \
     && ./configure \
         --cpu=x86_64 \
-        --datadir=/opt/confidential-containers/share/kata-qemu-csg/ \
+        # The `--datadir` flag is the path where QEMU will look for firmware
+        # images. The default `--datadir` path when using a system provisioned
+        # by the operator is: `/opt/confidential-containers/share/kata-qemu`
+        --datadir=${QEMU_DATADIR} \
         --target-list=x86_64-softmmu \
         --enable-kvm \
         --enable-trace-backends=log,simple \

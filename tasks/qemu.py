@@ -8,12 +8,17 @@ QEMU_IMAGE_TAG = "qemu-build"
 
 
 @task
-def build(ctx):
+def build(ctx, qemu_datadir=join(COCO_ROOT, "share", "kata-qemu")):
     """
     Build the QEMU work-on image
+
+    The optional `--qemu-datadir` flag is the path where QEMU will look for
+    firmware images. This path is hardcoded into the QEMU binary, and we set
+    it at build time. In a system provisioned by the operator, the default
+    QEMU data dir is: `/opt/confidential-containers/share/kata-qemu`
     """
-    docker_cmd = "docker build -t {} -f {} .".format(
-        QEMU_IMAGE_TAG, join(PROJ_ROOT, "docker", "qemu.dockerfile")
+    docker_cmd = "docker build --build-arg QEMU_DATADIR={} -t {} -f {} .".format(
+        qemu_datadir, QEMU_IMAGE_TAG, join(PROJ_ROOT, "docker", "qemu.dockerfile")
     )
     run(docker_cmd, shell=True, check=True, cwd=PROJ_ROOT)
 
