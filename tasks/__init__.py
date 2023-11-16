@@ -5,6 +5,7 @@ from . import coco
 from . import containerd
 from . import cosign
 from . import format_code
+from . import gc
 from . import k8s
 from . import k9s
 from . import kata
@@ -26,6 +27,7 @@ ns = Collection(
     containerd,
     cosign,
     format_code,
+    gc,
     k8s,
     k9s,
     kata,

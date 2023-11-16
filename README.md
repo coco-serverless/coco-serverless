@@ -100,8 +100,10 @@ inv kubeadm.destroy
 
 For further documentation, you may want to check these other documents:
 * [Attestation](./docs/attestation.md) - attestation particularities of CoCo and SEV(-ES).
+* [Guest Components](./docs/guest_components.md) - patch `image-rs` or other guest components.
 * [K8s](./docs/k8s.md) - documentation about configuring a single-node Kubernetes cluster.
 * [Kata](./docs/kata.md) - instructions to build our custom Kata fork and `initrd` images.
+* [Key Broker Service](./docs/kbs.md) - docs on using and patching the KBS.
 * [Knative](./docs/knative.md) - documentation about Knative, our serverless runtime of choice.
 * [Local Registry](./docs/registry.md) - configuring a local registry to store OCI images.
 * [OVMF](./docs/ovmf.md) - notes on building OVMF and CoCo's OVMF boot process.
