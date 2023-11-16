@@ -12,6 +12,9 @@ if [ ! -d "venv" ]; then
 fi
 source venv/bin/activate
 
+# Update submodules
+git submodule update --init
+
 # Invoke tab-completion
 _complete_invoke() {
     local candidates

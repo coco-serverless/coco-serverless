@@ -5,6 +5,7 @@ from tasks.util.kbs import (
     SIMPLE_KBS_DIR,
     SIGNATURE_POLICY_NONE,
     clear_kbs_db,
+    get_kbs_db_ip,
     provision_launch_digest as do_provision_launch_digest,
 )
 
@@ -32,6 +33,15 @@ def cli(ctx):
 
 
 @task
+def restart(ctx):
+    """
+    Start the simple KBS service
+    """
+    check_kbs_dir()
+    run("docker compose restart server", shell=True, check=True, cwd=SIMPLE_KBS_DIR)
+
+
+@task
 def start(ctx):
     """
     Start the simple KBS service
@@ -55,6 +65,11 @@ def clear_db(ctx, skip_secrets=False):
     Clear the contents of the KBS DB
     """
     clear_kbs_db(skip_secrets=skip_secrets)
+
+
+@task
+def get_db_ip(ctx):
+    print(get_kbs_db_ip())
 
 
 @task

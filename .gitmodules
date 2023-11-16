@@ -1,0 +1,3 @@
+[submodule "components/simple-kbs"]
+	path = components/simple-kbs
+	url = https://github.com/csegarragonz/simple-kbs.git
