@@ -16,3 +16,36 @@ which we track as a submodule in [`./components/simple-kbs`](../components/simpl
 You can see the available interactions with the KBS with: `inv -l kbs`. If
 you want further control over what is happening, you can `cd` into the submodule
 and use regular `docker`/`docker compose` commands.
+
+## Changing the KBS server
+
+If you want to modify the behaviour of the KBS server, you can get a CLI shell
+into it, and re-build it:
+
+```bash
+inv kbs.cli
+...
+# Make changes
+...
+cargo build --release
+```
+
+Then, from another shell, you may restart the server by running:
+
+```bash
+inv kbs.restart
+```
+
+## Inspecting the contents of the MySQL database
+
+You may also want to manually inspect the contents of the KBS DB. To do so,
+you can use any existing mechanism to inspect MySQL databases. For example,
+using the `mysql` shell client:
+
+```bash
+host_ip=$(inv kbs.get-db-ip | tr -d '\n')
+mysql -h ${host_ip} -u kbsuser -p
+# The password is in the `docker_compose.yaml` file
+use simple_kbs;
+show tables;
+```
