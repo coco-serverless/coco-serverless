@@ -7,6 +7,7 @@ BIN_DIR = join(PROJ_ROOT, "bin")
 GLOBAL_BIN_DIR = "/usr/local/bin"
 # See csegarragonz/coco-serverless#3
 GLOBAL_INSTALL_DIR = "/opt"
+COMPONENTS_DIR = join(PROJ_ROOT, "components")
 CONF_FILES_DIR = join(PROJ_ROOT, "conf-files")
 TEMPLATED_FILES_DIR = join(PROJ_ROOT, "templated")
 

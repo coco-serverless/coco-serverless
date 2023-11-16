@@ -6,10 +6,10 @@ from pymysql import connect as mysql_connect
 from pymysql.cursors import DictCursor
 from subprocess import run
 from tasks.util.cosign import COSIGN_PUB_KEY
-from tasks.util.env import PROJ_ROOT
+from tasks.util.env import COMPONENTS_DIR
 from tasks.util.sev import get_launch_digest
 
-SIMPLE_KBS_DIR = join(PROJ_ROOT, "..", "simple-kbs")
+SIMPLE_KBS_DIR = join(COMPONENTS_DIR, "simple-kbs")
 # WARNING: this resource path depends on the KBS' `server` service working
 # directory. The server expects the `resources` directory to be in:
 # /<working_dir>/resources
@@ -41,11 +41,7 @@ SIGNATURE_POLICY_VERIFY_JSON = {
 }
 
 
-def connect_to_kbs_db():
-    """
-    Get a working MySQL connection to the KBS DB
-    """
-    # Get the database IP
+def get_kbs_db_ip():
     docker_cmd = "docker network inspect simple-kbs_default | jq -r "
     docker_cmd += (
         "'.[].Containers[] | select(.Name | test(\"simple-kbs[_-]db.*\")).IPv4Address'"
@@ -55,6 +51,15 @@ def connect_to_kbs_db():
         .stdout.decode("utf-8")
         .strip()[:-3]
     )
+    return db_ip
+
+
+def connect_to_kbs_db():
+    """
+    Get a working MySQL connection to the KBS DB
+    """
+    # Get the database IP
+    db_ip = get_kbs_db_ip()
 
     # Connect to the database
     connection = mysql_connect(
