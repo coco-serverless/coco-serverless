@@ -222,7 +222,7 @@ def install(ctx):
     run(config_cmd, shell=True, check=True)
 
     # Configure the devmapper snapshotter for Knative
-    configure_devmapper_snapshotter()
+    # configure_devmapper_snapshotter()
 
     # Restart containerd service
     restart_containerd()

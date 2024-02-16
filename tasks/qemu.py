@@ -29,7 +29,7 @@ def build(ctx, qemu_datadir=join(COCO_ROOT, "share", "kata-qemu")):
 
     ctr_path = "/usr/src/qemu/build/qemu-system-x86_64"
     host_path = join(COCO_ROOT, "bin", "qemu-system-x86_64-csg")
-    docker_cmd = "docker cp {}:{} {}".format(
+    docker_cmd = "sudo docker cp {}:{} {}".format(
         tmp_ctr_name,
         ctr_path,
         host_path,

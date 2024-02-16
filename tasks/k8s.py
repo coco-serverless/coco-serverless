@@ -82,7 +82,7 @@ def configure_kubelet_service(clean=False):
     Configure the kubelet service
     """
     kubelet_service_dir = "/etc/systemd/system/kubelet.service.d"
-    makedirs(kubelet_service_dir, exist_ok=True)
+    #makedirs(kubelet_service_dir, exist_ok=True)
 
     # Copy conf file into place
     conf_file = join(CONF_FILES_DIR, "kubelet_service.conf")
