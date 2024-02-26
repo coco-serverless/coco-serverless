@@ -1,11 +1,13 @@
 from invoke import task
-from os import getegid, geteuid
+from os import getegid, geteuid, makedirs
+from os.path import exists
 from shutil import rmtree
 from subprocess import run
 from tasks.util.env import (
     CRI_RUNTIME_SOCKET,
     FLANNEL_VERSION,
     K8S_ADMIN_FILE,
+    K8S_CONFIG_DIR,
     KUBEADM_KUBECONFIG_FILE,
 )
 from tasks.util.kubeadm import (
@@ -25,6 +27,9 @@ def create(ctx):
     kubeadm_cmd = "sudo kubeadm init --config {}".format(K8S_ADMIN_FILE)
     # kubeadm_cmd = "sudo kubeadm init"
     run(kubeadm_cmd, shell=True, check=True)
+
+    if not exists(K8S_CONFIG_DIR):
+        makedirs(K8S_CONFIG_DIR)
 
     # Copy the config file locally and change permissions
     cp_cmd = "sudo cp /etc/kubernetes/admin.conf {}".format(KUBEADM_KUBECONFIG_FILE)

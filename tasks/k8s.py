@@ -1,6 +1,7 @@
 from invoke import task
 from os import makedirs
 from os.path import exists, join
+from shutil import rmtree
 from subprocess import run
 from tasks.util.env import BIN_DIR, CONF_FILES_DIR, K8S_VERSION
 from tasks.util.network import download_binary, symlink_global_bin
@@ -40,7 +41,11 @@ def install_crictl():
     Install the crictl container management tool
     """
     work_dir = "/tmp/crictl"
-    makedirs(work_dir, exist_ok=True)
+
+    if exists(work_dir):
+        rmtree(work_dir)
+
+    makedirs(work_dir)
 
     circtl_binary = "crictl"
     circtl_version = "1.28.0"
@@ -62,6 +67,8 @@ def install_crictl():
         check=True,
     )
     symlink_global_bin(circtl_binary_path, circtl_binary)
+
+    rmtree(work_dir)
 
 
 def install_k8s(clean=False):
