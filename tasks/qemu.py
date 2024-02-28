@@ -1,14 +1,14 @@
 from invoke import task
 from os.path import join
 from subprocess import run
-from tasks.util.env import COCO_ROOT, KATA_CONFIG_DIR, PROJ_ROOT
+from tasks.util.env import KATA_ROOT, KATA_CONFIG_DIR, PROJ_ROOT
 from tasks.util.toml import read_value_from_toml
 
 QEMU_IMAGE_TAG = "qemu-build"
 
 
 @task
-def build(ctx, qemu_datadir=join(COCO_ROOT, "share", "kata-qemu")):
+def build(ctx, qemu_datadir=join(KATA_ROOT, "share", "kata-qemu")):
     """
     Build the QEMU work-on image
 
@@ -28,7 +28,7 @@ def build(ctx, qemu_datadir=join(COCO_ROOT, "share", "kata-qemu")):
     run(docker_cmd, shell=True, check=True)
 
     ctr_path = "/usr/src/qemu/build/qemu-system-x86_64"
-    host_path = join(COCO_ROOT, "bin", "qemu-system-x86_64-csg")
+    host_path = join(KATA_ROOT, "bin", "qemu-system-x86_64-csg")
     docker_cmd = "docker cp {}:{} {}".format(
         tmp_ctr_name,
         ctr_path,
@@ -49,9 +49,9 @@ def standalone(ctx):
     init. It is still useful to assert that the VM can boot.
     """
     conf_file_path = join(KATA_CONFIG_DIR, "configuration-qemu.toml")
-    qemu_path = join(COCO_ROOT, "bin", "qemu-system-x86_64-csg")
-    fw_path = join(COCO_ROOT, "share", "ovmf", "OVMF.fd")
-    kernel_path = join(COCO_ROOT, "share", "kata-containers", "vmlinuz-5.19.2-109cc+")
+    qemu_path = join(KATA_ROOT, "bin", "qemu-system-x86_64-csg")
+    fw_path = join(KATA_ROOT, "share", "ovmf", "OVMF.fd")
+    kernel_path = join(KATA_ROOT, "share", "kata-containers", "vmlinuz-5.19.2-109cc+")
 
     # Prepare QEMU command line
     qemu_cmd = [

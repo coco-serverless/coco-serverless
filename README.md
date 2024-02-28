@@ -34,7 +34,7 @@ inv k8s.install [--clean]
 You may also want to install `k9s`, a kubernetes monitoring tool:
 
 ```bash
-inv k9s.install
+inv k9s.install-k9s
 ```
 
 ## Quick Start

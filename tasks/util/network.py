@@ -25,7 +25,7 @@ def symlink_global_bin(binary_path, name):
 
     print("Symlinking {} -> {}".format(global_path, binary_path))
     run(
-        "sudo ln -s {} {}".format(binary_path, name),
+        "sudo ln -sf {} {}".format(binary_path, name),
         shell=True,
         check=True,
         cwd=GLOBAL_BIN_DIR,

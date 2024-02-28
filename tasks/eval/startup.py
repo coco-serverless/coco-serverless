@@ -423,7 +423,7 @@ def plot(ctx):
         event_durations,
         labels=event_labels,
         colors=list(color_for_event.values()),
-        wedgeprops={"edgecolor": "black"}
+        wedgeprops={"edgecolor": "black"},
         # edgecolor="black",
     )
 
