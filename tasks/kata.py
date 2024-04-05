@@ -3,6 +3,7 @@ from os.path import join
 from subprocess import run
 from tasks.util.env import (
     COCO_ROOT,
+    KATA_ROOT,
     KATA_CONFIG_DIR,
     KATA_RUNTIMES,
     KATA_WORKON_CTR_NAME,
@@ -115,12 +116,12 @@ def replace_shim(ctx, revert=False):
     """
     # First, copy the binary from the source tree
     src_shim_binary = join(KATA_SHIM_SOURCE_DIR, "containerd-shim-kata-v2")
-    dst_shim_binary = join(COCO_ROOT, "bin", "containerd-shim-kata-v2-csg")
+    dst_shim_binary = join(KATA_ROOT, "bin", "containerd-shim-kata-v2-ks")
     copy_from_kata_workon_ctr(src_shim_binary, dst_shim_binary, sudo=True)
 
     # Second, soft-link the SEV runtime to the right shim binary
     if revert:
-        dst_shim_binary = join(COCO_ROOT, "bin", "containerd-shim-kata-v2")
+        dst_shim_binary = join(KATA_ROOT, "bin", "containerd-shim-kata-v2")
 
     # This path is hardcoded in the containerd config/operator
     sev_shim_binary = "/usr/local/bin/containerd-shim-kata-qemu-sev-v2"

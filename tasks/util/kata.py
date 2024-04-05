@@ -62,7 +62,7 @@ def copy_from_kata_workon_ctr(ctr_path, host_path, sudo=False):
 
 
 def replace_agent(
-    dst_initrd_path=join(KATA_IMG_DIR, "kata-containers-initrd-sev-csg.img"),
+        dst_initrd_path=join(KATA_IMG_DIR, "kata-containers-initrd-sev-ks.img"),
     extra_files=None,
 ):
     """

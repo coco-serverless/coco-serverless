@@ -55,7 +55,7 @@ def install_cc_runtime(ctx, runtime_class="kata-qemu"):
         "kata",
         "kata-clh",
         "kata-clh-tdx",
-        "kata-quemu",
+        "kata-qemu",
         "kata-qemu-tdx",
         "kata-qemu-sev",
         "kata-qemu-snp",

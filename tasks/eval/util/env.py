@@ -96,6 +96,14 @@ BASELINES = {
         "signature_verification": "on",
         "signature_policy": "verify",
     },
+    "coco-nydus": {
+        "conf_file": join(KATA_CONFIG_DIR, "configuration-qemu-sev.toml"),
+        "runtime_class": "kata-qemu-sev",
+        "cri_handler": "cc",
+        "image_tag": "unencrypted",
+        "guest_attestation": "off",
+        "signature_verification": "off",
+    },
 }
 BASELINE_FLAVOURS = ["warm", "cold"]
 

@@ -10,7 +10,6 @@ from tasks.eval.util.csv import init_csv_file, write_csv_line
 from tasks.eval.util.env import (
     APPS_DIR,
     BASELINES,
-    EXPERIMENT_IMAGE_REPO,
     EVAL_TEMPLATED_DIR,
     INTER_RUN_SLEEP_SECS,
     RESULTS_DIR,
@@ -27,11 +26,11 @@ from tasks.util.k8s import template_k8s_file
 from tasks.util.kubeadm import get_pod_names_in_ns, run_kubectl_command
 from time import sleep, time
 
-
-USED_IMAGES = ["csegarragonz/coco-knative-sidecar", "csegarragonz/coco-helloworld-py"]
+IS_NYDUS_IMAGE = True
+USED_IMAGES = ["hello-world-flask-nydus"]
 CSG_MAGIC_BEGIN = "CSG-M4GIC: B3G1N: {}"
 CSG_MAGIC_END = "CSG-M4GIC: END: {}"
-
+EXPERIMENT_IMAGE_REPO = "registry.coco-csg.com"
 
 def aggregate_layered_events(layered_events, event):
     """
@@ -95,22 +94,30 @@ def do_run(result_file, num_run, service_file, flavour, warmup=False):
     wait_for_pod_ready_and_get_ts(pod_name)
 
     if not warmup:
-        ordered_events = [
-            "GC Image Pull",
-            "Pull Manifest",
-            "Signature Validation",
-            "Pull Layers",
-        ]
+        if IS_NYDUS_IMAGE:
+            ordered_events = [
+                "(KS-agent) GC Image Pull",
+                "(KS-image-rs) Pull Manifest",
+                "(KS-image-rs) Nydus Image Pull",
+                "(KS-image-rs) Nydus Bootstrap Pull",
+                ]
+        else:
+            ordered_events = [
+                "(KS-agent) GC Image Pull",
+                "(KS-image-rs) Pull Manifest",
+                "Pull Layers",
+                ]
+
         for image in USED_IMAGES:
             events_ts = []
 
             for event in ordered_events:
                 start_ts = get_ts_for_containerd_event(
-                    CSG_MAGIC_BEGIN.format(event), image, global_start_ts
+                    CSG_MAGIC_BEGIN.format(event), "CSG", global_start_ts
                 )
 
                 end_ts = get_ts_for_containerd_event(
-                    CSG_MAGIC_END.format(event), image, global_start_ts
+                    CSG_MAGIC_END.format(event), "CSG", global_start_ts
                 )
 
                 events_ts.append(("Start{}".format(event.replace(" ", "")), start_ts))
@@ -123,48 +130,74 @@ def do_run(result_file, num_run, service_file, flavour, warmup=False):
             # config flag. Thus, to report the time spent pulling and the
             # time spent handling, we measure the ratios, and assume they
             # occupy all the time
-            pull_layer_events = get_all_events_in_between(
-                CSG_MAGIC_BEGIN.format("Pull Layers"),
-                image,
-                CSG_MAGIC_END.format("Pull Layers"),
-                image,
-                "Pull Single Layer",
-            )
-            pull_duration = aggregate_layered_events(
+
+
+            ##TODO##
+
+            # pull_bootstrap_event = get_all_events_in_between(
+            #     CSG_MAGIC_BEGIN.format("Pull Layers"),
+            #     image,
+            #     CSG_MAGIC_END.format("Pull Layers"),
+            #     image,
+            #     "Pull Single Layer",
+            # )
+            # pull_duration = aggregate_layered_events(
+            #     pull_layer_events, "Pull Single Layer"
+            # )
+
+            # handle_layer_events = get_all_events_in_between(
+            #     CSG_MAGIC_BEGIN.format(event),
+            #     image,
+            #     CSG_MAGIC_END.format(event),
+            #     image,
+            #     "Handle Single Layer",
+            # )
+            # handle_duration = aggregate_layered_events(
+            #     handle_layer_events, "Handle Single Layer"
+            # )
+            if not IS_NYDUS_IMAGE:
+                pull_layer_events = get_all_events_in_between(
+                        CSG_MAGIC_BEGIN.format("Pull Layers"),
+                        "CSG",
+                        CSG_MAGIC_END.format("Pull Layers"),
+                        "CSG",
+                        "Pull Single Layer",
+                    )
+                pull_duration = aggregate_layered_events(
                 pull_layer_events, "Pull Single Layer"
-            )
-
-            handle_layer_events = get_all_events_in_between(
-                CSG_MAGIC_BEGIN.format(event),
-                image,
-                CSG_MAGIC_END.format(event),
-                image,
-                "Handle Single Layer",
-            )
-            handle_duration = aggregate_layered_events(
-                handle_layer_events, "Handle Single Layer"
-            )
-
-            # Express durations as ratios from the parent "Pull Layers" event
-            pull_start_ts = get_ts_for_containerd_event(
-                CSG_MAGIC_BEGIN.format("Pull Layers"), image, global_start_ts
-            )
-            pull_end_ts = get_ts_for_containerd_event(
-                CSG_MAGIC_END.format("Pull Layers"), image, global_start_ts
-            )
-            overall_duration = pull_end_ts - pull_start_ts
-            pull_ratio = pull_duration / (pull_duration + handle_duration)
-            events_ts.append(("StartPullSingleLayer", pull_start_ts))
-            events_ts.append(
-                ("EndPullSingleLayer", pull_start_ts + pull_ratio * overall_duration)
-            )
-            events_ts.append(
-                (
-                    "StartHandleSingleLayer",
-                    pull_start_ts + pull_ratio * overall_duration,
                 )
-            )
-            events_ts.append(("EndHandleSingleLayer", pull_end_ts))
+
+                handle_layer_events = get_all_events_in_between(
+                    CSG_MAGIC_BEGIN.format(event),
+                    "CSG",
+                    CSG_MAGIC_END.format(event),
+                    "CSG",
+                    "Handle Single Layer",
+                )
+                handle_duration = aggregate_layered_events(
+                    handle_layer_events, "Handle Single Layer"
+                )
+               
+                # Express durations as ratios from the parent "Pull Layers" event
+                pull_start_ts = get_ts_for_containerd_event(
+                    CSG_MAGIC_BEGIN.format("Pull Layers"), "CSG", global_start_ts
+                )
+                pull_end_ts = get_ts_for_containerd_event(
+                    CSG_MAGIC_END.format("Pull Layers"), "CSG", global_start_ts
+                )
+                overall_duration = pull_end_ts - pull_start_ts
+                pull_ratio = pull_duration / (pull_duration + handle_duration)
+                events_ts.append(("StartPullSingleLayer", pull_start_ts))
+                events_ts.append(
+                    ("EndPullSingleLayer", pull_start_ts + pull_ratio * overall_duration)
+                )
+                events_ts.append(
+                    (
+                        "StartHandleSingleLayer",
+                        pull_start_ts + pull_ratio * overall_duration,
+                    )
+                )
+                events_ts.append(("EndHandleSingleLayer", pull_end_ts))
 
             # Sort the events by timestamp and write them to a file
             image_name = "sidecar" if "sidecar" in image else "app"
@@ -186,11 +219,11 @@ def run(ctx):
     the confidnetial VM (and kata agent) as part of the bootstrap of a Knative
     service on CoCo
     """
-    baselines_to_run = ["coco-fw-sig-enc"]
-    service_template_file = join(APPS_DIR, "image-pull", "service.yaml.j2")
+    baselines_to_run = [f"coco-nydus"]
+    service_template_file = join(APPS_DIR, "image-pull-ccv8", "deployment.yaml.j2")
     num_runs = 1
 
-    results_dir = join(RESULTS_DIR, "image-pull")
+    results_dir = join(RESULTS_DIR, "image-pull-ccv8")
     if not exists(results_dir):
         makedirs(results_dir)
 
@@ -206,7 +239,7 @@ def run(ctx):
         )
         template_vars = {
             "image_repo": EXPERIMENT_IMAGE_REPO,
-            "image_name": USED_IMAGES[1],
+            "image_name": USED_IMAGES[0],
             "image_tag": baseline_traits["image_tag"],
         }
         if len(baseline_traits["runtime_class"]) > 0:
@@ -214,7 +247,7 @@ def run(ctx):
         template_k8s_file(service_template_file, service_file, template_vars)
 
         # Second, run any baseline-specific set-up
-        setup_baseline(bline, USED_IMAGES)
+        #setup_baseline(bline, USED_IMAGES)
 
         for flavour in ["cold"]:
             # Prepare the result file
@@ -249,9 +282,9 @@ def plot(ctx):
     """
     Plot a flame-graph of the guest-side image pulling process
     """
-    results_dir = join(RESULTS_DIR, "image-pull")
-    plots_dir = join(PLOTS_DIR, "image-pull")
-    baseline = "coco-fw-sig-enc"
+    results_dir = join(RESULTS_DIR, "image-pull-ccv8")
+    plots_dir = join(PLOTS_DIR, "image-pull-ccv8")
+    baseline = "coco-nydus"
     results_file = join(results_dir, "{}_cold.csv".format(baseline))
 
     results_dict = {}
@@ -273,30 +306,47 @@ def plot(ctx):
 
     # Useful maps to plot the experiments
     pattern_for_image = {"app": "//", "sidecar": "."}
-    ordered_events = {
-        "image-pull": ("StartGCImagePull", "EndGCImagePull"),
-        "pull-manifest": ("StartPullManifest", "EndPullManifest"),
-        "signature-validation": ("StartSignatureValidation", "EndSignatureValidation"),
-        "pull-layers": ("StartPullLayers", "EndPullLayers"),
-        "pull-single-layer": ("StartPullSingleLayer", "EndPullSingleLayer"),
-        "handle-single-layer": ("StartHandleSingleLayer", "EndHandleSingleLayer"),
-    }
-    height_for_event = {
-        "image-pull": 0,
-        "pull-manifest": 1,
-        "signature-validation": 1,
-        "pull-layers": 1,
-        "pull-single-layer": 2,
-        "handle-single-layer": 2,
-    }
-    color_for_event = {
-        "image-pull": "red",
-        "pull-manifest": "purple",
-        "signature-validation": "orange",
-        "pull-layers": "green",
-        "pull-single-layer": "blue",
-        "handle-single-layer": "brown",
-    }
+    if IS_NYDUS_IMAGE:
+        ordered_events = {
+            "image-pull": ("Start(KS-agent)GCImagePull", "End(KS-agent)GCImagePull"),
+            "pull-manifest": ("Start(KS-image-rs)PullManifest", "End(KS-image-rs)PullManifest"),
+            "pull-nydus-image": ("Start(KS-image-rs)NydusImagePull", "End(KS-image-rs)NydusImagePull"),
+            "pull-nydus-bootstrap": ("Start(KS-image-rs)NydusBootstrapPull", "End(KS-image-rs)NydusBootstrapPull"),
+        }
+        height_for_event = {
+            "image-pull": 0,
+            "pull-manifest": 1,
+            "pull-nydus-image": 1,
+            "pull-nydus-bootstrap": 2,
+        }
+        color_for_event = {
+            "image-pull": "red",
+            "pull-manifest": "purple",
+            "pull-nydus-image": "green",
+            "pull-nydus-bootstrap": "blue",
+        }
+    else:
+        ordered_events = {
+                "image-pull": ("Start(KS-agent)GCImagePull", "End(KS-agent)GCImagePull"),
+                "pull-manifest": ("Start(KS-image-rs)PullManifest", "End(KS-image-rs)PullManifest"),
+                "pull-layers": ("StartPullLayers", "EndPullLayers"),
+                "pull-single-layer": ("StartPullSingleLayer", "EndPullSingleLayer"),
+                "handle-single-layer": ("StartHandleSingleLayer", "EndHandleSingleLayer"),
+            }
+        height_for_event = {
+            "image-pull": 0,
+            "pull-manifest": 1,
+            "pull-layers": 1,
+            "pull-single-layer": 2,
+            "handle-single-layer": 2,
+        }
+        color_for_event = {
+            "image-pull": "red",
+            "pull-manifest": "purple",
+            "pull-layers": "green",
+            "pull-single-layer": "blue",
+            "handle-single-layer": "brown",
+        }
     assert list(ordered_events.keys()) == list(height_for_event.keys())
     assert list(color_for_event.keys()) == list(height_for_event.keys())
 
@@ -322,15 +372,15 @@ def plot(ctx):
     events_to_rotate = [
         "pull-manifest",
         "signature-validation",
-        "pull-single-layer",
+        "pull-nydus-image",
         "handle-single-layer",
     ]
 
     x_origin = min(
-        results_dict["app"]["StartGCImagePull"]["mean"],
-        results_dict["sidecar"]["StartGCImagePull"]["mean"],
+        [results_dict["app"]["Start(KS-agent)GCImagePull"]["mean"]]
+        #results_dict["sidecar"]["Start(KS-agent)GCImagePull"]["mean"],
     )
-    for image in ["app", "sidecar"]:
+    for image in ["app"]:
         for event in ordered_events:
             start_ev = ordered_events[event][0]
             end_ev = ordered_events[event][1]
@@ -394,7 +444,7 @@ def plot(ctx):
     ax.legend(handles=legend_handles, bbox_to_anchor=(1.05, 1.05))
 
     for plot_format in ["pdf", "png"]:
-        plot_file = join(plots_dir, "image_pull.{}".format(plot_format))
+        plot_file = join(plots_dir, "image_pull_{}.{}".format(baseline, plot_format))
         fig.savefig(plot_file, format=plot_format, bbox_inches="tight")
 
 

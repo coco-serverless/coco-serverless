@@ -165,7 +165,7 @@ server = "https://{registry_url}"
         dns_file: {"path": "/etc/hosts", "mode": "w"},
         HOST_CERT_PATH: {"path": "/etc/ssl/certs/ca-certificates.crt", "mode": "a"},
     }
-    replace_agent(ctx, extra_files=extra_files)
+    replace_agent(extra_files=extra_files)
 
     # ----------
     # Knative config
@@ -177,7 +177,7 @@ server = "https://{registry_url}"
             K8S_SECRET_NAME, HOST_CERT_PATH
         )
     )
-    run_kubectl_command(kube_cmd)
+    #run_kubectl_command(kube_cmd)
 
     # Second, patch the controller deployment
     configure_self_signed_certs(HOST_CERT_PATH, K8S_SECRET_NAME)

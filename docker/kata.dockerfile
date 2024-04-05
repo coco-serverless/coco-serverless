@@ -41,7 +41,7 @@ RUN ln -sf ~/dotfiles/bash/.bashrc ~/.bashrc \
 # Install APT dependencies
 RUN apt-get update
 RUN apt-get install -y \
-        gcc clang \
+        gcc clang cmake \
         gopls \
         libseccomp-dev \
         make \
@@ -80,7 +80,7 @@ RUN mkdir -p ${CODE_DIR} \
     && git config --global --add safe.directory ${CODE_DIR} \
     && cd ${CODE_DIR}/src/runtime && make \
     && cd ${CODE_DIR}/src/agent \
-    && rustup target add x86_64-unknown-linux-musl \
+    && rustup target add x86_64-unknown-linux-musl \ 
     && make
 
 # Configure environment variables

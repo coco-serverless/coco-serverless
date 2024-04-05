@@ -10,7 +10,7 @@ def guest_attestation(ctx, mode="off"):
     """
     Toggle guest attestation for CoCo: -attestation --mode=[on,off]
     """
-    do_guest_attestation(mode)
+    do_guest_attestation(mode=mode)
 
 
 @task

@@ -46,6 +46,7 @@ def signature_verification(
     this method will change the HW measurement.
     """
     conf_file_path = join(KATA_CONFIG_DIR, "configuration-qemu-sev.toml")
+    mode = "off"
     att_val = str(mode == "on").lower()
 
     # We need to update the kernel parameters, which is a string, so we are

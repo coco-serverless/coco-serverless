@@ -47,7 +47,7 @@ def replace_sidecar(reset_default=False, image_repo="ghcr.io", quiet=False):
     do_run(docker_cmd, quiet)
 
     docker_cmd = "docker push {}".format(new_image_url)
-    do_run(docker_cmd, quiet)
+    #do_run(docker_cmd, quiet)
 
     # Get the digest for the recently pulled image, and use it to update
     # Knative's deployment configmap
@@ -91,7 +91,7 @@ def configure_self_signed_certs(path_to_certs_dir, secret_name):
         {"path_to_certs": path_to_certs_dir, "secret_name": secret_name},
     )
     run_kubectl_command(
-        "-n knative-serving patch deployment controller --patch-file {}".format(
+        "-n default patch deployment controller --patch-file {}".format(
             out_k8s_file
         )
     )
