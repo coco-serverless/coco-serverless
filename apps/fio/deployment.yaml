@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: coco-fio-benchmark
+  labels:
+    apps.coco-serverless/name: fio-benchmark
+  annotations: 
+    io.containerd.cri.runtime-handler: kata-qemu-sev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      apps.coco-serverless/name: fio-benchmark
+  template:
+    metadata:
+      labels:
+        apps.coco-serverless/name: fio-benchmark
+        io.katacontainers.config.pre_attestation.enabled: "false" 
+    spec:
+      runtimeClassName: kata-qemu-sev
+      containers:
+      - name: fio-benchmark
+        image: registry.coco-csg.com/fio-benchmark-nydus:unencrypted #registry.coco-csg.com/fio-benchmark-nydus:unencrypted #registry.coco-csg.com/openjdk:unencrypted  #localhost:5000/hello-world-flask-nydus:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+

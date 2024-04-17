@@ -30,7 +30,10 @@ CONTAINERD_CONFIG_FILE = join(CONTAINERD_CONFIG_ROOT, "config.toml")
 
 # Image Registry config
 
+DOCKER_REGISTRY_URL = "konsougiou"
+
 LOCAL_REGISTRY_URL = "registry.coco-csg.com"
+EXTERNAL_REGISTRY_URL = "external-registry.coco-csg.com"
 
 # MicroK8s config
 

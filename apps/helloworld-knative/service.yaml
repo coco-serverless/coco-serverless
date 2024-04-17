@@ -3,7 +3,8 @@ kind: Service
 metadata:
   name: helloworld-knative
   annotations:
-    "features.knative.dev/podspec-runtimeclassname": "enabled"
+    features.knative.dev/podspec-runtimeclassname: "enabled"
+    io.containerd.cri.runtime-handler: kata-qemu-sev
 spec:
   template:
     metadata:
@@ -16,7 +17,8 @@ spec:
       securityContext:
         runAsUser: 1000
       containers:
-        - image: ghcr.io/csegarragonz/coco-helloworld-py:unencrypted
+        - image: registry.coco-csg.com/node-app:unencrypted #konsougiou/alpine-sev-tests:flask #ghcr.io/csegarragonz/coco-helloworld-py:unencrypted
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
           env:

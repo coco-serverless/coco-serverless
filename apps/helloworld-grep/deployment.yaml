@@ -20,7 +20,7 @@ spec:
       runtimeClassName: kata-qemu-sev
       containers:
       - name: helloworld-py
-        image: registry.coco-csg.com/node-app:unencrypted  #localhost:5000/hello-world-flask-nydus:latest
+        image: registry.coco-csg.com/node-bench:unencrypted  #localhost:5000/hello-world-flask-nydus:latest
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8080

@@ -38,7 +38,6 @@ def get_event_from_containerd_logs(
     for i in range(num_repeats):
         try:
             out = get_journalctl_containerd_logs(timeout_mins)
-
             event_json = []
             for o in out:
                 o_json = json_loads(o)
@@ -96,7 +95,7 @@ def get_ts_for_containerd_event(
     Get the journalctl timestamp for one event in the containerd logs
     """
     event_json = get_event_from_containerd_logs(
-        event_name, event_id, 1, extra_event_id=None, timeout_mins=timeout_mins
+        event_name, event_id, 1, extra_event_id=extra_event_id, timeout_mins=timeout_mins
     )[0]
     ts = int(event_json["__REALTIME_TIMESTAMP"]) / 1e6
 

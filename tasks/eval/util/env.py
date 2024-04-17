@@ -107,6 +107,7 @@ BASELINES = {
 }
 BASELINE_FLAVOURS = ["warm", "cold"]
 
+
 # Each image digest has a unique ID in `crictl`'s image repository. We want to
 # remove it from there to avoid caching images when measuring cold starts.
 # Note that this ID depends on the image digest, and will change if we change

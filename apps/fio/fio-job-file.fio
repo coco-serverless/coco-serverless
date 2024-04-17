@@ -1,0 +1,26 @@
+; fio-job-file.fio
+[global]
+rw=randrw         ; Random read and write
+rwmixread=70      ; 70% read, 30% write
+bs=4k             ; Block size set to 4KB
+size=150M         ; Each file is 150MB
+runtime=180       ; Limit total runtime to 3 minutes
+direct=1          ; Use direct I/O
+ioengine=libaio   ; Asynchronous I/O
+iodepth=4         ; Queue depth per job
+
+[file1]
+filename=file1.fio
+stonewall
+
+[file2]
+filename=file2.fio
+stonewall
+
+[file3]
+filename=file3.fio
+stonewall
+
+[file4]
+filename=file4.fio
+stonewall

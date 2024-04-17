@@ -9,7 +9,7 @@ from os.path import basename, exists, join
 from pandas import read_csv
 from tasks.eval.util.clean import cleanup_after_run
 from tasks.eval.util.csv import init_csv_file, write_csv_line
-from tasks.eval.util.env import (
+from tasks.eval.util.env_ccv8 import (
     APPS_DIR,
     BASELINES,
     EXPERIMENT_IMAGE_REPO,
@@ -127,7 +127,7 @@ def run(ctx, baseline=None, num_par=None):
     if not exists(EVAL_TEMPLATED_DIR):
         makedirs(EVAL_TEMPLATED_DIR)
 
-    service_template_file = join(APPS_DIR, "xput", "service.yaml.j2")
+    service_template_file = join(APPS_DIR, "xput", "service-ccv8.yaml.j2")
     image_name = "csegarragonz/coco-helloworld-py"
     used_images = ["csegarragonz/coco-knative-sidecar", image_name]
     num_runs = 3

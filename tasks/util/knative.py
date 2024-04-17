@@ -12,7 +12,7 @@ KNATIVE_SIDECAR_IMAGE_TAG += (
 )
 
 
-def replace_sidecar(reset_default=False, image_repo="ghcr.io", quiet=False):
+def replace_sidecar(reset_default=False, image_repo="ghcr.io/", quiet=False):
     def do_run(cmd, quiet):
         if quiet:
             out = run(cmd, shell=True, capture_output=True)
@@ -40,7 +40,7 @@ def replace_sidecar(reset_default=False, image_repo="ghcr.io", quiet=False):
     do_run(docker_cmd, quiet)
 
     # Re-tag it, and push it to our controlled registry
-    image_name = "csegarragonz/coco-knative-sidecar"
+    image_name = "coco-knative-sidecar"
     image_tag = "unencrypted"
     new_image_url = "{}/{}:{}".format(image_repo, image_name, image_tag)
     docker_cmd = "docker tag {} {}".format(KNATIVE_SIDECAR_IMAGE_TAG, new_image_url)
@@ -57,6 +57,7 @@ def replace_sidecar(reset_default=False, image_repo="ghcr.io", quiet=False):
     image_digest = (
         run(docker_cmd, shell=True, capture_output=True).stdout.decode("utf-8").strip()
     )
+    print(image_digest)
     assert len(image_digest) > 0
 
     if not exists(TEMPLATED_FILES_DIR):
@@ -91,7 +92,7 @@ def configure_self_signed_certs(path_to_certs_dir, secret_name):
         {"path_to_certs": path_to_certs_dir, "secret_name": secret_name},
     )
     run_kubectl_command(
-        "-n default patch deployment controller --patch-file {}".format(
+        "-n knative-serving patch deployment controller --patch-file {}".format(
             out_k8s_file
         )
     )

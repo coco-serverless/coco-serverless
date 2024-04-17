@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: coco-helloworld-py
+  labels:
+    apps.coco-serverless/name: helloworld-py
+  annotations: 
+    io.containerd.cri.runtime-handler: {{ runtime_class }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      apps.coco-serverless/name: helloworld-py
+  template:
+    metadata:
+      labels:
+        apps.coco-serverless/name: helloworld-py
+        io.katacontainers.config.pre_attestation.enabled: "false" 
+    spec:
+      runtimeClassName: {{ runtime_class }}
+      containers:
+      - name: helloworld-py
+        image: {{ image_repo }}/{{ image_name }}:{{ image_tag }}
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+

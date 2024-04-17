@@ -7,6 +7,7 @@ from . import initrd_size
 from . import mem_size
 from . import ovmf_detail
 from . import prune
+from . import startup_ccv8
 from . import startup
 from . import vm_detail
 from . import xput
@@ -20,6 +21,7 @@ ns = Collection(
     mem_size,
     ovmf_detail,
     prune,
+    startup_ccv8,
     startup,
     vm_detail,
     xput,
