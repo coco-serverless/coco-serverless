@@ -87,6 +87,7 @@ def get_launch_digest(mode):
         initrd=read_value_from_toml(toml_path, "hypervisor.qemu.initrd"),
         append=get_kernel_append(),
         vmm_type=VMMType.QEMU,
+        guest_features = 0,
     )
 
     return ld

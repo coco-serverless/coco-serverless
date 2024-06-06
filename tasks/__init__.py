@@ -20,6 +20,7 @@ from . import sev
 from . import skopeo
 
 from tasks.eval import ns as eval_ns
+from tasks.profile import ns as profile_ns
 
 ns = Collection(
     apps,
@@ -43,3 +44,4 @@ ns = Collection(
 )
 
 ns.add_collection(eval_ns, name="eval")
+ns.add_collection(profile_ns, name="profile")

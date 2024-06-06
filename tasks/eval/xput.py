@@ -9,7 +9,7 @@ from os.path import basename, exists, join
 from pandas import read_csv
 from tasks.eval.util.clean import cleanup_after_run
 from tasks.eval.util.csv import init_csv_file, write_csv_line
-from tasks.eval.util.env_ccv8 import (
+from tasks.eval.util.env import (
     APPS_DIR,
     BASELINES,
     EXPERIMENT_IMAGE_REPO,
@@ -18,22 +18,22 @@ from tasks.eval.util.env_ccv8 import (
     PLOTS_DIR,
     RESULTS_DIR,
 )
-from tasks.eval.util.setup import setup_baseline
+from tasks.eval.util.setup import setup_baseline, update_sidecar_deployment
 from tasks.util.k8s import template_k8s_file
 from tasks.util.kubeadm import get_pod_names_in_ns, run_kubectl_command
 from time import sleep, time
 
 
-def do_run(result_file, baseline, num_run, num_par_inst):
+def do_run(result_file, baseline, image_name ,num_run, num_par_inst):
     start_ts = time()
-
+    service_templated_dir = join(EVAL_TEMPLATED_DIR, image_name)
     service_files = [
         "apps_xput_{}_service_{}.yaml".format(baseline, i) for i in range(num_par_inst)
     ]
     for service_file in service_files:
         # Capture output to avoid verbose Knative logging
         run_kubectl_command(
-            "apply -f {}".format(join(EVAL_TEMPLATED_DIR, service_file)),
+            "apply -f {}".format(join(service_templated_dir, service_file)),
             capture_output=True,
         )
 
@@ -91,14 +91,23 @@ def do_run(result_file, baseline, num_run, num_par_inst):
     write_csv_line(result_file, num_run, start_ts, end_ts)
 
     # Remove the pods when we are done
+    print("removing pods")
     for service_file in service_files:
         run_kubectl_command(
-            "delete -f {}".format(join(EVAL_TEMPLATED_DIR, service_file)),
+            "delete -f {}".format(join(service_templated_dir, service_file)),
             capture_output=True,
         )
     for pod in pods:
         run_kubectl_command("delete pod {}".format(pod), capture_output=True)
 
+    print("waiting for pods to terminate")
+    # Wait for pods to end terminating
+    pods = get_pod_names_in_ns("default")
+    while len(pods) != 0:
+        sleep(20)
+        num_pods = get_pod_names_in_ns("default")
+
+    print("all pods terminated")
 
 @task
 def run(ctx, baseline=None, num_par=None):
@@ -106,6 +115,7 @@ def run(ctx, baseline=None, num_par=None):
     Measure the latency-throughput of spawning new Knative service instances
     """
     baselines_to_run = list(BASELINES.keys())
+    baselines_to_run = ["coco", "coco-nydus"]
     if baseline is not None:
         if baseline not in baselines_to_run:
             print(
@@ -127,55 +137,81 @@ def run(ctx, baseline=None, num_par=None):
     if not exists(EVAL_TEMPLATED_DIR):
         makedirs(EVAL_TEMPLATED_DIR)
 
-    service_template_file = join(APPS_DIR, "xput", "service-ccv8.yaml.j2")
-    image_name = "csegarragonz/coco-helloworld-py"
-    used_images = ["csegarragonz/coco-knative-sidecar", image_name]
-    num_runs = 3
+    service_template_file = join(APPS_DIR, "xput", "service.yaml.j2")
 
-    for bline in baselines_to_run:
-        baseline_traits = BASELINES[bline]
+    image_repos = [EXPERIMENT_IMAGE_REPO]
+    image_names = ["node-app"]
+    sidecar_image = "knative/serving/cmd/queue"
+    used_images = ["knative/serving/cmd/queue:unencrypted", "knative/serving/cmd/queue:unencrypted-nydus", "helloworld-py:unencrypted"] #, "node-app:unencrypted","node-app:unencrypted-nydus"]
+    num_runs = 1
 
-        # Template as many service files as parallel instances
-        for i in range(max(num_parallel_instances)):
-            service_file = join(
-                EVAL_TEMPLATED_DIR, "apps_xput_{}_service_{}.yaml".format(bline, i)
-            )
-            template_vars = {
-                "image_repo": EXPERIMENT_IMAGE_REPO,
-                "image_name": image_name,
-                "image_tag": baseline_traits["image_tag"],
-                "service_num": i,
-            }
-            if len(baseline_traits["runtime_class"]) > 0:
-                template_vars["runtime_class"] = baseline_traits["runtime_class"]
-            template_k8s_file(service_template_file, service_file, template_vars)
+    for image_repo in image_repos:           
+        #replace_sidecar(repo=image_repo, quiet=True)
 
-        # Second, run any baseline-specific set-up
-        setup_baseline(bline, used_images)
+        for image_name in image_names:
 
-        for num_par in num_parallel_instances:
-            # Prepare the result file
-            result_file = join(results_dir, "{}_{}.csv".format(bline, num_par))
-            init_csv_file(result_file, "Run,StartTimeStampSec,EndTimeStampSec")
+            service_templated_dir = join(EVAL_TEMPLATED_DIR, image_name)
+            if not exists(service_templated_dir):
+                makedirs(service_templated_dir)
 
-            for nr in range(num_runs):
-                print(
-                    "Executing baseline {} ({} parallel srv) run {}/{}...".format(
-                        bline, num_par, nr + 1, num_runs
+            results_image_dir = join(results_dir, image_name)
+            if not exists(results_image_dir):
+                makedirs(results_image_dir )
+
+            for bline in baselines_to_run:
+                baseline_traits = BASELINES[bline]
+
+                # update the sidecar image deployment file
+                update_sidecar_deployment(image_repo, sidecar_image, baseline_traits["image_tag"])
+
+                # Template as many service files as parallel instances
+                for i in range(max(num_parallel_instances)):
+                    service_file = join(
+                        service_templated_dir, "apps_xput_{}_service_{}.yaml".format(bline, i)
                     )
-                )
-                do_run(result_file, bline, nr, num_par)
-                sleep(INTER_RUN_SLEEP_SECS)
-                cleanup_after_run(bline, used_images)
+                    template_vars = {
+                        "image_repo": EXPERIMENT_IMAGE_REPO,
+                        "image_name": image_name,
+                        "image_tag": baseline_traits["image_tag"],
+                        "service_num": i,
+                    }
+                    if len(baseline_traits["runtime_class"]) > 0:
+                        template_vars["runtime_class"] = baseline_traits["runtime_class"]
+                    template_k8s_file(service_template_file, service_file, template_vars)
 
+                # Second, run any baseline-specific set-up
+                # setup_baseline(bline, used_images)
+
+                for num_par in num_parallel_instances:
+                    # Prepare the result file
+                    result_file = join(results_image_dir, "{}_{}.csv".format(bline, num_par))
+                    init_csv_file(result_file, "Run,StartTimeStampSec,EndTimeStampSec")
+
+                    for nr in range(num_runs):
+                        print(
+                            "Executing baseline {} ({} parallel srv) run {}/{}...".format(
+                                bline, num_par, nr + 1, num_runs
+                            )
+                        )
+                        do_run(result_file, bline, image_name, nr, num_par)
+                        sleep(INTER_RUN_SLEEP_SECS)
+                        cleanup_after_run(bline, used_images)
+
+                    sleep(5)
 
 @task
 def plot(ctx):
     """
     Measure the latency-throughput of spawning new Knative service instances
     """
-    results_dir = join(RESULTS_DIR, "xput")
-    plots_dir = join(PLOTS_DIR, "xput")
+
+    image_name = "node-app"
+
+    results_dir = join(RESULTS_DIR, "xput", image_name)
+
+    plots_dir = join(PLOTS_DIR, "xput", image_name)
+    if not exists(plots_dir):
+        makedirs(plots_dir)
 
     # Collect results
     glob_str = join(results_dir, "*.csv")
@@ -201,7 +237,7 @@ def plot(ctx):
 
     # Plot throughput-latency
     fig, ax = subplots()
-    baselines = list(BASELINES.keys())
+    baselines = ["coco", "coco-nydus"]#list(BASELINES.keys())
     for bline in baselines:
         xs = sorted([int(k) for k in results_dict[bline].keys()])
         ys = [results_dict[bline][str(x)]["mean"] for x in xs]

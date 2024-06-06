@@ -1,14 +1,16 @@
 
 FROM alpine:latest
 
-RUN  apk update && apk add fio nano
+RUN apk update && apk add fio nano
 
 COPY benchmark.sh .
-COPY file_gen.sh .
+COPY file_gen_?.sh .
 
-RUN chmod +x benchmark.sh && chmod +x file_gen.sh
+RUN chmod +x benchmark.sh && chmod +x file_gen_1.sh && chmod +x file_gen_2.sh
 
-RUN source file_gen.sh
+RUN source file_gen_1.sh
+
+RUN source file_gen_2.sh
 
 RUN source benchmark.sh
 

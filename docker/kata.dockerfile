@@ -47,7 +47,8 @@ RUN apt-get install -y \
         make \
         musl-tools \
         wget \ 
-	libdevmapper-dev
+	libdevmapper-dev \
+        protobuf-compiler
 
 # Install latest rust and rust-analyser
 RUN curl --proto '=https' --tlsv1.3 https://sh.rustup.rs -sSf | sh -s -- -y \
@@ -73,9 +74,11 @@ RUN mkdir -p ${CODE_DIR} \
     && git clone\
         # Note that we use our fork from CC-0.8.0 + patches
         # Currently cloning coco-serverless fork
-	 -b ks-main \
+	-b ks-main \
 	#-b csg-main \
+	#-b dm-verity \
         https://github.com/coco-serverless/kata-containers \
+        #https://github.com/ChengyuZhu6/kata-containers \
         ${CODE_DIR} \
     && git config --global --add safe.directory ${CODE_DIR} \
     && cd ${CODE_DIR}/src/runtime && make \

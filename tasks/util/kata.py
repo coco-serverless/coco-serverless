@@ -62,7 +62,7 @@ def copy_from_kata_workon_ctr(ctr_path, host_path, sudo=False):
 
 
 def replace_agent(
-        dst_initrd_path=join(KATA_IMG_DIR, "kata-containers-initrd-sev-ks.img"),
+        dst_initrd_path=join(KATA_IMG_DIR, "kata-containers-initrd-sev-verity-ks.img"),
     extra_files=None,
 ):
     """
@@ -80,6 +80,50 @@ def replace_agent(
     By using the extra_flags optional argument, you can pass a dictionary of
     host_path: guest_path pairs of files you want to be included in the initrd.
     """
+
+    ##### TMP #####
+
+    workdir = "/tmp/qemu-sev-initrd-verity"
+
+    agent_host_path = join(
+        KATA_AGENT_SOURCE_DIR,
+        "target",
+        "x86_64-unknown-linux-musl",
+        "release",
+        "kata-agent",
+    )
+    agent_initrd_path = join(workdir, "usr/bin/kata-agent")
+    copy_from_kata_workon_ctr(agent_host_path, agent_initrd_path, sudo=True)
+
+    alt_agent_initrd_path = join(workdir, "sbin", "init")
+    run("sudo rm {}".format(alt_agent_initrd_path), shell=True, check=True)
+    copy_from_kata_workon_ctr(agent_host_path, alt_agent_initrd_path, sudo=True)
+
+    kata_tmp_scripts = "/tmp/osbuilder"
+
+    ctr_initrd_builder_path = join(
+        KATA_SOURCE_DIR, "tools", "osbuilder", "initrd-builder", "initrd_builder.sh"
+    )
+    ctr_lib_path = join(KATA_SOURCE_DIR, "tools", "osbuilder", "scripts", "lib.sh")
+    initrd_builder_path = join(kata_tmp_scripts, "initrd-builder", "initrd_builder.sh")
+    #copy_from_kata_workon_ctr(ctr_initrd_builder_path, initrd_builder_path)
+    #copy_from_kata_workon_ctr(ctr_lib_path, join(kata_tmp_scripts, "scripts", "lib.sh"))
+    work_env = {"AGENT_INIT": "yes"}
+    initrd_pack_cmd = "sudo {} -o {} {}".format(
+        initrd_builder_path,
+        dst_initrd_path,
+        workdir,
+    )
+    out = run(
+        initrd_pack_cmd, shell=True, check=True, env=work_env, capture_output=True
+    )
+    assert out.returncode == 0, "Error packing initrd: {}".format(
+        out.stderr.decode("utf-8")
+    )
+
+    return 0
+
+    ##### TMP #####
 
     # Use a hardcoded path, as we want to always start from a _clean_ initrd
     initrd_path = join(KATA_IMG_DIR, "kata-containers-initrd-sev.img")
@@ -104,13 +148,13 @@ def replace_agent(
         "kata-agent",
     )
     agent_initrd_path = join(workdir, "usr/bin/kata-agent")
-    copy_from_kata_workon_ctr(agent_host_path, agent_initrd_path, sudo=True)
+    #copy_from_kata_workon_ctr(agent_host_path, agent_initrd_path, sudo=True)
 
     # We also need to manually copy the agent to <root_fs>/sbin/init (note that
     # <root_fs>/init is a symlink to <root_fs>/sbin/init)
     alt_agent_initrd_path = join(workdir, "sbin", "init")
     run("sudo rm {}".format(alt_agent_initrd_path), shell=True, check=True)
-    copy_from_kata_workon_ctr(agent_host_path, alt_agent_initrd_path, sudo=True)
+    #copy_from_kata_workon_ctr(agent_host_path, alt_agent_initrd_path, sudo=True)
 
     # Include any extra files that the caller may have provided
     if extra_files is not None:

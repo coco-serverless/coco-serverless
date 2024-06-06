@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: coco-helloworld-nydus
+  labels:
+    apps.coco-serverless/name: helloworld-py
+  annotations: 
+    io.containerd.cri.runtime-handler: kata-qemu
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      apps.coco-serverless/name: helloworld-py
+  template:
+    metadata:
+      labels:
+        apps.coco-serverless/name: helloworld-py
+        io.katacontainers.config.pre_attestation.enabled: "false" 
+    spec:
+      runtimeClassName: kata-qemu
+      containers:
+      - name: helloworld-py
+        image: external-registry.coco-csg.com/tf-app-tinybert:unencrypted #konsougiou/tf-app:blob-cache #external-registry.coco-csg.com/tf-serving-tinybert:unencrypted #konsougiou/tf-app:latest #localhost:5000/hello-world-flask-nydus:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8501
+      #   volumeMounts:  
+      #   - name: ca-certstore
+      #     mountPath: /home/ksougioultzoglou/FYP/coco-serverless-fyp/.config/local-registry/domain.crt
+      #   env:
+      #   - name: SSL_CERT_DIR
+      #     value: /home/ksougioultzoglou/FYP/coco-serverless-fyp/.config/local-registry/domain.crt
+      # volumes:  
+      # - name: ca-certstore
+      #   configMap:
+      #     name: ca-certstore

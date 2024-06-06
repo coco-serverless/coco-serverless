@@ -3,8 +3,10 @@ kind: Service
 metadata:
   name: helloworld-knative-{{ service_num }}
   annotations:
-    "features.knative.dev/podspec-runtimeclassname": "enabled"
+    features.knative.dev/podspec-runtimeclassname: "enabled"
+    {% if runtime_class is defined %}
     io.containerd.cri.runtime-handler: {{ runtime_class }}
+    {% endif %}
 spec:
   template:
     metadata:

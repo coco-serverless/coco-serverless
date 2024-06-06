@@ -5,6 +5,9 @@ from tasks.util.containerd import get_event_from_containerd_logs
 from tasks.util.kubeadm import run_kubectl_command
 from time import sleep
 
+import subprocess
+import time
+
 
 def is_pod_ready(pod_name):
     """
@@ -56,3 +59,20 @@ def get_sandbox_id_from_pod_name(pod_name, timeout_mins=1):
         r'returns sandbox id \\"([a-zA-Z0-9]*)\\"', event_json["MESSAGE"]
     ).groups(1)[0]
     return sbox_id
+
+def get_event_ts_in_pod_logs(pod_name, keyword):
+    """
+    Monitor the logs of a specified k8s pod for a given keyword.
+    If the keyword is found, return the timestamp of the log entry.
+    """
+    cmd = ["kubectl", "logs", "-f", pod_name]
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+    while True:
+        line = process.stdout.readline()
+        if line:
+            if keyword in line:
+                timestamp = line.split()[0] + " " + line.split()[1][:-1]
+                return datetime.fromisoformat(timestamp).timestamp()
+        else:
+            time.sleep(1) 

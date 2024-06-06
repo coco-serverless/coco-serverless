@@ -8,8 +8,12 @@ from tasks.util.coco import (
     set_firmware,
     set_hypervisor,
 )
+from tasks.util.env import  CONF_FILES_DIR, TEMPLATED_FILES_DIR
 from tasks.util.containerd import set_cri_handler
+from tasks.util.k8s import template_k8s_file
 from tasks.util.kbs import clear_kbs_db, provision_launch_digest
+from tasks.util.kubeadm import run_kubectl_command
+
 
 
 def get_backup_file_path_from_conf_file(conf_file):
@@ -96,3 +100,19 @@ def setup_baseline(baseline, used_images, image_repo=EXPERIMENT_IMAGE_REPO):
             signature_policy=baseline_traits["signature_policy"],
             clean=False,
         )
+
+def update_sidecar_deployment(repo, image_name, image_tag):
+    k8s_filename = "knative_replace_sidecar.yaml"
+
+    in_k8s_file = join(CONF_FILES_DIR, "{}.j2".format(k8s_filename))
+    out_k8s_file = join(TEMPLATED_FILES_DIR, k8s_filename)
+    template_k8s_file(
+        in_k8s_file,
+        out_k8s_file,
+        {"knative_sidecar_image_url": f"{repo}/{image_name}:{image_tag}"},
+    )
+    run_kubectl_command("apply -f {}".format(out_k8s_file))
+
+    
+    return
+

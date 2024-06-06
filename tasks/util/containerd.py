@@ -14,7 +14,10 @@ def get_journalctl_containerd_logs(timeout_mins=1):
     """
     tmp_file = "/tmp/journalctl.log"
     journalctl_cmd = "sudo journalctl -xeu containerd --no-tail "
-    journalctl_cmd += '--since "{} min ago" -o json > {}'.format(timeout_mins, tmp_file)
+    if timeout_mins is not None:
+        journalctl_cmd += ' --since "{} min ago"'.format(timeout_mins)
+
+    journalctl_cmd += " -o json > {}".format(tmp_file)
     run(journalctl_cmd, shell=True, check=True)
 
     with open(tmp_file, "r") as fh:

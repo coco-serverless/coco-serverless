@@ -1,26 +1,18 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: batch/v1
+kind: Job
 metadata:
   name: coco-helloworld-nydus
   labels:
     apps.coco-serverless/name: helloworld-py
   annotations: 
     io.containerd.cri.runtime-handler: kata-qemu-sev
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      apps.coco-serverless/name: helloworld-py
-  template:
-    metadata:
-      labels:
-        apps.coco-serverless/name: helloworld-py
-        io.katacontainers.config.pre_attestation.enabled: "false" 
+
     spec:
+      restartPolicy: Never
       runtimeClassName: kata-qemu-sev
       containers:
       - name: helloworld-py
-        image: registry.coco-csg.com/node-app:unencrypted  #localhost:5000/hello-world-flask-nydus:latest
+        image: external-registry.coco-csg.com/tf-serving:unencrypted #konsougiou/tf-app:unencrypted  #external-registry.coco-csg.com/fio-benchmark:unencrypted  #localhost:5000/hello-world-flask-nydus:latest
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8080

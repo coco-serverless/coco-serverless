@@ -142,7 +142,7 @@ def install(ctx):
     wait_for_pods_in_ns(KNATIVE_NAMESPACE, label="app=default-domain")
 
     # Replace the sidecar to use an image we control
-    do_replace_sidecar()
+    #do_replace_sidecar()
 
     print("Succesfully deployed Knative! The external IP is: {}".format(actual_ip))
 
@@ -193,4 +193,4 @@ def configure_self_signed_certs(ctx, path_to_certs_dir):
     """
     Configure Knative to like our self-signed certificates
     """
-    do_configure_self_signed_certs(path_to_certs_dir)
+    do_configure_self_signed_certs(path_to_certs_dir, "csg-coco-registry-customca")
