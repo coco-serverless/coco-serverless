@@ -16,4 +16,5 @@ venv
 templated
 
 # app models
-apps/tensorflow-serving
+/apps/tensorflow-serving/
+/apps/tensorflow-serving/*
