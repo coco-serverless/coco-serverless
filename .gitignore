@@ -14,3 +14,6 @@ venv
 
 # Templated files
 templated
+
+# app models
+apps/tensorflow-serving
