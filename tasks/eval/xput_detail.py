@@ -242,9 +242,9 @@ def run(ctx, repo=None):
     Measure the costs associated with starting a fixed number of concurrent
     services
     """
-    baselines_to_run = ["coco", "coco-nydus"]#, "coco-nydus", "coco-nydus-caching"]
+    baselines_to_run = ["coco-nydus-caching"]#, "coco-nydus", "coco-nydus-caching"]
     sidecar_image = "gcr.io/knative-releases/knative.dev/serving/cmd/queue@sha256:987f53e3ead58627e3022c8ccbb199ed71b965f10c59485bab8015ecf18b44af"
-    num_parallel_instances = [1, 2, 4, 8]
+    num_parallel_instances = [1, 2, 4, 8, 12]
     num_runs = 1
 
     if repo is not None:
@@ -263,12 +263,12 @@ def run(ctx, repo=None):
     service_template_file = join(APPS_DIR, "xput-detail", "service.yaml.j2")
 
     image_repos = [EXPERIMENT_IMAGE_REPO]
-    image_names = ["node-app"]
+    image_names = ["tf-app-tinybert"]
 
-    time_end_to_end = {"node-app": False, "tf-serving": False, "tf-serving-tinybert": False, "tf-app": False, "tf-app-tinybert": False,  "fio-benchmark": True}
-    entrypoint_keywords = {"node-app": "node server starting", "tf-serving": "Exporting HTTP/REST", "tf-serving-tinybert": "Exporting HTTP/REST", "tf-app": "flask server starting", "tf-app-tinybert": "flask server starting", "fio-benchmark": None}
+    time_end_to_end = {"node-app": False, "tf-serving": False, "tf-serving-tinybert": False, "tf-app": False, "tf-app-tinybert": False, "tf-app-tinibert": False, "fio-benchmark": True}
+    entrypoint_keywords = {"node-app": "node server starting", "tf-serving": "Exporting HTTP/REST", "tf-serving-tinybert": "Exporting HTTP/REST", "tf-app": "flask server starting", "tf-app-tinybert": "flask server starting", "tf-app-tinibert": "flask server starting", "fio-benchmark": None}
 
-    used_images = ["knative/serving/cmd/queue:unencrypted", "knative/serving/cmd/queue:unencrypted-nydus", "fio-benchmark:unencrypted", "fio-benchmark:unencrypted-nydus", "tf-serving:unencrypted", "tf-serving:unencrypted-nydus", "tf-serving-tinybert:blob-cache", "tf-app:unencrypted-nydus", "tf-app:unencrypted","tf-app:blob-cache", "tf-app-tinybert:unencrypted-nydus","tf-app-tinybert:blob-cache"]
+    used_images = ["knative/serving/cmd/queue:unencrypted", "knative/serving/cmd/queue:unencrypted-nydus", "fio-benchmark:unencrypted", "fio-benchmark:unencrypted-nydus", "tf-serving:unencrypted", "tf-serving:unencrypted-nydus", "tf-serving-tinybert:blob-cache", "tf-app:unencrypted-nydus", "tf-app:unencrypted","tf-app:blob-cache", "tf-app-tinybert:unencrypted-nydus", "tf-app-tinybert:unencrypted", "tf-app-tinybert:blob-cache",  "tf-app-tinibert:unencrypted-nydus", "tf-app-tinibert:unencrypted", "tf-app-tinibert:blob-cache"]
 
     sidecar_image = "knative/serving/cmd/queue"
 
@@ -294,7 +294,8 @@ def run(ctx, repo=None):
 
                 # update the sidecar image deployment file
                 sidecar_image_tag = "unencrypted-nydus" if "nydus" in bline else "unencrypted"
-                update_sidecar_deployment(image_repo, sidecar_image, sidecar_image_tag)
+                sidecar_image_repo = "external-registry.coco-csg.com"
+                update_sidecar_deployment(sidecar_image_repo, sidecar_image, sidecar_image_tag)
 
                 # Template as many service files as parallel instances
                 for i in range(max(num_parallel_instances)):
@@ -349,9 +350,9 @@ def plot(ctx):
     """
 
     baselines = ["coco", "coco-nydus", "coco-nydus-caching"]
-    num_par_instances = 1
+    num_par_instances = 12
     image_repos = [EXPERIMENT_IMAGE_REPO, EXTERNAL_REGISTRY_URL]
-    image_name = "node-app"
+    image_name = "tf-app-tinybert"
 
     results_dir = join(RESULTS_DIR, "xput-detail", image_name)
 

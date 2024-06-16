@@ -12,7 +12,5 @@ Run,Event,TimeStampMs
 0,Ready,1716751859.096859
 0,ContainersReady,1716751859.096859
 0,EndStartContainer_Service,1716751859.355784
-0,StartContainerJob,1716751859.355784
-0,EndContainerJob,1716751859.355784
 0,StartEntrypoint,1716751859.355784
 0,EndEntrypoint,1716751866.559961

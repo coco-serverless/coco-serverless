@@ -12,6 +12,7 @@ RESULTS_DIR = join(EVAL_ROOT, "results")
 # this easily. Note that the image, signatures, and encrypted layers _already_
 # live in any container registry before we run the experiment
 EXPERIMENT_IMAGE_REPO = "external-registry.coco-csg.com"
+#EXPERIMENT_IMAGE_REPO = "ghcr.io/konsougiou"
 
 INTER_RUN_SLEEP_SECS = 10
 
@@ -55,8 +56,8 @@ BASELINES = {
     # have any kind of attestation feature. This is an _insecure_ baseline,
     # and only included for demonstration purposes
     "coco": {
-        "conf_file": join(KATA_CONFIG_DIR, "configuration-qemu.toml"),
-        "runtime_class": "kata-qemu",
+        "conf_file": join(KATA_CONFIG_DIR, "configuration-qemu-sev.toml"),
+        "runtime_class": "kata-qemu-sev",
         "cri_handler": "cc",
         "image_tag": "unencrypted",
         "guest_attestation": "off",
@@ -97,8 +98,8 @@ BASELINES = {
         "signature_policy": "verify",
     },
     "coco-nydus": {
-        "conf_file": join(KATA_CONFIG_DIR, "configuration-qemu.toml"),
-        "runtime_class": "kata-qemu",
+        "conf_file": join(KATA_CONFIG_DIR, "configuration-qemu-sev.toml"),
+        "runtime_class": "kata-qemu-sev",
         "cri_handler": "cc",
         "image_tag": "unencrypted-nydus",
         "guest_attestation": "off",
@@ -107,7 +108,7 @@ BASELINES = {
     },
     "coco-nydus-caching": {
         "conf_file": join(KATA_CONFIG_DIR, "configuration-qemu.toml"),
-        "runtime_class": "kata-qemu",
+        "runtime_class": "kata-qemu-sev",
         "cri_handler": "cc",
         "image_tag": "blob-cache",
         "guest_attestation": "off",
@@ -115,8 +116,8 @@ BASELINES = {
         "signature_policy": "none",
     },
     "coco-caching": {
-        "conf_file": join(KATA_CONFIG_DIR, "configuration-qemu.toml"),
-        "runtime_class": "kata-qemu",
+        "conf_file": join(KATA_CONFIG_DIR, "configuration-qemu-sev.toml"),
+        "runtime_class": "kata-qemu-sev",
         "cri_handler": "cc",
         "image_tag": "unencrypted",
         "guest_attestation": "off",
@@ -151,4 +152,7 @@ IMAGE_TO_ID = {
     "tf-app-tinybert:unencrypted-nydus": "a50ae3000a09d",
     "tf-app-tinybert:blob-cache": "7d68464da7617",
     "tf-app-tinybert:unencrypted": "2a0546dcabae1",
+    "tf-app-tinibert:unencrypted-nydus": "a50ae3000a09d",
+    "tf-app-tinibert:blob-cache": "7d68464da7617",
+    "tf-app-tinibert:unencrypted": "2a0546dcabae1",
 }

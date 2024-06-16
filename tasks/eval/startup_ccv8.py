@@ -153,21 +153,20 @@ def do_run(result_file, image_name, num_run, service_file, flavour, end_to_end, 
                                     for cond in cond_json if "reason" in cond and cond["reason"] == "PodCompleted"]
 
                 if completed:
-                    events_ts.append(("StartContainerJob", end_ts_sc_srv))
-                    events_ts.append(("EndContainerJob", sorted(completed)[-1]))
+                    events_ts.append(("StartEntrypoint", end_ts_sc_srv))
+                    events_ts.append(("EndEntrypoint", sorted(completed)[-1]))
                     break
                 else:
                     sleep(2)
 
-        else:
-            events_ts.append(("StartContainerJob", end_ts_sc_srv))
-            events_ts.append(("EndContainerJob", end_ts_sc_srv))
-
-        
-        if entrypoint_keyword is not None:
+        elif entrypoint_keyword is not None:
             entrypoint_complete = get_event_ts_in_pod_logs(pod_name, entrypoint_keyword)
             events_ts.append(("StartEntrypoint", end_ts_sc_srv))
             events_ts.append(("EndEntrypoint", entrypoint_complete))
+
+        else:
+            events_ts.append(("StartEntrypoint", end_ts_sc_srv))
+            events_ts.append(("EndEntrypoint", end_ts_sc_srv))
 
         # Sort the events by timestamp and write them to a file
         events_ts = sorted(events_ts, key=lambda x: x[1])
@@ -195,7 +194,7 @@ def run(ctx, baseline=None):
 
     baselines_to_run = list(BASELINES.keys())
 
-    baselines_to_run = ["coco-caching"]
+    baselines_to_run = ["docker"]#, "coco-nydus"]
     if baseline is not None:
         if baseline not in baselines_to_run:
             print(
@@ -207,12 +206,12 @@ def run(ctx, baseline=None):
         baselines_to_run = [baseline]
 
     service_template_file = join(APPS_DIR, "startup-ccv8", "deployment.yaml.j2")
-    image_names = ["tf-app-tinybert"]
+    image_names = ["tf-app-tinibert"]
 
-    is_benchmark = {"node-app": False, "tf-serving": False, "tf-serving-tinybert": False, "tf-app": False, "tf-app-tinybert": False,  "fio-benchmark": True}
-    entrypoint_keywords = {"node-app": "node server starting", "tf-serving": "Exporting HTTP/REST", "tf-serving-tinybert": "Exporting HTTP/REST", "tf-app": "flask server starting", "tf-app-tinybert": "flask server starting", "fio-benchmark": None}
+    is_benchmark = {"node-app": False, "tf-serving": False, "tf-serving-tinybert": False, "tf-app": False, "tf-app-tinybert": False, "tf-app-tinibert": False ,  "fio-benchmark": True}
+    entrypoint_keywords = {"node-app": "node server starting", "tf-serving": "Exporting HTTP/REST", "tf-serving-tinybert": "Exporting HTTP/REST", "tf-app": "flask server starting", "tf-app-tinybert": "flask server starting", "fio-benchmark": None, "tf-app-tinibert": "flask server starting"}
 
-    used_images = ["fio-benchmark:unencrypted", "fio-benchmark:unencrypted-nydus", "tf-serving:unencrypted", "tf-serving:unencrypted-nydus", "tf-serving-tinybert:blob-cache", "tf-app:unencrypted-nydus", "tf-app:unencrypted","tf-app:blob-cache", "tf-app-tinybert:unencrypted-nydus","tf-app-tinybert:blob-cache"]
+    used_images = ["fio-benchmark:unencrypted", "fio-benchmark:unencrypted-nydus", "tf-serving:unencrypted", "tf-serving:unencrypted-nydus", "tf-serving-tinybert:blob-cache", "tf-app:unencrypted-nydus", "tf-app:unencrypted","tf-app:blob-cache", "tf-app-tinybert:unencrypted-nydus", "tf-app-tinybert:unencrypted" ,"tf-app-tinybert:blob-cache", "tf-app-tinibert:unencrypted-nydus", "tf-app-tinibert:unencrypted" ,"tf-app-tinibert:blob-cache"]
     num_runs = 1
 
     results_dir = join(RESULTS_DIR, "startup-ccv8")
@@ -251,7 +250,7 @@ def run(ctx, baseline=None):
             # Second, run any baseline-specific set-up
             #setup_baseline(bline, used_images)
 
-            for flavour in ["cold"]: #BASELINE_FLAVOURS:
+            for flavour in BASELINE_FLAVOURS:
                 # Prepare the result file
                 result_file = join(results_image_dir, "{}_{}.csv".format(bline, flavour))
                 init_csv_file(result_file, "Run,Event,TimeStampMs")
@@ -259,7 +258,7 @@ def run(ctx, baseline=None):
                 if flavour == "warm":
                     print("Executing baseline {} warmup run...".format(bline))
                     do_run(result_file, image_name, -1, service_file, flavour, end_to_end, entrypoint_keywords[image_name], warmup=True)
-                    sleep(INTER_RUN_SLEEP_SECS)
+                    #sleep(INTER_RUN_SLEEP_SECS)
 
                 if flavour == "cold":
                     # `cold` happens after `warm`, so we want to clean-up after
@@ -280,8 +279,7 @@ def run(ctx, baseline=None):
                         cleanup_after_run(bline, used_images)
                 
                 print("finished run")
-                sleep(30)
-
+                sleep(15)
 
 @task
 def plot(ctx):
@@ -321,6 +319,8 @@ def plot(ctx):
 
     # Useful maps to plot the experiments
 
+    del results_dict["coco-nydus-caching"]
+
     pattern_for_flavour = {"warm": "//", "cold": "."}
     ordered_events = {
         "pod-scheduling": ("Start", "StartRunPodSandbox"),
@@ -328,7 +328,7 @@ def plot(ctx):
         "image-pull": ("StartImagePull", "EndImagePull"),
         "create-container": ("StartCreateContainer", "EndCreateContainer"),
         "start-container": ("StartCreateContainer", "EndCreateContainer"),
-        "execute-job": ("StartContainerJob", "EndContainerJob"),
+        #"execute-job": ("StartContainerJob", "EndContainerJob"),
         "execute-entrypoint": ("StartEntrypoint", "EndEntrypoint"),
     }
     color_for_event = {
@@ -337,7 +337,7 @@ def plot(ctx):
         "image-pull": "orange",
         "create-container": "yellow",
         "start-container": "red",
-        "execute-job": "purple",
+        #"execute-job": "purple",
         "execute-entrypoint": "aquamarine"
     }
     assert list(color_for_event.keys()) == list(ordered_events.keys())
@@ -461,7 +461,7 @@ def plot(ctx):
     # Pie chart breaking down the execution time of one baseline
     # --------------------------
 
-    baseline = "coco-nydus-caching"
+    baseline = "coco"
     flavour = "cold"
     fig, ax = subplots()
 

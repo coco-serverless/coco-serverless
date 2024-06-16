@@ -5,7 +5,7 @@ metadata:
   labels:
     apps.coco-serverless/name: helloworld-py
   annotations: 
-    io.containerd.cri.runtime-handler: kata-qemu
+    io.containerd.cri.runtime-handler: kata-qemu-sev
 spec:
   replicas: 1
   selector:
@@ -17,10 +17,10 @@ spec:
         apps.coco-serverless/name: helloworld-py
         io.katacontainers.config.pre_attestation.enabled: "false" 
     spec:
-      runtimeClassName: kata-qemu
+      runtimeClassName: kata-qemu-sev
       containers:
       - name: helloworld-py
-        image: external-registry.coco-csg.com/tf-app-tinybert:unencrypted #konsougiou/tf-app:blob-cache #external-registry.coco-csg.com/tf-serving-tinybert:unencrypted #konsougiou/tf-app:latest #localhost:5000/hello-world-flask-nydus:latest
+        image: external-registry.coco-csg.com/tf-app-tinybert:blob-cache #ghcr.io/konsougiou/tf-app-tinibert:unencrypted #konsougiou/tf-app:blob-cache #external-registry.coco-csg.com/tf-serving-tinybert:unencrypted #konsougiou/tf-app:latest #localhost:5000/hello-world-flask-nydus:latest
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8501

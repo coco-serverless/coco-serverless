@@ -12,5 +12,5 @@ Run,Event,TimeStampMs
 0,ContainersReady,1713650419.0
 0,EndImagePull_Service,1713650419.262887
 0,EndStartContainer_Service,1713650419.323224
-0,StartContainerJob,1713650419.323224
-0,EndContainerJob,1713650424.0
+0,StartEntrypoint,1713650419.323224
+0,EndEntrypoint,1713650424.0

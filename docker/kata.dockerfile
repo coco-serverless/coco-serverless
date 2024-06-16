@@ -74,7 +74,7 @@ RUN mkdir -p ${CODE_DIR} \
     && git clone\
         # Note that we use our fork from CC-0.8.0 + patches
         # Currently cloning coco-serverless fork
-	-b ks-main \
+    -b ks-main \
 	#-b csg-main \
 	#-b dm-verity \
         https://github.com/coco-serverless/kata-containers \
