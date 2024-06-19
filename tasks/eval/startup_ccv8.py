@@ -187,14 +187,9 @@ def run(ctx, baseline=None):
     the pod to be in `Running` state) as reported by Kubernetes.
     """
 
-    # ts = entrypoint_complete = get_event_ts_in_pod_logs("coco-helloworld-nydus-7bbbf96bd8-vm6w8", "Exporting HTTP/REST")
-
-    # print(ts)
-    # return 0 
-
     baselines_to_run = list(BASELINES.keys())
 
-    baselines_to_run = ["docker"]#, "coco-nydus"]
+    baselines_to_run = ["docker"]
     if baseline is not None:
         if baseline not in baselines_to_run:
             print(
@@ -206,10 +201,9 @@ def run(ctx, baseline=None):
         baselines_to_run = [baseline]
 
     service_template_file = join(APPS_DIR, "startup-ccv8", "deployment.yaml.j2")
-    image_names = ["tf-app-tinibert"]
+    image_names = ["tf-app-tinybert"]
 
-    is_benchmark = {"node-app": False, "tf-serving": False, "tf-serving-tinybert": False, "tf-app": False, "tf-app-tinybert": False, "tf-app-tinibert": False ,  "fio-benchmark": True}
-    entrypoint_keywords = {"node-app": "node server starting", "tf-serving": "Exporting HTTP/REST", "tf-serving-tinybert": "Exporting HTTP/REST", "tf-app": "flask server starting", "tf-app-tinybert": "flask server starting", "fio-benchmark": None, "tf-app-tinibert": "flask server starting"}
+    entrypoint_keywords = {"node-app": "node server starting", "tf-serving": "Exporting HTTP/REST", "tf-serving-tinybert": "Exporting HTTP/REST", "tf-app": "flask server starting", "tf-app-tinybert": "flask server starting", "fio-benchmark": , "tf-app-tinibert": "flask server starting"}
 
     used_images = ["fio-benchmark:unencrypted", "fio-benchmark:unencrypted-nydus", "tf-serving:unencrypted", "tf-serving:unencrypted-nydus", "tf-serving-tinybert:blob-cache", "tf-app:unencrypted-nydus", "tf-app:unencrypted","tf-app:blob-cache", "tf-app-tinybert:unencrypted-nydus", "tf-app-tinybert:unencrypted" ,"tf-app-tinybert:blob-cache", "tf-app-tinibert:unencrypted-nydus", "tf-app-tinibert:unencrypted" ,"tf-app-tinibert:blob-cache"]
     num_runs = 1
