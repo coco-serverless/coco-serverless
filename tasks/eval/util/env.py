@@ -97,6 +97,8 @@ BASELINES = {
         "signature_verification": "on",
         "signature_policy": "verify",
     },
+    # This baseline is the same as the coco baseline but the image
+    # pulled is of nydus-formatted
     "coco-nydus": {
         "conf_file": join(KATA_CONFIG_DIR, "configuration-qemu-sev.toml"),
         "runtime_class": "kata-qemu-sev",
@@ -106,6 +108,8 @@ BASELINES = {
         "signature_verification": "off",
         "signature_policy": "none",
     },
+    # This is the baseline representing the custom public-private 
+    # splitting mechanism
     "coco-nydus-caching": {
         "conf_file": join(KATA_CONFIG_DIR, "configuration-qemu.toml"),
         "runtime_class": "kata-qemu-sev",
@@ -115,6 +119,8 @@ BASELINES = {
         "signature_verification": "off",
         "signature_policy": "none",
     },
+    # This is the baseline pulls the image on the host and
+    # mounts it on the guest with integrity
     "coco-caching": {
         "conf_file": join(KATA_CONFIG_DIR, "configuration-qemu-sev.toml"),
         "runtime_class": "kata-qemu-sev",

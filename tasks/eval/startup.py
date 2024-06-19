@@ -20,14 +20,18 @@ from tasks.eval.util.env import (
     RESULTS_DIR,
     PLOTS_DIR,
 )
-from tasks.eval.util.setup import setup_baseline
-from tasks.util.containerd import get_start_end_ts_for_containerd_event
+from tasks.eval.util.pod import get_event_ts_in_pod_logs, wait_for_pod_ready_and_get_ts
+from tasks.eval.util.setup import setup_baseline, update_sidecar_deployment
+from tasks.util.containerd import get_start_end_ts_for_containerd_event, get_ts_for_containerd_event
 from tasks.util.k8s import get_container_id_from_pod, template_k8s_file
 from tasks.util.kubeadm import get_pod_names_in_ns, run_kubectl_command
 from time import sleep, time
 
 
-def do_run(result_file, num_run, service_file, flavour, warmup=False):
+CSG_MAGIC_BEGIN = "CSG-M4GIC: B3G1N: {}"
+CSG_MAGIC_END = "CSG-M4GIC: END: {}"
+
+def do_run(result_file, image_name, num_run, service_file, flavour, end_to_end, entrypoint_keyword, warmup=False):
     start_ts = time()
 
     # Silently start
@@ -41,6 +45,8 @@ def do_run(result_file, num_run, service_file, flavour, warmup=False):
     assert len(pods) == 1
     pod_name = pods[0]
 
+    wait_for_pod_ready_and_get_ts(pod_name)
+    print(f"pod {pod_name} ready")
     # Get events
     while True:
         kube_cmd = "get pod {} -o jsonpath='{{..status.conditions}}'".format(pod_name)
@@ -48,8 +54,9 @@ def do_run(result_file, num_run, service_file, flavour, warmup=False):
         conditions = run_kubectl_command(kube_cmd, capture_output=True)
         cond_json = json_loads(conditions)
 
-        is_done = all([cond["status"] == "True" for cond in cond_json])
-        if is_done:
+        is_ready = all([cond["status"] == "True" for cond in cond_json])
+        print(f"pod ready: {is_ready}")
+        if is_ready:
             for cond in cond_json:
                 events_ts.append(
                     (
@@ -69,70 +76,91 @@ def do_run(result_file, num_run, service_file, flavour, warmup=False):
             "RunPodSandbox",
             pod_name,
             # lower_bound=start_ts,
+            timeout_mins=None,
         )
         events_ts.append(("StartRunPodSandbox", start_ts_ps))
         events_ts.append(("EndRunPodSandbox", end_ts_ps))
 
         # Work-out the time spent pulling container images
         skip_image_pull = (
-            "docker" in service_file or "kata" in service_file
+            ("docker" in service_file or "kata" in service_file or "coco-nydus-caching" in service_file or "coco-caching" in service_file)
         ) and flavour == "warm"
+
         if skip_image_pull:
             start_ts_pi_srv = end_ts_ps
             end_ts_pi_srv = end_ts_ps
             start_ts_pi_sc = end_ts_ps
             end_ts_pi_sc = end_ts_ps
         else:
-            start_ts_pi_srv, end_ts_pi_srv = get_start_end_ts_for_containerd_event(
-                "PullImage",
-                "coco-helloworld-py",
-                lower_bound=end_ts_ps,
-            )
-            start_ts_pi_sc, end_ts_pi_sc = get_start_end_ts_for_containerd_event(
-                "PullImage",
-                "coco-knative-sidecar",
-                lower_bound=end_ts_ps,
-            )
+            if "docker" in service_file or "kata" in service_file or "coco-caching" in service_file:
+                start_ts_pi_srv, end_ts_pi_srv = get_start_end_ts_for_containerd_event(
+                    "PullImage",
+                    image_name,
+                    lower_bound=end_ts_ps,
+                )
+            elif "coco-nydus-caching" in service_file:
+                start_ts_pi_srv = end_ts_ps
+                end_ts_pi_srv = get_ts_for_containerd_event(
+                    CSG_MAGIC_END.format("(KS-agent) GC Image Pull"), "CSG", start_ts, timeout_mins=None,
+                )
+            else:
+                start_ts_pi_srv = get_ts_for_containerd_event(
+                    CSG_MAGIC_BEGIN.format("(KS-agent) GC Image Pull"), "CSG", start_ts, timeout_mins=None,
+                )
 
+                end_ts_pi_srv = get_ts_for_containerd_event(
+                    CSG_MAGIC_END.format("(KS-agent) GC Image Pull"), "CSG", start_ts, timeout_mins=None,
+                )
+            
         events_ts.append(("StartImagePull_Service", start_ts_pi_srv))
         events_ts.append(("EndImagePull_Service", end_ts_pi_srv))
-
-        events_ts.append(("StartImagePull_Sidecar", start_ts_pi_sc))
-        events_ts.append(("EndImagePull_Sidecar", end_ts_pi_sc))
 
         # Work-out time to create each container
         start_ts_cc_srv, end_ts_cc_srv = get_start_end_ts_for_containerd_event(
             "CreateContainer",
-            "user-container",
-            lower_bound=end_ts_pi_srv,
+            "helloworld-py",
+            lower_bound=start_ts,#end_ts_pi_srv,
+            timeout_mins=None,
         )
         events_ts.append(("StartCreateContainer_Service", start_ts_cc_srv))
         events_ts.append(("EndCreateContainer_Service", end_ts_cc_srv))
 
-        start_ts_cc_sc, end_ts_cc_sc = get_start_end_ts_for_containerd_event(
-            "CreateContainer",
-            "queue-proxy",
-            lower_bound=end_ts_pi_sc,
-        )
-        events_ts.append(("StartCreateContainer_Sidecar", start_ts_cc_sc))
-        events_ts.append(("EndCreateContainer_Sidecar", end_ts_cc_sc))
 
         # Work-out time to start each container
         start_ts_sc_srv, end_ts_sc_srv = get_start_end_ts_for_containerd_event(
             "StartContainer",
-            get_container_id_from_pod(pod_name, "user-container"),
-            lower_bound=end_ts_cc_srv,
+            " ",#get_container_id_from_pod(pod_name, "user-container"),
+            lower_bound=start_ts, #end_ts_cc_srv,
+            timeout_mins=None,
         )
         events_ts.append(("StartStartContainer_Service", start_ts_sc_srv))
         events_ts.append(("EndStartContainer_Service", end_ts_sc_srv))
 
-        start_ts_sc_sc, end_ts_sc_sc = get_start_end_ts_for_containerd_event(
-            "StartContainer",
-            get_container_id_from_pod(pod_name, "queue-proxy"),
-            lower_bound=end_ts_cc_sc,
-        )
-        events_ts.append(("StartStartContainer_Sidecar", start_ts_sc_sc))
-        events_ts.append(("EndStartContainer_Sidecar", end_ts_sc_sc))
+
+
+        if end_to_end:
+            while True:
+                kube_cmd = "get pod {} -o jsonpath='{{..status.conditions}}'".format(pod_name)
+                conditions = run_kubectl_command(kube_cmd, capture_output=True)
+                cond_json = json_loads(conditions)
+                completed = [datetime.fromisoformat(cond["lastTransitionTime"][:-1]).timestamp() 
+                                    for cond in cond_json if "reason" in cond and cond["reason"] == "PodCompleted"]
+
+                if completed:
+                    events_ts.append(("StartEntrypoint", end_ts_sc_srv))
+                    events_ts.append(("EndEntrypoint", sorted(completed)[-1]))
+                    break
+                else:
+                    sleep(2)
+
+        elif entrypoint_keyword is not None:
+            entrypoint_complete = get_event_ts_in_pod_logs(pod_name, entrypoint_keyword)
+            events_ts.append(("StartEntrypoint", end_ts_sc_srv))
+            events_ts.append(("EndEntrypoint", entrypoint_complete))
+
+        else:
+            events_ts.append(("StartEntrypoint", end_ts_sc_srv))
+            events_ts.append(("EndEntrypoint", end_ts_sc_srv))
 
         # Sort the events by timestamp and write them to a file
         events_ts = sorted(events_ts, key=lambda x: x[1])
@@ -152,7 +180,10 @@ def run(ctx, baseline=None):
     This benchmark compares the time required to spin-up a pod (i.e. time for
     the pod to be in `Running` state) as reported by Kubernetes.
     """
+
     baselines_to_run = list(BASELINES.keys())
+
+    baselines_to_run = ["docker"]
     if baseline is not None:
         if baseline not in baselines_to_run:
             print(
@@ -163,69 +194,94 @@ def run(ctx, baseline=None):
             raise RuntimeError("Unrecognised baseline")
         baselines_to_run = [baseline]
 
-    service_template_file = join(APPS_DIR, "startup", "service.yaml.j2")
-    image_name = "csegarragonz/coco-helloworld-py"
-    used_images = ["csegarragonz/coco-knative-sidecar", image_name]
-    num_runs = 3
+    service_template_file = join(APPS_DIR, "startup-ccv8", "deployment.yaml.j2")
+    image_names = ["tf-app-tinybert"]
 
-    results_dir = join(RESULTS_DIR, "startup")
+    entrypoint_keywords = {"node-app": "node server starting", "tf-serving": "Exporting HTTP/REST", "tf-serving-tinybert": "Exporting HTTP/REST", "tf-app": "flask server starting", "tf-app-tinybert": "flask server starting", "fio-benchmark": , "tf-app-tinibert": "flask server starting"}
+
+    used_images = ["fio-benchmark:unencrypted", "fio-benchmark:unencrypted-nydus", "tf-serving:unencrypted", "tf-serving:unencrypted-nydus", "tf-serving-tinybert:blob-cache", "tf-app:unencrypted-nydus", "tf-app:unencrypted","tf-app:blob-cache", "tf-app-tinybert:unencrypted-nydus", "tf-app-tinybert:unencrypted" ,"tf-app-tinybert:blob-cache", "tf-app-tinibert:unencrypted-nydus", "tf-app-tinibert:unencrypted" ,"tf-app-tinibert:blob-cache"]
+    num_runs = 1
+
+    results_dir = join(RESULTS_DIR, "startup-ccv8")
     if not exists(results_dir):
         makedirs(results_dir)
 
     if not exists(EVAL_TEMPLATED_DIR):
         makedirs(EVAL_TEMPLATED_DIR)
 
-    for bline in baselines_to_run:
-        baseline_traits = BASELINES[bline]
 
-        # First, template the service file
-        service_file = join(
-            EVAL_TEMPLATED_DIR, "apps_startup_{}_service.yaml".format(bline)
-        )
-        template_vars = {
-            "image_repo": EXPERIMENT_IMAGE_REPO,
-            "image_name": image_name,
-            "image_tag": baseline_traits["image_tag"],
-        }
-        if len(baseline_traits["runtime_class"]) > 0:
+    for image_name in image_names:
+
+        # Use different results dir for each image name
+        results_image_dir = join(results_dir, image_name)
+        if not exists(results_image_dir):
+            makedirs(results_image_dir)
+
+        end_to_end = is_benchmark[image_name]
+
+        for bline in baselines_to_run:
+
+            baseline_traits = BASELINES[bline]
+
+            # First, template the service file
+            service_file = join(
+                EVAL_TEMPLATED_DIR, "apps_startup_{}_service.yaml".format(bline)
+            )
+            template_vars = {
+                "image_repo": EXPERIMENT_IMAGE_REPO,
+                "image_name": image_name,
+                "image_tag": baseline_traits["image_tag"],
+            }
             template_vars["runtime_class"] = baseline_traits["runtime_class"]
-        template_k8s_file(service_template_file, service_file, template_vars)
+            template_k8s_file(service_template_file, service_file, template_vars)
 
-        # Second, run any baseline-specific set-up
-        setup_baseline(bline, used_images)
+            # Second, run any baseline-specific set-up
+            #setup_baseline(bline, used_images)
 
-        for flavour in BASELINE_FLAVOURS:
-            # Prepare the result file
-            result_file = join(results_dir, "{}_{}.csv".format(bline, flavour))
-            init_csv_file(result_file, "Run,Event,TimeStampMs")
+            for flavour in BASELINE_FLAVOURS:
+                # Prepare the result file
+                result_file = join(results_image_dir, "{}_{}.csv".format(bline, flavour))
+                init_csv_file(result_file, "Run,Event,TimeStampMs")
 
-            if flavour == "warm":
-                print("Executing baseline {} warmup run...".format(bline))
-                do_run(result_file, -1, service_file, flavour, warmup=True)
-                sleep(INTER_RUN_SLEEP_SECS)
-
-            if flavour == "cold":
-                # `cold` happens after `warm`, so we want to clean-up after
-                # all the `warm` runs
-                cleanup_after_run(bline, used_images)
-
-            for nr in range(num_runs):
-                print(
-                    "Executing baseline {} ({}) run {}/{}...".format(
-                        bline, flavour, nr + 1, num_runs
-                    )
-                )
-                do_run(result_file, nr, service_file, flavour)
-                sleep(INTER_RUN_SLEEP_SECS)
+                if flavour == "warm":
+                    print("Executing baseline {} warmup run...".format(bline))
+                    do_run(result_file, image_name, -1, service_file, flavour, end_to_end, entrypoint_keywords[image_name], warmup=True)
+                    #sleep(INTER_RUN_SLEEP_SECS)
 
                 if flavour == "cold":
+                    # `cold` happens after `warm`, so we want to clean-up after
+                    # all the `warm` runs
+                    print("deleting images")
                     cleanup_after_run(bline, used_images)
 
+                for nr in range(num_runs):
+                    print(
+                        "Executing baseline {} ({}) run {}/{}...".format(
+                            bline, flavour, nr + 1, num_runs
+                        )
+                    )
+                    do_run(result_file, image_name, nr, service_file, flavour, end_to_end, entrypoint_keywords[image_name])
+                    sleep(INTER_RUN_SLEEP_SECS)
+
+                    if flavour == "cold":
+                        cleanup_after_run(bline, used_images)
+                
+                print("finished run")
+                sleep(15)
 
 @task
 def plot(ctx):
-    results_dir = join(RESULTS_DIR, "startup")
-    plots_dir = join(PLOTS_DIR, "startup")
+
+    image_name = "tf-app-tinybert"
+    results_dir = join(RESULTS_DIR, "startup-ccv8", image_name)
+
+    if not exists(results_dir):
+        makedirs(results_dir)
+
+
+    plots_dir = join(PLOTS_DIR, "startup-ccv8", image_name)
+    if not exists(plots_dir):
+        makedirs(plots_dir)
 
     glob_str = join(results_dir, "*.csv")
     results_dict = {}
@@ -235,6 +291,7 @@ def plot(ctx):
 
         if baseline not in results_dict:
             results_dict[baseline] = {}
+
 
         results_dict[baseline][flavour] = {}
         results = read_csv(csv)
@@ -249,6 +306,9 @@ def plot(ctx):
             }
 
     # Useful maps to plot the experiments
+
+    del results_dict["coco-nydus-caching"]
+
     pattern_for_flavour = {"warm": "//", "cold": "."}
     ordered_events = {
         "pod-scheduling": ("Start", "StartRunPodSandbox"),
@@ -256,6 +316,8 @@ def plot(ctx):
         "image-pull": ("StartImagePull", "EndImagePull"),
         "create-container": ("StartCreateContainer", "EndCreateContainer"),
         "start-container": ("StartCreateContainer", "EndCreateContainer"),
+        #"execute-job": ("StartContainerJob", "EndContainerJob"),
+        "execute-entrypoint": ("StartEntrypoint", "EndEntrypoint"),
     }
     color_for_event = {
         "pod-scheduling": "green",
@@ -263,6 +325,8 @@ def plot(ctx):
         "image-pull": "orange",
         "create-container": "yellow",
         "start-container": "red",
+        #"execute-job": "purple",
+        "execute-entrypoint": "aquamarine"
     }
     assert list(color_for_event.keys()) == list(ordered_events.keys())
 
@@ -271,7 +335,8 @@ def plot(ctx):
     # --------------------------
 
     fig, ax = subplots()
-    xlabels = list(BASELINES.keys())
+    xlabels = list(results_dict.keys())
+
     xs = range(len(xlabels))
     num_flavours = len(BASELINE_FLAVOURS)
     space_between_baselines = 0.2
@@ -296,8 +361,9 @@ def plot(ctx):
                 # We calculate the event duration as the mean of the
                 # differences, not the difference of the mean (eventually
                 # consider if something like the median is more significant)
-                if ev in ["pod-scheduling", "make-pod-sandbox"]:
-                    # For the pod-scheduling and make-pod-sandbox event we
+                if ev in ["pod-scheduling", "make-pod-sandbox", "execute-job", "execute-entrypoint"]:
+                    # For the pod-scheduling, make-pod-sandbox, execute-job and 
+                    # execute-job and execute-entrypoint event we
                     # only have one start/end timestamp pair
                     event_duration = np_mean(
                         np_array(results_dict[b][flavour][end_ev]["list"])
@@ -308,7 +374,7 @@ def plot(ctx):
                     # containers) we have two timestamp pairs: one for the
                     # service container, and one for the sidecar
                     event_duration = 0
-                    for i in ["Service", "Sidecar"]:
+                    for i in ["Service"]:
                         event_duration += np_mean(
                             np_array(
                                 results_dict[b][flavour]["{}_{}".format(end_ev, i)][
@@ -365,7 +431,7 @@ def plot(ctx):
     ax.set_ylabel("Time [s]")
     ax.set_title(
         "End-to-end latency to start a pod\n(cold start='{}' - warm start='{}')".format(
-            pattern_for_flavour["cold"], pattern_for_flavour["warm"]
+            pattern_for_flavour["cold"], 0
         )
     )
 
@@ -383,7 +449,7 @@ def plot(ctx):
     # Pie chart breaking down the execution time of one baseline
     # --------------------------
 
-    baseline = "coco-fw-sig-enc"
+    baseline = "coco"
     flavour = "cold"
     fig, ax = subplots()
 
@@ -393,7 +459,7 @@ def plot(ctx):
     for ev in labels:
         start_ev = ordered_events[ev][0]
         end_ev = ordered_events[ev][1]
-        if ev in ["pod-scheduling", "make-pod-sandbox"]:
+        if ev in ["pod-scheduling", "make-pod-sandbox", "execute-job", "execute-entrypoint"]:
             event_durations.append(
                 np_mean(
                     np_array(results_dict[baseline][flavour][end_ev]["list"])
@@ -402,7 +468,7 @@ def plot(ctx):
             )
             event_labels.append(ev)
         else:
-            for i in ["Service", "Sidecar"]:
+            for i in ["Service"]:
                 event_durations.append(
                     np_mean(
                         np_array(

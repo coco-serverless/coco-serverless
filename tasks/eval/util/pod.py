@@ -68,11 +68,20 @@ def get_event_ts_in_pod_logs(pod_name, keyword):
     cmd = ["kubectl", "logs", "-f", pod_name]
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
+    def parse_timestamp(line):
+        parts = line.split()
+        print(parts)
+        timestamp_str = parts[0] + " " + parts[1][:-1]
+        try:
+            timestamp = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S.%f")
+        except ValueError:
+            timestamp = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
+        return timestamp.timestamp()
+
     while True:
         line = process.stdout.readline()
         if line:
             if keyword in line:
-                timestamp = line.split()[0] + " " + line.split()[1][:-1]
-                return datetime.fromisoformat(timestamp).timestamp()
+                return parse_timestamp(line)
         else:
-            time.sleep(1) 
+            time.sleep(1)

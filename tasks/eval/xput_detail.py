@@ -66,14 +66,6 @@ def do_run(result_file, baseline, image_name, num_run, num_par_inst, end_to_end=
 
     while not is_done:
         def is_pod_ready(pod_name):
-            # kube_cmd = "get pod {} -o jsonpath='{{..status.conditions}}'".format(
-            #      pod_name
-            #  )
-            # conditions = run_kubectl_command(kube_cmd, capture_output=True)
-            # cond_json = json_loads(conditions)
-
-            # return all([cond["status"] == "True" for cond in cond_json])
-
             kube_cmd = "get pod {} -o jsonpath=\"{{.status.containerStatuses[?(@.name=='user-container')]}}\"".format(
                 pod_name
             )
@@ -129,10 +121,6 @@ def do_run(result_file, baseline, image_name, num_run, num_par_inst, end_to_end=
             
             conditions = run_kubectl_command(kube_cmd, capture_output=True)
             cond_json = json_loads(conditions)
-
-            # assert all(
-            #     [cond["status"] == "True" for cond in cond_json]
-            # ), "Pod {} is not ready".format(pod_name)
 
             for cond in cond_json:
                 events_ts.append(
@@ -242,7 +230,7 @@ def run(ctx, repo=None):
     Measure the costs associated with starting a fixed number of concurrent
     services
     """
-    baselines_to_run = ["coco-nydus-caching"]#, "coco-nydus", "coco-nydus-caching"]
+    baselines_to_run = ["coco-nydus-caching"]
     sidecar_image = "gcr.io/knative-releases/knative.dev/serving/cmd/queue@sha256:987f53e3ead58627e3022c8ccbb199ed71b965f10c59485bab8015ecf18b44af"
     num_parallel_instances = [1, 2, 4, 8, 12]
     num_runs = 1
@@ -265,15 +253,14 @@ def run(ctx, repo=None):
     image_repos = [EXPERIMENT_IMAGE_REPO]
     image_names = ["tf-app-tinybert"]
 
-    time_end_to_end = {"node-app": False, "tf-serving": False, "tf-serving-tinybert": False, "tf-app": False, "tf-app-tinybert": False, "tf-app-tinibert": False, "fio-benchmark": True}
-    entrypoint_keywords = {"node-app": "node server starting", "tf-serving": "Exporting HTTP/REST", "tf-serving-tinybert": "Exporting HTTP/REST", "tf-app": "flask server starting", "tf-app-tinybert": "flask server starting", "tf-app-tinibert": "flask server starting", "fio-benchmark": None}
+    time_end_to_end = {"node-app": False, "tf-serving": False, "tf-serving-tinybert": False, "tf-app": False, "tf-app-tinybert": False, "tf-app-tinibert": False, "fio-benchmark": False}
+    entrypoint_keywords = {"node-app": "node server starting", "tf-serving": "Exporting HTTP/REST", "tf-serving-tinybert": "Exporting HTTP/REST", "tf-app": "flask server starting", "tf-app-tinybert": "flask server starting", "tf-app-tinibert": "flask server starting", "fio-benchmark": "FIO end timestamp"}
 
     used_images = ["knative/serving/cmd/queue:unencrypted", "knative/serving/cmd/queue:unencrypted-nydus", "fio-benchmark:unencrypted", "fio-benchmark:unencrypted-nydus", "tf-serving:unencrypted", "tf-serving:unencrypted-nydus", "tf-serving-tinybert:blob-cache", "tf-app:unencrypted-nydus", "tf-app:unencrypted","tf-app:blob-cache", "tf-app-tinybert:unencrypted-nydus", "tf-app-tinybert:unencrypted", "tf-app-tinybert:blob-cache",  "tf-app-tinibert:unencrypted-nydus", "tf-app-tinibert:unencrypted", "tf-app-tinibert:blob-cache"]
 
     sidecar_image = "knative/serving/cmd/queue"
 
     for image_repo in image_repos:           
-        #replace_sidecar(repo=image_repo, quiet=True)
 
         for image_name in image_names:
 
@@ -294,8 +281,7 @@ def run(ctx, repo=None):
 
                 # update the sidecar image deployment file
                 sidecar_image_tag = "unencrypted-nydus" if "nydus" in bline else "unencrypted"
-                sidecar_image_repo = "external-registry.coco-csg.com"
-                update_sidecar_deployment(sidecar_image_repo, sidecar_image, sidecar_image_tag)
+                update_sidecar_deployment(EXPERIMENT_IMAGE_REPO, sidecar_image, sidecar_image_tag)
 
                 # Template as many service files as parallel instances
                 for i in range(max(num_parallel_instances)):
@@ -303,7 +289,6 @@ def run(ctx, repo=None):
                     service_file = join(
                         service_templated_dir,
                         "apps_xput-detail_{}_service_{}.yaml".format(
-                            #image_repo, bline, i
                             bline, i
                         ),
                     )
@@ -323,7 +308,6 @@ def run(ctx, repo=None):
                 for num_par in num_parallel_instances:
                     # Prepare the result file
                     result_file = join(
-                        #results_dir, "{}_{}_{}.csv".format(image_repo, bline, num_par)
                         results_image_dir, "{}_{}.csv".format(bline, num_par)
                     )
                     init_csv_file(result_file, "ServiceId,Event,TimeStampSecs")
@@ -337,7 +321,7 @@ def run(ctx, repo=None):
                         do_run(result_file, bline, image_name, nr, num_par, end_to_end, entrypoint_keyword)
                         sleep(INTER_RUN_SLEEP_SECS)
                         print("starting cleanup")
-                        #cleanup_after_run(bline, used_images)
+                        cleanup_after_run(bline, used_images)
                         print("finished cleanup")
                         sleep(10)
 
@@ -359,8 +343,6 @@ def plot(ctx):
     plots_dir = join(PLOTS_DIR, "xput-detail", image_name)
     if not exists(plots_dir):
         makedirs(plots_dir)
-
-    #results_file = join(results_dir, "{}_{}.csv".format(baseline, num_par_instances))
 
     # Collect results
     results_dict = {}
