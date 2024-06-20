@@ -6,6 +6,7 @@ from tasks.util.kubeadm import (
     wait_for_pods_in_ns,
 )
 from time import sleep
+from subprocess import run, CalledProcessError
 
 OPERATOR_GITHUB_URL = "github.com/confidential-containers/operator"
 OPERATOR_NAMESPACE = "confidential-containers-system"
@@ -100,3 +101,4 @@ def uninstall_cc_runtime(ctx):
         "default?ref=v{}".format(COCO_RELEASE_VERSION),
     )
     run_kubectl_command("delete -k {}".format(cc_runtime_url))
+

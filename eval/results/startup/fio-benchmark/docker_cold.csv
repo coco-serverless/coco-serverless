@@ -1,0 +1,16 @@
+Run,Event,TimeStampMs
+0,Initialized,1718759457.0
+0,PodScheduled,1718759457.0
+0,Start,1718759457.7654197
+0,StartRunPodSandbox,1718759458.252726
+0,EndRunPodSandbox,1718759458.405824
+0,StartImagePull_Service,1718759458.407994
+0,Ready,1718759486.0
+0,ContainersReady,1718759486.0
+0,EndImagePull_Service,1718759486.14738
+0,StartCreateContainer_Service,1718759486.148997
+0,EndCreateContainer_Service,1718759486.155476
+0,StartStartContainer_Service,1718759486.155796
+0,EndStartContainer_Service,1718759486.227724
+0,StartEntrypoint,1718759486.227724
+0,EndEntrypoint,1718759501.0

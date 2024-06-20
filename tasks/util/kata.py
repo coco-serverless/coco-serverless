@@ -106,8 +106,8 @@ def replace_agent(
     )
     ctr_lib_path = join(KATA_SOURCE_DIR, "tools", "osbuilder", "scripts", "lib.sh")
     initrd_builder_path = join(kata_tmp_scripts, "initrd-builder", "initrd_builder.sh")
-    #copy_from_kata_workon_ctr(ctr_initrd_builder_path, initrd_builder_path)
-    #copy_from_kata_workon_ctr(ctr_lib_path, join(kata_tmp_scripts, "scripts", "lib.sh"))
+    copy_from_kata_workon_ctr(ctr_initrd_builder_path, initrd_builder_path)
+    copy_from_kata_workon_ctr(ctr_lib_path, join(kata_tmp_scripts, "scripts", "lib.sh"))
     work_env = {"AGENT_INIT": "yes"}
     initrd_pack_cmd = "sudo {} -o {} {}".format(
         initrd_builder_path,

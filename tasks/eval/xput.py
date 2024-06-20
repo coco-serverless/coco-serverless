@@ -196,8 +196,8 @@ def run(ctx, baseline=None, num_par=None):
     image_repos = [EXPERIMENT_IMAGE_REPO]
     image_names = ["tf-app-tinybert"]
 
-    time_end_to_end = {"node-app": False, "tf-serving": False, "tf-serving-tinybert": False, "tf-app": False, "tf-app-tinybert": False,  "fio-benchmark": True}
-    entrypoint_keywords = {"node-app": "node server starting", "tf-serving": "Exporting HTTP/REST", "tf-serving-tinybert": "Exporting HTTP/REST", "tf-app": "flask server starting", "tf-app-tinybert": "flask server starting", "fio-benchmark": None}
+    time_end_to_end = {"node-app": False, "tf-serving": False, "tf-serving-tinybert": False, "tf-app": False, "tf-app-tinybert": False,  "fio-benchmark": False}
+    entrypoint_keywords = {"node-app": "node server starting", "tf-serving": "Exporting HTTP/REST", "tf-serving-tinybert": "Exporting HTTP/REST", "tf-app": "flask server starting", "tf-app-tinybert": "flask server starting", "fio-benchmark": "FIO end timestamp"}
 
     used_images = ["knative/serving/cmd/queue:unencrypted", "knative/serving/cmd/queue:unencrypted-nydus", "fio-benchmark:unencrypted", "fio-benchmark:unencrypted-nydus", "tf-serving:unencrypted", "tf-serving:unencrypted-nydus", "tf-serving-tinybert:blob-cache", "tf-app:unencrypted-nydus", "tf-app:unencrypted","tf-app:blob-cache", "tf-app-tinybert:unencrypted-nydus", "tf-app-tinybert:unencrypted", "tf-app-tinybert:blob-cache"]
 
@@ -259,7 +259,7 @@ def run(ctx, baseline=None, num_par=None):
                         do_run(result_file, bline, image_name, nr, num_par, end_to_end, entrypoint_keyword)
                         sleep(INTER_RUN_SLEEP_SECS)
                         print("starting cleanup")
-                        #cleanup_after_run(bline, used_images)
+                        cleanup_after_run(bline, used_images)
                         print("finished cleanup")
                         sleep(10)
 

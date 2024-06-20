@@ -41,19 +41,19 @@ def start(ctx, external_ip=None):
     If external_ip is provided, create a container image embedded with certs
     and push to a private registry, intended to be pulled from machine with ip "external_ip"
     """
-    this_ip = get_node_url()
+    # this_ip = get_node_url()
 
-    kube_cmd = (
-    "-n knative-serving create secret generic {} --from-file=ca.crt={}".format(
-        K8S_SECRET_NAME, HOST_CERT_PATH
-    )
-    )
-    run_kubectl_command(kube_cmd)
+    # kube_cmd = (
+    # "-n knative-serving create secret generic {} --from-file=ca.crt={}".format(
+    #     K8S_SECRET_NAME, HOST_CERT_PATH
+    # )
+    # )
+    # run_kubectl_command(kube_cmd)
 
-    # Second, patch the controller deployment
-    configure_self_signed_certs(HOST_CERT_PATH, K8S_SECRET_NAME)
+    # # Second, patch the controller deployment
+    # configure_self_signed_certs(HOST_CERT_PATH, K8S_SECRET_NAME)
 
-    return 0
+    # return 0
     #
 
     # ----------

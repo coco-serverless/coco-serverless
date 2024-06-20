@@ -197,7 +197,7 @@ def run(ctx, baseline=None):
     service_template_file = join(APPS_DIR, "startup-ccv8", "deployment.yaml.j2")
     image_names = ["tf-app-tinybert"]
 
-    entrypoint_keywords = {"node-app": "node server starting", "tf-serving": "Exporting HTTP/REST", "tf-serving-tinybert": "Exporting HTTP/REST", "tf-app": "flask server starting", "tf-app-tinybert": "flask server starting", "fio-benchmark": , "tf-app-tinibert": "flask server starting"}
+    entrypoint_keywords = {"node-app": "node server starting", "tf-serving": "Exporting HTTP/REST", "tf-serving-tinybert": "Exporting HTTP/REST", "tf-app": "flask server starting", "tf-app-tinybert": "flask server starting", "fio-benchmark": "FIO end timestamp", "tf-app-tinibert": "flask server starting"}
 
     used_images = ["fio-benchmark:unencrypted", "fio-benchmark:unencrypted-nydus", "tf-serving:unencrypted", "tf-serving:unencrypted-nydus", "tf-serving-tinybert:blob-cache", "tf-app:unencrypted-nydus", "tf-app:unencrypted","tf-app:blob-cache", "tf-app-tinybert:unencrypted-nydus", "tf-app-tinybert:unencrypted" ,"tf-app-tinybert:blob-cache", "tf-app-tinibert:unencrypted-nydus", "tf-app-tinibert:unencrypted" ,"tf-app-tinibert:blob-cache"]
     num_runs = 1
