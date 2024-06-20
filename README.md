@@ -100,6 +100,14 @@ inv nydus-snapshotter.populate_host_sharing_config
 inv nydus-snapshotter.toggle_mode --hybrid
 ```
 
+Finally, the private nyuds imag and the public blob-cache image can be generated using the command:
+```bash
+inv hybrid.generate-images --image-name your_image_name --workdir /path/to/workdir
+```
+
+This assume that workdir is populated with the whole image Dockefile,, and the public/ directory is populated with the Dockerflie that includes the public layers.
+
+The script will push two images to the external registry, one with tag `unencrypted-nydus`, and the other with tag `blob-cache`.
 
 ## Evaluation
 
