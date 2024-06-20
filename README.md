@@ -81,7 +81,7 @@ inv knative.install
 
 In order to enable the CoCo-Hybrid mode, the following configuration steps need to be taken:
 
-Our customised nydus-snapshotter binary, linux Kernel and VM initrd image. These can be installed using the following command:
+Our customised nydus-snapshotter binary, linux Kernel and VM initrd image are necessary. These can be installed using the following command:
 
 ```bash
 inv hybrid.install-cc-hybrid-deps
