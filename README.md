@@ -2,7 +2,7 @@
 
 This is project is an extention of the [coco-serverless](https://github.com/coco-serverless/coco-serverless/edit/main/README.md) repository. The original repository has the goal to deploy [Knative](https://knative.dev/docs/) on [CoCo](https://github.com/confidential-containers) and run some baseline benchmarks. This project extends its functionality, introducing our custom CoCo implementation with an imporved image pulling mechanism (CoCo-Hybrid). This repository hosts benchmarks for CoCo-Hybrid, providing a means to compare with previously established baselines. 
 
-Our CoCo-hybrid mode makes ajustments so several of the CoCo components. The adjusted compontnets are found in the following branches of our forked repositories:
+Our CoCo-hybrid mode makes adjustments so several of the CoCo components. The adjusted components are found in the following branches of our forked repositories:
 * [Nydus-snapshotter](https://github.com/konsougiou/nydus-snapshotter/tree/ks-main-0.13.3)
 * [kata-containers](https://github.com/coco-serverless/kata-containers/tree/ks-prod)
 * [guest-components](https://github.com/coco-serverless/guest-components/tree/KS-prod)
