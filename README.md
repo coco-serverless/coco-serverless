@@ -93,11 +93,11 @@ The kata configs can then be adjusted to point to the nre kernel and initrd usin
 inv hybrid.update-configs
 ```
 
-Additionally, in ordert to configure the snapshotter to be in our hybrid mode the following commands can be run:
+Additionally, in order to configure the snapshotter to operate in our hybrid modem the following commands should be run:
 
 ```bash
-inv nydus-snapshotter.populate_host_sharing_config
-inv nydus-snapshotter.toggle_mode --hybrid
+inv nydus-snapshotter.populate-host-sharing-config
+inv nydus-snapshotter.toggle-mode --hybrid
 ```
 
 Finally, the private nyuds imag and the public blob-cache image can be generated using the command:
