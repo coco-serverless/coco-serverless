@@ -1,6 +1,7 @@
 [submodule "components/simple-kbs"]
 	path = components/simple-kbs
-	url = https://github.com/csegarragonz/simple-kbs.git
+	url = https://github.com/coco-serverless/simple-kbs.git
+	branch = sc2-main
 [submodule "components/guest-components"]
 	path = components/guest-components
 	url = https://github.com/coco-serverless/guest-components
