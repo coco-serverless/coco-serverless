@@ -147,7 +147,7 @@ def replace_agent(
     # the same relative directory structure (cuz bash).
     kata_tmp_scripts = "/tmp/osbuilder"
     run(
-        "rm -f {} && mkdir -p {} {}".format(
+        "rm -rf {} && mkdir -p {} {}".format(
             kata_tmp_scripts,
             join(kata_tmp_scripts, "scripts"),
             join(kata_tmp_scripts, "initrd-builder"),
