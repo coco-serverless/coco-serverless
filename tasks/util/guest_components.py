@@ -1,6 +1,6 @@
 from os.path import join
 from subprocess import run
-from tasks.util.env import COMPONENTS_DIR, PROJ_ROOT
+from tasks.util.env import COMPONENTS_DIR
 from time import sleep
 
 GUEST_COMPONENTS_DIR = join(COMPONENTS_DIR, "guest-components")

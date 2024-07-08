@@ -9,4 +9,4 @@ of the guest components. See `inv -l gc` for more details.
 
 Second, push the changes to a git branch or repo. Then you can reference it
 inside the `Cargo` file for the Kata Agent [here](
-https://github.com/csegarragonz/kata-containers/blob/csg-main/src/agent/Cargo.toml#L74).
+https://github.com/coco-serverless/kata-containers/blob/csg-main/src/agent/Cargo.toml#L74).
