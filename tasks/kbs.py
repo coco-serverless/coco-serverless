@@ -1,6 +1,7 @@
 from invoke import task
-from os.path import exists
+from os.path import exists, join
 from subprocess import run
+from tasks.util.env import GHCR_URL
 from tasks.util.kbs import (
     SIMPLE_KBS_DIR,
     SIGNATURE_POLICY_NONE,
@@ -9,11 +10,55 @@ from tasks.util.kbs import (
     provision_launch_digest as do_provision_launch_digest,
 )
 
+SIMPLE_KBS_SERVER_IMAGE_NAME = join(GHCR_URL, "simple-kbs-server:latest")
+COMPOSE_ENV = {"SIMPLE_KBS_IMAGE": SIMPLE_KBS_SERVER_IMAGE_NAME}
+
 
 def check_kbs_dir():
     if not exists(SIMPLE_KBS_DIR):
         print("Error: could not find local KBS checkout at {}".format(SIMPLE_KBS_DIR))
+        print(
+            "Have you initialized the git submodules?"
+            "Run: git submodule update --init"
+        )
         raise RuntimeError("Simple KBS local checkout not found!")
+
+    target_dir = join(SIMPLE_KBS_DIR, "target")
+    if not exists(target_dir):
+        print("Populating {} with the pre-compiled binaries...".format(target_dir))
+        tmp_ctr_name = "simple-kbs-workon"
+        docker_cmd = "docker run -d --entrypoint bash --name {} {}".format(
+            tmp_ctr_name, SIMPLE_KBS_SERVER_IMAGE_NAME
+        )
+        run(docker_cmd, shell=True, check=True)
+
+        cp_cmd = "docker cp {}:/usr/src/simple-kbs/target {}".format(
+            tmp_ctr_name, target_dir
+        )
+        run(cp_cmd, shell=True, check=True)
+
+        run("docker rm -f {}".format(tmp_ctr_name), shell=True, check=True)
+
+
+@task
+def build(ctx, push=False):
+    """
+    Build the simple-kbs image
+    """
+    docker_cmd = "docker build -t {} -f {} {}".format(
+        SIMPLE_KBS_SERVER_IMAGE_NAME,
+        join(SIMPLE_KBS_DIR, "Dockerfile.simple-kbs"),
+        SIMPLE_KBS_DIR,
+    )
+
+    run(docker_cmd, shell=True, check=True)
+
+    if push:
+        run(
+            "docker push {}".format(SIMPLE_KBS_SERVER_IMAGE_NAME),
+            shell=True,
+            check=True,
+        )
 
 
 @task
@@ -28,8 +73,15 @@ def cli(ctx):
         shell=True,
         check=True,
         cwd=SIMPLE_KBS_DIR,
+        env=COMPOSE_ENV,
     )
-    run("docker compose exec -it cli bash", shell=True, check=True, cwd=SIMPLE_KBS_DIR)
+    run(
+        "docker compose exec -it cli bash",
+        shell=True,
+        check=True,
+        cwd=SIMPLE_KBS_DIR,
+        env=COMPOSE_ENV,
+    )
 
 
 @task
@@ -38,7 +90,13 @@ def restart(ctx):
     Start the simple KBS service
     """
     check_kbs_dir()
-    run("docker compose restart server", shell=True, check=True, cwd=SIMPLE_KBS_DIR)
+    run(
+        "docker compose restart server",
+        shell=True,
+        check=True,
+        cwd=SIMPLE_KBS_DIR,
+        env=COMPOSE_ENV,
+    )
 
 
 @task
@@ -47,7 +105,13 @@ def start(ctx):
     Start the simple KBS service
     """
     check_kbs_dir()
-    run("docker compose up -d server", shell=True, check=True, cwd=SIMPLE_KBS_DIR)
+    run(
+        "docker compose up -d server",
+        shell=True,
+        check=True,
+        cwd=SIMPLE_KBS_DIR,
+        env=COMPOSE_ENV,
+    )
 
 
 @task
@@ -56,7 +120,13 @@ def stop(ctx):
     Stop the simple KBS service
     """
     check_kbs_dir()
-    run("docker compose down", shell=True, check=True, cwd=SIMPLE_KBS_DIR)
+    run(
+        "docker compose down",
+        shell=True,
+        check=True,
+        cwd=SIMPLE_KBS_DIR,
+        env=COMPOSE_ENV,
+    )
 
 
 @task
