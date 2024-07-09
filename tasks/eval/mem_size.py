@@ -17,6 +17,7 @@ from tasks.eval.util.env import (
     RESULTS_DIR,
     GITHUB_USER,
 )
+from tasks.eval.util.pod import wait_for_pod_ready_and_get_ts
 from tasks.eval.util.setup import setup_baseline
 from tasks.util.k8s import template_k8s_file
 from tasks.util.kata import get_default_vm_mem_size, update_vm_mem_size
