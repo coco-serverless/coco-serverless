@@ -15,6 +15,7 @@ from tasks.eval.util.env import (
     INTER_RUN_SLEEP_SECS,
     RESULTS_DIR,
     PLOTS_DIR,
+    GITHUB_USER,
 )
 from tasks.eval.util.pod import (
     get_sandbox_id_from_pod_name,
@@ -184,8 +185,8 @@ def run(ctx, baseline=None):
         baselines_to_run = [baseline]
 
     service_template_file = join(APPS_DIR, "ovmf-detail", "service.yaml.j2")
-    image_name = "csegarragonz/coco-helloworld-py"
-    used_images = ["csegarragonz/coco-knative-sidecar", image_name]
+    image_name = f"{GITHUB_USER}/coco-helloworld-py"
+    used_images = [f"{GITHUB_USER}/coco-knative-sidecar", image_name]
     num_runs = 1
 
     results_dir = join(RESULTS_DIR, "ovmf-detail")

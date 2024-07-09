@@ -15,6 +15,7 @@ from tasks.eval.util.env import (
     INTER_RUN_SLEEP_SECS,
     RESULTS_DIR,
     PLOTS_DIR,
+    GITHUB_USER,
 )
 from tasks.eval.util.pod import wait_for_pod_ready_and_get_ts
 from tasks.eval.util.setup import setup_baseline
@@ -27,7 +28,7 @@ from tasks.util.kubeadm import get_pod_names_in_ns, run_kubectl_command
 from time import sleep, time
 
 
-USED_IMAGES = ["csegarragonz/coco-knative-sidecar", "csegarragonz/coco-helloworld-py"]
+USED_IMAGES = [f"{GITHUB_USER}/coco-knative-sidecar", f"{GITHUB_USER}/coco-helloworld-py"]
 CSG_MAGIC_BEGIN = "CSG-M4GIC: B3G1N: {}"
 CSG_MAGIC_END = "CSG-M4GIC: END: {}"
 

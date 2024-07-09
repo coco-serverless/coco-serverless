@@ -12,6 +12,7 @@ RESULTS_DIR = join(EVAL_ROOT, "results")
 # this easily. Note that the image, signatures, and encrypted layers _already_
 # live in any container registry before we run the experiment
 EXPERIMENT_IMAGE_REPO = "ghcr.io"
+GITHUB_USER = "coco-serverless"
 
 INTER_RUN_SLEEP_SECS = 1
 
@@ -104,6 +105,6 @@ BASELINE_FLAVOURS = ["warm", "cold"]
 # Note that this ID depends on the image digest, and will change if we change
 # the image
 IMAGE_TO_ID = {
-    "csegarragonz/coco-helloworld-py": "e84d0530bcded",
-    "csegarragonz/coco-knative-sidecar": "b7c9cff267c66",
+    f"{GITHUB_USER}/coco-helloworld-py": "e84d0530bcded",
+    f"{GITHUB_USER}/coco-knative-sidecar": "b7c9cff267c66",
 }
