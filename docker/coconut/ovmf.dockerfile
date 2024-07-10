@@ -7,8 +7,8 @@ RUN apt update \
         git \
     && apt build-dep ovmf -y
 
-RUN git clone https://github.com/coconut-svsm/edk2.git \
-    && cd edk2/ \
+RUN git clone https://github.com/coconut-svsm/edk2.git ~/edk2\
+    && cd ~/edk2/ \
     && git checkout svsm \
     && git submodule init \
     && git submodule update \

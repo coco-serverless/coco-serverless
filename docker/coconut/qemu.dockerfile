@@ -30,12 +30,12 @@ RUN apt update \
 
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 RUN . "$HOME/.cargo/env" \
-    && git clone --branch igvm-v0.1.6 https://github.com/microsoft/igvm/ \
-    && cd igvm \
+    && git clone --branch igvm-v0.1.6 https://github.com/microsoft/igvm/ ~/igvm \
+    && cd ~/igvm \
     && make -f igvm_c/Makefile \
     && make -f igvm_c/Makefile install 
-RUN git clone https://github.com/coconut-svsm/qemu \
-    && cd qemu \
+RUN git clone https://github.com/coconut-svsm/qemu ~/qemu \
+    && cd ~/qemu \
     && git checkout svsm-igvm \
     && export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/lib64/pkgconfig/ \
     && ./configure --prefix=$HOME/bin/qemu-svsm/ --target-list=x86_64-softmmu --enable-igvm \

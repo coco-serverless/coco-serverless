@@ -15,6 +15,9 @@ RUN apt update \
         pkg-config \
         libclang-dev 
 
+
+COPY {FIRMWARE_FILE} ~/ovmf-svsm.fd
+
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y \
     && . "$HOME/.cargo/env" \
     && rustup target add x86_64-unknown-none \
@@ -22,4 +25,4 @@ RUN curl https://sh.rustup.rs -sSf | sh -s -- -y \
     && cd ~/svsm \
     && git submodule update --init \
     && cargo install bindgen-cli \
-    && FW_FILE=${FIRMWARE_FILE} make RELEASE=1
+    && FW_FILE=~/ovmf-svsm.fd make RELEASE=1
