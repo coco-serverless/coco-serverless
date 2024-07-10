@@ -1,12 +1,12 @@
 from os.path import join
 from subprocess import run
 from tasks.util.cosign import sign_container_image
-from tasks.util.env import LOCAL_REGISTRY_URL
+from tasks.util.env import LOCAL_REGISTRY_URL, GITHUB_USER
 from tasks.util.skopeo import encrypt_container_image
 
 ALL_USED_IMAGES = {
-    "csegarragonz/coco-knative-sidecar": {"unencrypted"},
-    "csegarragonz/coco-helloworld-py": {"unencrypted", "encrypted"},
+    f"{GITHUB_USER}/coco-knative-sidecar": {"unencrypted"},
+    f"{GITHUB_USER}/coco-helloworld-py": {"unencrypted", "encrypted"},
 }
 
 ALL_CTR_REGISTRIES = ["ghcr.io", LOCAL_REGISTRY_URL]

@@ -1,7 +1,7 @@
 from invoke import task
 from os.path import join
 from subprocess import run
-from tasks.util.env import APPS_SOURCE_DIR
+from tasks.util.env import APPS_SOURCE_DIR, GITHUB_USER
 
 APP_LIST = {"helloworld-py": join(APPS_SOURCE_DIR, "helloworld-py")}
 
@@ -23,7 +23,7 @@ def build(ctx, app=None, nocache=False):
 
     for app_name in app:
         app_path = APP_LIST[app_name]
-        docker_tag = join("csegarragonz", "coco-{}".format(app_name))
+        docker_tag = join(GITHUB_USER, "coco-{}".format(app_name))
 
         # First, build the image
         docker_cmd = [

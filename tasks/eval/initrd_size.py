@@ -16,6 +16,7 @@ from tasks.eval.util.env import (
     INTER_RUN_SLEEP_SECS,
     PLOTS_DIR,
     RESULTS_DIR,
+    GITHUB_USER,
 )
 from tasks.eval.util.pod import wait_for_pod_ready_and_get_ts
 from tasks.eval.util.setup import cleanup_baseline, setup_baseline
@@ -134,8 +135,8 @@ def run(ctx, baseline=None, initrd_size_mult=None):
         makedirs(EVAL_TEMPLATED_DIR)
 
     service_template_file = join(APPS_DIR, "initrd-size", "service.yaml.j2")
-    image_name = "csegarragonz/coco-helloworld-py"
-    used_images = ["csegarragonz/coco-knative-sidecar", image_name]
+    image_name = f"{GITHUB_USER}/coco-helloworld-py"
+    used_images = [f"{GITHUB_USER}/coco-knative-sidecar", image_name]
     num_runs = 1
 
     # Get the default memory size (we always read it from the SEV initrd)

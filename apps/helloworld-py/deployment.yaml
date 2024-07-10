@@ -18,7 +18,7 @@ spec:
       runtimeClassName: kata-qemu-sev
       containers:
       - name: helloworld-py
-        image: ghcr.io/csegarragonz/coco-helloworld-py:unencrypted
+        image: ghcr.io/coco-serverless/coco-helloworld-py:unencrypted
         imagePullPolicy: Always
         ports:
         - containerPort: 8080

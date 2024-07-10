@@ -16,6 +16,7 @@ from tasks.eval.util.env import (
     INTER_RUN_SLEEP_SECS,
     PLOTS_DIR,
     RESULTS_DIR,
+    GITHUB_USER,
 )
 from tasks.eval.util.setup import setup_baseline
 from tasks.util.containerd import get_ts_for_containerd_event
@@ -166,8 +167,8 @@ def run(ctx, repo=None):
         makedirs(EVAL_TEMPLATED_DIR)
 
     service_template_file = join(APPS_DIR, "xput-detail", "service.yaml.j2")
-    image_name = "csegarragonz/coco-helloworld-py"
-    used_images = ["csegarragonz/coco-knative-sidecar", image_name]
+    image_name = f"{GITHUB_USER}/coco-helloworld-py"
+    used_images = [f"{GITHUB_USER}/coco-knative-sidecar", image_name]
 
     for image_repo in image_repos:
         replace_sidecar(image_repo=image_repo, quiet=True)

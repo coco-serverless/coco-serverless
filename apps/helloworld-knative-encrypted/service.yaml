@@ -16,7 +16,7 @@ spec:
       securityContext:
         runAsUser: 1000
       containers:
-        - image: csegarragonz/coco-helloworld-py:encrypted
+        - image: ghcr.io/coco-serverless/coco-helloworld-py:encrypted
           ports:
             - containerPort: 8080
           env:
