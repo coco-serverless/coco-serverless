@@ -16,7 +16,7 @@ RUN apt update \
         libclang-dev 
 
 
-COPY ${OVMF_DIR}/ovmf-svsm.fd ~/ovmf-svsm.fd
+COPY ${OVMF_DIR}/ovmf-svsm.fd /bin/ovmf-svsm.fd
 
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y \
     && . "$HOME/.cargo/env" \
@@ -25,4 +25,4 @@ RUN curl https://sh.rustup.rs -sSf | sh -s -- -y \
     && cd ~/svsm \
     && git submodule update --init \
     && cargo install bindgen-cli \
-    && FW_FILE=~/ovmf-svsm.fd make RELEASE=1
+    && FW_FILE=/bin/ovmf-svsm.fd make RELEASE=1
