@@ -16,7 +16,7 @@ RUN apt update \
         libclang-dev 
 
 
-COPY {FIRMWARE_FILE} ~/ovmf-svsm.fd
+COPY ${OVMF_DIR}/ovmf-svsm.fd ~/ovmf-svsm.fd
 
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y \
     && . "$HOME/.cargo/env" \
