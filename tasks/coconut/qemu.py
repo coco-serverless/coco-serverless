@@ -1,7 +1,7 @@
 from invoke import task
 from os.path import join
 from subprocess import run
-from tasks.util.env import KATA_ROOT, PROJ_ROOT
+from tasks.util.env import BIN_DIR, PROJ_ROOT
 
 # refer to 
 # https://github.com/coconut-svsm/svsm/blob/main/Documentation/docs/installation/INSTALL.md
@@ -19,7 +19,7 @@ def build(ctx):
     docker_cmd = "docker run -td --name {} {}".format(tmp_ctr_name, QEMU_IMAGE_TAG)
     run(docker_cmd, shell=True, check=True)
     ctr_path = "/root/bin/qemu-svsm/bin/qemu-system-x86_64"
-    host_path = join(KATA_ROOT, "bin", "qemu-system-x86_64-igvm")
+    host_path = join(BIN_DIR, "qemu-system-x86_64-igvm")
     docker_cmd = "docker cp {}:{} {}".format(
         tmp_ctr_name,
         ctr_path,
