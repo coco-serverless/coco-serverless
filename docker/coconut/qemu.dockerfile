@@ -38,8 +38,12 @@ RUN git clone https://github.com/coconut-svsm/qemu ~/qemu \
     && cd ~/qemu \
     && git checkout svsm-igvm \
     && export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/lib64/pkgconfig/ \
-    && ./configure --prefix=$HOME/bin/qemu-svsm/ --target-list=x86_64-softmmu --enable-igvm \
+    && ./configure \
+        --prefix=$HOME/bin/qemu-svsm/ \
+        --target-list=x86_64-softmmu \
+        --enable-igvm \
+        --static \
+        --disable-gio \
+        --disable-libudev \
     && ninja -C build/ \
     && make install
-
-# /root/bin/qemu-svsm/

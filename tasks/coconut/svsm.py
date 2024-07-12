@@ -18,13 +18,15 @@ def build(ctx):
     tmp_ctr_name = "tmp-svsm-run"
     docker_cmd = "docker run -td --name {} {}".format(tmp_ctr_name, QEMU_IMAGE_TAG)
     run(docker_cmd, shell=True, check=True)
-    ctr_path = "/root/svsm/svsm.bin"
-    host_path = join(BIN_DIR, "svsm.bin")
-    docker_cmd = "docker cp {}:{} {}".format(
-        tmp_ctr_name,
-        ctr_path,
-        host_path,
-    )
-    run(docker_cmd, shell=True, check=True)
+    ctr_path = "/root/svsm/bin"
+    host_path = BIN_DIR
+    files_to_copy = ["svsm.bin", "coconut-qemu.igvm"]      
+    for file_name in files_to_copy:
+        docker_cmd = "docker cp {}:{} {}".format(
+            tmp_ctr_name,
+            join(ctr_path, file_name),
+            join(host_path, file_name),
+        )
+        run(docker_cmd, shell=True, check=True)
 
     run("docker rm -f {}".format(tmp_ctr_name), shell=True, check=True)
