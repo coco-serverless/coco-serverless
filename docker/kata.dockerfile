@@ -9,7 +9,10 @@ FROM ubuntu:22.04
 RUN apt update \
     && apt upgrade -y \
     && apt install -y \
+        clang \
         curl \
+        libclang-dev \
+        libdevmapper-dev \
         git
 
 # Clone the dotfiles repo
@@ -68,9 +71,9 @@ ENV PATH=${PATH}:/usr/local/go/bin:/root/.cargo/bin
 ARG CODE_DIR=/go/src/github.com/kata-containers/kata-containers
 RUN mkdir -p ${CODE_DIR} \
     && git clone\
-        # Note that we use our fork from CC-0.7.0 + patches
-        -b csg-main \
-        https://github.com/csegarragonz/kata-containers \
+        # Note that we use our fork from CC-0.8.0 + patches
+        -b sc2-main \
+        https://github.com/coco-serverless/kata-containers \
         ${CODE_DIR} \
     && git config --global --add safe.directory ${CODE_DIR} \
     && cd ${CODE_DIR}/src/runtime && make \

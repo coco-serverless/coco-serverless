@@ -16,8 +16,8 @@ inv -l
 
 ## Pre-Requisites
 
-You will need CoCo's fork of containerd built and running. To this extent you
-may run:
+You will need a recent version of containerd to support host-side features like
+the Nydus snapshotter. To build and install it from source you may run:
 
 ```bash
 inv containerd.build
@@ -34,7 +34,7 @@ inv k8s.install [--clean]
 You may also want to install `k9s`, a kubernetes monitoring tool:
 
 ```bash
-inv k9s.install-k9s
+inv k9s.install
 ```
 
 ## Quick Start
@@ -43,10 +43,11 @@ Deploy a (single-node) kubernetes cluster using `kubeadm`:
 
 ```bash
 inv kubeadm.create
+export KUBECONFIG=.config/kubeadm_kubeconfig
 ```
 
 Second, install both the operator and the CC runtime from the upstream tag.
-We currently pin to version `v0.7.0` (see the [`COCO_RELEASE_VERSION` variable](
+We currently pin to version `v0.8.0` (see the [`COCO_RELEASE_VERSION` variable](
 https://github.com/csegarragonz/coco-serverless/tree/main/tasks/util/env.py)).
 
 ```bash

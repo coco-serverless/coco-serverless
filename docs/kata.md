@@ -25,7 +25,7 @@ inv kata.cli
 > The changes you make inside the Kata environment won't be persisted across
 > container restarts. This is a deliberate design choice. You can hot-patch
 > the Kata Agent by following the instructions in the following section. To
-> permanently patch it, push the changes to the `csg-main` branch and re-build
+> permanently patch it, push the changes to the `sc2-main` branch and re-build
 > the container: `inv kata.build --nocache`.
 
 ## Replacing the Kata Agent
