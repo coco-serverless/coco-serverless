@@ -2,6 +2,7 @@ from subprocess import run
 from tasks.eval.util.env import IMAGE_TO_ID
 from tasks.eval.util.env import GITHUB_USER
 
+
 def clean_container_images(used_ctr_images):
     ids_to_remove = [IMAGE_TO_ID[f"{GITHUB_USER}/coco-knative-sidecar"]]
     for ctr in used_ctr_images:

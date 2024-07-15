@@ -41,7 +41,12 @@ def run_kata_workon_ctr():
 
 
 def stop_kata_workon_ctr():
-    run("docker rm -f {}".format(KATA_WORKON_CTR_NAME), shell=True, check=True)
+    run(
+        "docker rm -f {}".format(KATA_WORKON_CTR_NAME),
+        shell=True,
+        check=True,
+        capture_output=True,
+    )
 
 
 def copy_from_kata_workon_ctr(ctr_path, host_path, sudo=False):
@@ -62,7 +67,7 @@ def copy_from_kata_workon_ctr(ctr_path, host_path, sudo=False):
 
 
 def replace_agent(
-    dst_initrd_path=join(KATA_IMG_DIR, "kata-containers-initrd-sev-csg.img"),
+    dst_initrd_path=join(KATA_IMG_DIR, "kata-containers-initrd-sev-sc2.img"),
     extra_files=None,
 ):
     """

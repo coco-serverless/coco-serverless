@@ -28,7 +28,10 @@ from tasks.util.kubeadm import get_pod_names_in_ns, run_kubectl_command
 from time import sleep, time
 
 
-USED_IMAGES = [f"{GITHUB_USER}/coco-knative-sidecar", f"{GITHUB_USER}/coco-helloworld-py"]
+USED_IMAGES = [
+    f"{GITHUB_USER}/coco-knative-sidecar",
+    f"{GITHUB_USER}/coco-helloworld-py",
+]
 CSG_MAGIC_BEGIN = "CSG-M4GIC: B3G1N: {}"
 CSG_MAGIC_END = "CSG-M4GIC: END: {}"
 
