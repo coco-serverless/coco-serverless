@@ -45,5 +45,7 @@ RUN git clone https://github.com/coconut-svsm/qemu ~/qemu \
         --static \
         --disable-gio \
         --disable-libudev \
+        --enable-kvm \
+        --enable-trace-backends=log,simple \
     && ninja -C build/ \
-    && make install
+    && make install -j $(nproc)
