@@ -18,17 +18,19 @@ def build(ctx):
     tmp_ctr_name = "tmp-qemu-igvm-run"
     docker_cmd = "docker run -td --name {} {}".format(tmp_ctr_name, QEMU_IMAGE_TAG)
     run(docker_cmd, shell=True, check=True)
-    ctr_path = "/root/bin/qemu-svsm/bin/qemu-system-x86_64"
-    host_path = join(BIN_DIR, "qemu-system-x86_64-igvm")
+    copy_from_container(tmp_ctr_name, "/root/bin/qemu-svsm/bin/qemu-system-x86_64", join(BIN_DIR, "qemu-system-x86_64-igvm"))
+    copy_from_container(tmp_ctr_name, "/root/bin/qemu-svsm/share/qemu/bios-256k.bin", join(BIN_DIR, "bios-256k.bin"))
+    
+    run("docker rm -f {}".format(tmp_ctr_name), shell=True, check=True)
+
+def copy_from_container(ctr_name, ctr_path, host_path):
     docker_cmd = "docker cp {}:{} {}".format(
-        tmp_ctr_name,
+        ctr_name,
         ctr_path,
         host_path,
     )
     run(docker_cmd, shell=True, check=True)
-
-    run("docker rm -f {}".format(tmp_ctr_name), shell=True, check=True)
-
+    
 # TODO --qemu-datadir flag nessary?
 
 @task
