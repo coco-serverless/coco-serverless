@@ -8,6 +8,9 @@ k9s
 qemu-system-x86_64-igvm
 ovmf-svsm.fd
 svsm.bin
+ubuntu-guest.qcow2
+bzImage
+coconut-qemu.igvm
 
 # Kubernetes stuff
 .config
