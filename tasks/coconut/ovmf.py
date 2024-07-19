@@ -3,10 +3,11 @@ from os.path import join
 from subprocess import run
 from tasks.util.env import BIN_DIR, PROJ_ROOT
 
-# refer to 
+# refer to
 # https://github.com/coconut-svsm/svsm/blob/main/Documentation/docs/installation/INSTALL.md
 
 OVMF_IMAGE_TAG = "ovmf-svsm-build"
+
 
 @task
 def build(ctx):
@@ -14,7 +15,7 @@ def build(ctx):
         OVMF_IMAGE_TAG, join(PROJ_ROOT, "docker", "coconut", "ovmf.dockerfile")
     )
     run(docker_cmd, shell=True, check=True, cwd=PROJ_ROOT)
-    
+
     tmp_ctr_name = "tmp-ovmf-svsm-run"
     docker_cmd = "docker run -td --name {} {}".format(tmp_ctr_name, OVMF_IMAGE_TAG)
     run(docker_cmd, shell=True, check=True)
