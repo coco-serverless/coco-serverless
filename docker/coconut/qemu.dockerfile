@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 
 #RUN sed -Ei 's/^# deb-src /deb-src /' /etc/apt/sources.list \
 RUN apt update \
@@ -25,8 +25,13 @@ RUN apt update \
         libpixman-1-dev \
         zlib1g-dev \
         libudev-dev \
-        libvdeplug-dev 
+        libvdeplug-dev \
+        libslirp-dev \
+        seabios
+
 #RUN apt-get build-dep qemu
+
+ARG QEMU_DATADIR
 
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 RUN . "$HOME/.cargo/env" \
@@ -39,6 +44,7 @@ RUN git clone https://github.com/coconut-svsm/qemu ~/qemu \
     && git checkout svsm-igvm \
     && export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/lib64/pkgconfig/ \
     && ./configure \
+        --datadir=${QEMU_DATADIR} \
         --prefix=$HOME/bin/qemu-svsm/ \
         --target-list=x86_64-softmmu \
         --enable-igvm \
@@ -47,5 +53,6 @@ RUN git clone https://github.com/coconut-svsm/qemu ~/qemu \
         --disable-libudev \
         --enable-kvm \
         --enable-trace-backends=log,simple \
+        --enable-slirp \
     && ninja -C build/ \
     && make install -j $(nproc)
