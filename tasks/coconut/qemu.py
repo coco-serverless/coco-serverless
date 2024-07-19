@@ -52,12 +52,10 @@ def guest(ctx, guest_img_path=join(PROJ_ROOT, "ubuntu-guest.qcow2")):
         "-enable-kvm",
         "-cpu EPYC-v4",
         "-machine q35,confidential-guest-support=sev0,memory-backend=ram1",
-        "-object memory-backend-memfd,id=ram1,size=8G,\
-            share=true,prealloc=false,reserve=false",
-        "-object sev-snp-guest,id=sev0,cbitpos=51,\
-            reduced-phys-bits=1,igvm-file={}".format(
-            igvm_path
-        ),
+        ("-object memory-backend-memfd,id=ram1,size=8G,share=true,"
+            "prealloc=false,reserve=false"),
+        ("-object sev-snp-guest,id=sev0,cbitpos=51,"
+            "reduced-phys-bits=1,igvm-file={}").format(igvm_path),
         "-smp 8",
         "-no-reboot",
         "-netdev user,id=vmnic -device e1000,netdev=vmnic,romfile=",
