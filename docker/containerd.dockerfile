@@ -38,12 +38,10 @@ RUN apt update \
         libbtrfs-dev \
         gopls
 
-# Clone and build CoCo's containerd fork
+# Clone and build containerd
 RUN git clone \
-        # TODO: change this to an upstream release tag once the merge to
-        # main has happened
-        -b CC-main \
-        https://github.com/confidential-containers/containerd.git \
+        -b v1.7.19 \
+        https://github.com/containerd/containerd.git \
         /go/src/github.com/containerd/containerd \
     && cd /go/src/github.com/containerd/containerd \
     && make

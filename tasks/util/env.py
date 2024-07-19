@@ -14,7 +14,7 @@ TEMPLATED_FILES_DIR = join(PROJ_ROOT, "templated")
 # K8s Config
 
 K8S_VERSION = "1.28.2"
-K9S_VERSION = "0.27.1"
+K9S_VERSION = "0.32.5"
 K8S_CONFIG_DIR = join(PROJ_ROOT, ".config")
 K8S_ADMIN_FILE = join(CONF_FILES_DIR, "kubeadm.conf")
 # TODO: consider copying this file elsewhere
@@ -31,8 +31,8 @@ CONTAINERD_CONFIG_FILE = join(CONTAINERD_CONFIG_ROOT, "config.toml")
 # Image Registry config
 
 LOCAL_REGISTRY_URL = "registry.coco-csg.com"
-GHCR_URL = "ghcr.io/coco-serverless"
-
+GHCR_URL = "ghcr.io"
+GITHUB_USER = "coco-serverless"
 # MicroK8s config
 
 UK8S_KUBECONFIG_FILE = join(K8S_CONFIG_DIR, "uk8s_kubeconfig")
@@ -52,7 +52,7 @@ KATA_CONFIG_DIR = join(KATA_ROOT, "share", "defaults", "kata-containers")
 KATA_IMG_DIR = join(KATA_ROOT, "share", "kata-containers")
 KATA_WORKON_CTR_NAME = "kata-workon"
 KATA_WORKON_IMAGE_TAG = "kata-build"
-KATA_RUNTIMES = ["qemu", "qemu-sev"]
+KATA_RUNTIMES = ["qemu", "qemu-sev", "qemu-snp"]
 
 # Apps config
 

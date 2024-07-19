@@ -8,7 +8,7 @@ from tasks.util.network import symlink_global_bin
 
 
 @task
-def install_k9s(ctx):
+def install(ctx):
     """
     Install the K9s CLI
     """

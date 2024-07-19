@@ -17,6 +17,7 @@ from tasks.eval.util.env import (
     INTER_RUN_SLEEP_SECS,
     PLOTS_DIR,
     RESULTS_DIR,
+    GITHUB_USER,
 )
 from tasks.eval.util.setup import setup_baseline
 from tasks.util.k8s import template_k8s_file
@@ -128,8 +129,8 @@ def run(ctx, baseline=None, num_par=None):
         makedirs(EVAL_TEMPLATED_DIR)
 
     service_template_file = join(APPS_DIR, "xput", "service.yaml.j2")
-    image_name = "csegarragonz/coco-helloworld-py"
-    used_images = ["csegarragonz/coco-knative-sidecar", image_name]
+    image_name = f"{GITHUB_USER}/coco-helloworld-py"
+    used_images = [f"{GITHUB_USER}/coco-knative-sidecar", image_name]
     num_runs = 3
 
     for bline in baselines_to_run:
