@@ -12,7 +12,7 @@ QEMU_IMAGE_TAG = "svsm-build"
 @task
 def build(ctx):
     docker_cmd = "docker build -t {} -f {} --build-arg OVMF_DIR={} .".format(
-        QEMU_IMAGE_TAG, join(PROJ_ROOT, "docker", "coconut", "svsm.dockerfile"), BIN_DIR
+        QEMU_IMAGE_TAG, join(PROJ_ROOT, "docker", "coconut", "svsm.dockerfile"), "bin"
     )
     run(docker_cmd, shell=True, check=True, cwd=PROJ_ROOT)
 
