@@ -100,10 +100,12 @@ To start the guest VM, execute
 $ inv coconut.qemu.guest
 ```
 Modify the QEMU command in this file according to your needs.
+`-d` starts qemu in detached mode.
 
 If you are executing QEMU on a remote server, 
 you can use TigerVNC:
 ```bash
+$ inv coconut.qemu.guest -v
 $ ssh -L 5901:localhost:5901 user@server
 $ vncviewer localhost:5901
 ```

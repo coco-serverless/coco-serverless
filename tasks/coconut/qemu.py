@@ -42,7 +42,7 @@ def copy_from_container(ctr_name, ctr_path, host_path):
 
 
 @task
-def guest(ctx, guest_img_path=join(PROJ_ROOT, "ubuntu-guest.qcow2")):
+def guest(ctx, guest_img_path=join(PROJ_ROOT, "ubuntu-guest.qcow2"), detach=False, vnc=False):
     qemu_path = join(BIN_DIR, "qemu-system-x86_64-igvm")
     igvm_path = join(BIN_DIR, "coconut-qemu.igvm")
 
@@ -58,19 +58,21 @@ def guest(ctx, guest_img_path=join(PROJ_ROOT, "ubuntu-guest.qcow2")):
             "reduced-phys-bits=1,igvm-file={}").format(igvm_path),
         "-smp 8",
         "-no-reboot",
-        "-netdev user,id=vmnic -device e1000,netdev=vmnic,romfile=",
+        "-netdev user,id=vmnic,hostfwd=tcp::2222-:22,hostfwd=tcp::8080-:80 -device e1000,netdev=vmnic,romfile=",
         "-device virtio-scsi-pci,id=scsi0,disable-legacy=on,iommu_platform=on",
         "-device scsi-hd,drive=disk0,bootindex=0",
         "-drive file={},if=none,id=disk0,format=qcow2,snapshot=off".format(
             guest_img_path
         ),
-        "-serial stdio",
-        "-serial pty",
+        "--serial file:tmp.log",
         "-display none",
-        "-vnc :1",
-        # -vga std \
     ]
+    if detach:
+        qemu_cmd.append("-daemonize")
+    
+    if vnc:
+        qemu_cmd = qemu_cmd.append("-vnc :1")
+        
     qemu_cmd = " ".join(qemu_cmd)
-
     print(qemu_cmd)
     run(qemu_cmd, shell=True, check=True)
