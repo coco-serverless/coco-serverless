@@ -20,6 +20,7 @@ from . import sev
 from . import skopeo
 
 from tasks.eval import ns as eval_ns
+from tasks.coconut import ns as coconut_ns
 
 ns = Collection(
     apps,
@@ -43,3 +44,4 @@ ns = Collection(
 )
 
 ns.add_collection(eval_ns, name="eval")
+ns.add_collection(coconut_ns, name="coconut")
