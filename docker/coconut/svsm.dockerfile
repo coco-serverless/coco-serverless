@@ -13,7 +13,7 @@ RUN apt update \
         autoconf-archive \
         build-essential \
         pkg-config \
-        libclang-dev 
+        libclang-dev
 
 ARG OVMF_DIR
 COPY ${OVMF_DIR}/ovmf-svsm.fd /bin/ovmf-svsm.fd

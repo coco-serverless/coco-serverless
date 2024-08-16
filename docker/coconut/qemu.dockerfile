@@ -1,6 +1,5 @@
 FROM ubuntu:24.04
 
-#RUN sed -Ei 's/^# deb-src /deb-src /' /etc/apt/sources.list \
 RUN apt update \
     && apt upgrade -y \
     && apt install -y \
@@ -29,16 +28,16 @@ RUN apt update \
         libslirp-dev \
         seabios
 
-#RUN apt-get build-dep qemu
-
-ARG QEMU_DATADIR
-
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
-RUN . "$HOME/.cargo/env" \
+# Clone and build IGVM
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y \
+    && . "$HOME/.cargo/env" \
     && git clone --branch igvm-v0.1.6 https://github.com/microsoft/igvm/ ~/igvm \
     && cd ~/igvm \
     && make -f igvm_c/Makefile \
     && make -f igvm_c/Makefile install 
+
+# Clone and build IGVM-enabled Qemu
+ARG QEMU_DATADIR
 RUN git clone https://github.com/coconut-svsm/qemu ~/qemu \
     && cd ~/qemu \
     && git checkout svsm-igvm \
