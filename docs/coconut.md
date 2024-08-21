@@ -150,3 +150,17 @@ If you want to connect to the VM using ssh, you can use the following commands:
 $ ssh-copy-id -i ~/.ssh/YOUR_SSH_KEY -p 2222 USERNAME@localhost
 $ ssh -i ~/.ssh/YOUR_SSH_KEY -p 2222 USERNAME@localhost"
 ```
+
+## Experiments 
+
+### Communicate with the SVSM
+
+To communicate with the SVSM from the guest user space using a system call, checkout the branch `feature-svsm-syscall` before the installation of the Linux kernel.
+
+Next, define a new protocol and modify the function `request_loop_once` in `svsm/kernel/src/requests.rs` accordingly.
+See AMD's `Secure VM Service Module for SEV-SNP Guests` Section 5 for more details.
+Then, invoke the syscall `svsm` with the request number from the userspace, e.g. 
+
+```C
+syscall(svsm, REQUEST_NUMBER);
+```
