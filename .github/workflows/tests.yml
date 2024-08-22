@@ -13,7 +13,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout code"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       # Formatting checks
       - name: "Code formatting check"
         run: ./bin/inv_wrapper.sh format-code
+
+  setup-cluster:
+    if: github.event.pull_request.draft == false
+    runs-on: self-hosted
+    setps:
+      - name: "Checkout code"
+        uses: actions/checkout@v4
+      - name: "Install single-node k8s cluster"
+        run: ./bin/inv_wrapper.sh kubeadm.create
+      - name: "Install CoCo using operator"
+        run: ./bin/inv_wrapper.sh operator.install operator.install-cc-runtime
+      - name: "Run python hello world"
+

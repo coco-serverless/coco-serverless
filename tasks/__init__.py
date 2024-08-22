@@ -12,6 +12,7 @@ from . import kata
 from . import kbs
 from . import knative
 from . import kubeadm
+from . import nydus
 from . import operator
 from . import ovmf
 from . import qemu
@@ -34,6 +35,7 @@ ns = Collection(
     kbs,
     knative,
     kubeadm,
+    nydus,
     operator,
     ovmf,
     qemu,
