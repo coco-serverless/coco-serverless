@@ -20,8 +20,11 @@ You will need a recent version of containerd to support host-side features like
 the Nydus snapshotter. To build and install it from source you may run:
 
 ```bash
-inv containerd.build
-inv containerd.install
+# Fresh containerd install
+inv containerd.build containerd.install --clean
+
+# Fresh nydus install
+inv nydus.build nydus.install --clean
 ```
 
 You also need all the kubernetes-related tooling: `kubectl`, `kubeadm`, and
@@ -37,6 +40,12 @@ You may also want to install `k9s`, a kubernetes monitoring tool:
 inv k9s.install
 ```
 
+Lastly, `kubeadm` may require to disable swap in the host:
+
+```bash
+sudo swapoff -a
+```
+
 ## Quick Start
 
 Deploy a (single-node) kubernetes cluster using `kubeadm`:
@@ -47,12 +56,11 @@ export KUBECONFIG=.config/kubeadm_kubeconfig
 ```
 
 Second, install both the operator and the CC runtime from the upstream tag.
-We currently pin to version `v0.8.0` (see the [`COCO_RELEASE_VERSION` variable](
+We currently pin to version `v0.9.0` (see the [`COCO_RELEASE_VERSION` variable](
 https://github.com/csegarragonz/coco-serverless/tree/main/tasks/util/env.py)).
 
 ```bash
-inv operator.install
-inv operator.install-cc-runtime
+inv operator.install operator.install-cc-runtime
 ```
 
 Third, update the `initrd` file to include our patched `kata-agent`:

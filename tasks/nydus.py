@@ -20,7 +20,7 @@ def build(ctx):
 
 
 @task
-def install(ctx):
+def install(ctx, clean=False):
     """
     Install the nydus snapshotter
     """
@@ -48,3 +48,12 @@ def install(ctx):
         except CalledProcessError as e:
             cleanup()
             raise e
+
+    cleanup()
+
+    # Remove all nydus config for a clean start
+    if clean:
+        run("sudo rm -rf /var/lib/containerd-nydus", shell=True, check=True)
+
+    # Restart the nydus service
+    run("sudo service nydus-snapshotter restart", shell=True, check=True)
