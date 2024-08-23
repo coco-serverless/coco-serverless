@@ -48,6 +48,8 @@ jobs:
           kubectl get nodes
       - name: "Install CoCo using operator"
         run: ./bin/inv_wrapper.sh operator.install operator.install-cc-runtime
+      - name: "Install Knative"
+        run: ./bin/inv_wrapper.sh knative.install
       - name: "Run python hello world"
         run: |
           ./bin/kubectl apply -f ./apps/helloworld-py
@@ -57,6 +59,17 @@ jobs:
           service_ip=$(./bin/kubectl get services -o jsonpath='{.items[?(@.metadata.name=="coco-helloworld-py-node-port")].spec.clusterIP}')
           [ "$(curl -X GET ${service_ip}:8080)" = "Hello World!" ]
           ./bin/kubectl delete -f ./apps/helloworld-py
+        env:
+          POD_LABEL: apps.coco-serverless/name=helloworld-py
+      - name: "Run Knative hello world"
+        run: |
+          ./bin/kubectl apply -f ./apps/helloworld-knative
+          # Wait for pod to be ready
+          until [ "$(kubectl get pods -l ${{ env.POD_LABEL }} -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}')" = "True" ]; do echo "Waiting for pod to be ready..."; sleep 2; done
+          # Get the service URL
+          service_url=$(kubectl get ksvc helloworld-knative  --output=custom-columns=URL:.status.url --no-headers)
+          [ "$(curl ${service_url})" = "Hello World!" ]
+          ./bin/kubectl delete -f ./apps/helloworld-knative
         env:
           POD_LABEL: apps.coco-serverless/name=helloworld-py
       - name: "Clean-up"

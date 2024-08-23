@@ -1,4 +1,5 @@
-from os.path import basename
+from os import remove
+from os.path import basename, join
 from subprocess import run
 from toml import (
     dump as toml_dump,
@@ -112,5 +113,10 @@ def remove_entry_from_toml(toml_file_path, toml_path):
 
     toml_file = do_remove_entry_from_toml(toml_file, toml_path)
 
-    with open(toml_file_path, "w") as fh:
+    # Dump to temporary file and sudo-copy
+    tmp_toml_file_path = join("/tmp", toml_path)
+    with open(tmp_toml_file_path, "w") as fh:
         toml_dump(toml_file, fh)
+
+    run(f"sudo cp {tmp_toml_file_path} {toml_file_path}", shell=True, check=True)
+    remove(tmp_toml_file_path)

@@ -1,4 +1,4 @@
-# CoCo Serverless
+# CoCo Serverless [![Integration tests](https://github.com/coco-serverless/coco-serverless/actions/workflows/tests.yml/badge.svg)](https://github.com/coco-serverless/coco-serverless/actions/workflows/tests.yml)
 
 The goal of this project is to deploy [Knative](https://knative.dev/docs/) on
 [CoCo](https://github.com/confidential-containers) and run some baseline
