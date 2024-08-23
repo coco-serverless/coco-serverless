@@ -12,7 +12,9 @@ KNATIVE_SIDECAR_IMAGE_TAG += (
 )
 
 
-def replace_sidecar(reset_default=False, image_repo="ghcr.io", quiet=False):
+def replace_sidecar(
+    reset_default=False, image_repo="ghcr.io", quiet=False, skip_push=False
+):
     def do_run(cmd, quiet):
         if quiet:
             out = run(cmd, shell=True, capture_output=True)
@@ -46,8 +48,9 @@ def replace_sidecar(reset_default=False, image_repo="ghcr.io", quiet=False):
     docker_cmd = "docker tag {} {}".format(KNATIVE_SIDECAR_IMAGE_TAG, new_image_url)
     do_run(docker_cmd, quiet)
 
-    docker_cmd = "docker push {}".format(new_image_url)
-    do_run(docker_cmd, quiet)
+    if not skip_push:
+        docker_cmd = "docker push {}".format(new_image_url)
+        do_run(docker_cmd, quiet)
 
     # Get the digest for the recently pulled image, and use it to update
     # Knative's deployment configmap

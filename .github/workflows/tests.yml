@@ -49,7 +49,7 @@ jobs:
       - name: "Install CoCo using operator"
         run: ./bin/inv_wrapper.sh operator.install operator.install-cc-runtime
       - name: "Install Knative"
-        run: ./bin/inv_wrapper.sh knative.install
+        run: ./bin/inv_wrapper.sh knative.install --skip-push
       - name: "Run python hello world"
         run: |
           ./bin/kubectl apply -f ./apps/helloworld-py
