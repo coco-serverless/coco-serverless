@@ -54,22 +54,26 @@ jobs:
         run: |
           ./bin/kubectl apply -f ./apps/helloworld-py
           # Wait for pod to be ready
-          until [ "$(kubectl get pods -l ${{ env.POD_LABEL }} -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}')" = "True" ]; do echo "Waiting for pod to be ready..."; sleep 2; done
+          until [ "$(./bin/kubectl get pods -l ${{ env.POD_LABEL }} -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}')" = "True" ]; do echo "Waiting for pod to be ready..."; sleep 2; done
           # Get the pod's IP
           service_ip=$(./bin/kubectl get services -o jsonpath='{.items[?(@.metadata.name=="coco-helloworld-py-node-port")].spec.clusterIP}')
           [ "$(curl -X GET ${service_ip}:8080)" = "Hello World!" ]
           ./bin/kubectl delete -f ./apps/helloworld-py
+          # Wait for pod to be deleted
+          kubectl wait --for=delete -l ${{ env.POD_LABEL }} -f ./apps/helloworld-py
         env:
           POD_LABEL: apps.coco-serverless/name=helloworld-py
       - name: "Run Knative hello world"
         run: |
           ./bin/kubectl apply -f ./apps/helloworld-knative
           # Wait for pod to be ready
-          until [ "$(kubectl get pods -l ${{ env.POD_LABEL }} -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}')" = "True" ]; do echo "Waiting for pod to be ready..."; sleep 2; done
+          until [ "$(./bin/kubectl get pods -l ${{ env.POD_LABEL }} -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}')" = "True" ]; do echo "Waiting for pod to be ready..."; sleep 2; done
           # Get the service URL
-          service_url=$(kubectl get ksvc helloworld-knative  --output=custom-columns=URL:.status.url --no-headers)
+          service_url=$(./bin/kubectl get ksvc helloworld-knative  --output=custom-columns=URL:.status.url --no-headers)
           [ "$(curl ${service_url})" = "Hello World!" ]
           ./bin/kubectl delete -f ./apps/helloworld-knative
+          # Wait for pod to be deleted
+          kubectl wait --for=delete -l ${{ env.POD_LABEL }} -f ./apps/helloworld-knative
         env:
           POD_LABEL: apps.coco-serverless/name=helloworld-py
       - name: "Clean-up"
