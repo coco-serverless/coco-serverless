@@ -21,6 +21,8 @@ jobs:
   setup-cluster:
     if: github.event.pull_request.draft == false
     runs-on: self-hosted
+    env:
+      KUBECONFIG: .config/kubeadm_kubeconfig
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v4
@@ -34,6 +36,7 @@ jobs:
         run: |
           sudo swapoff -a
           ./bin/inv_wrapper.sh kubeadm.create
+          kubectl get nodes
       - name: "Install CoCo using operator"
         run: ./bin/inv_wrapper.sh operator.install operator.install-cc-runtime
       - name: "Run python hello world"
