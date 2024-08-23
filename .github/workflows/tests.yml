@@ -44,6 +44,7 @@ jobs:
           ./bin/kubectl apply -f ./apps/helloworld-py
           service_ip=$(./bin/kubectl get services -o jsonpath='{.items[?(@.metadata.name=="coco-helloworld-py-node-port")].spec.clusterIP}')
           [ "$(curl -X GET ${service_ip}:8080)" = "Hello World!" ]
+          ./bin/kubectl delete -f ./apps/helloworld-py
       - name: "Clean-up"
         if: always()
         run: ./bin/inv_wrapper.sh kubeadm.destroy

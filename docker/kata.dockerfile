@@ -58,7 +58,7 @@ RUN curl --proto '=https' --tlsv1.3 https://sh.rustup.rs -sSf | sh -s -- -y \
     && chmod +x /usr/bin/rust-analyzer
 
 # Install go
-ARG GO_VERSION="1.21.1"
+ARG GO_VERSION="1.23.0"
 RUN mkdir -p /tmp/go \
     && cd /tmp/go \
     && wget https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz \
@@ -69,15 +69,20 @@ RUN mkdir -p /tmp/go \
 ENV GOPATH=/go
 ENV PATH=${PATH}:/usr/local/go/bin:/root/.cargo/bin
 ARG CODE_DIR=/go/src/github.com/kata-containers/kata-containers
+ARG RUST_VERSION=1.78
 RUN mkdir -p ${CODE_DIR} \
     && git clone\
-        # Note that we use our fork from CC-0.8.0 + patches
-        -b sc2-main \
+        # CoCo 0.9.0 ships with Kata 3.7.0, and we add our patches on top
+        -b sc2-staging \
         https://github.com/coco-serverless/kata-containers \
         ${CODE_DIR} \
     && git config --global --add safe.directory ${CODE_DIR} \
-    && cd ${CODE_DIR}/src/runtime && make \
+    && cd ${CODE_DIR}/src/runtime \
+    && make \
     && cd ${CODE_DIR}/src/agent \
+    # Kata build seems to be broken with Rust > 1.78, so we pin to an older
+    # version
+    && rustup default ${RUST_VERSION} \
     && rustup target add x86_64-unknown-linux-musl \
     && make
 
