@@ -195,6 +195,9 @@ def install(ctx, clean=False):
     ctr_base_path = "/go/src/github.com/containerd/containerd/bin"
     host_base_path = "/usr/bin"
     for binary in binary_names:
+        if clean:
+            run(f"sudo rm -f {join(host_base_path, binary)}", shell=True, check=True)
+
         docker_cmd = "sudo docker cp {}:{}/{} {}/{}".format(
             tmp_ctr_name, ctr_base_path, binary, host_base_path, binary
         )
