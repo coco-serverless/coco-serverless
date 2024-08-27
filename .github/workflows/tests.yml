@@ -7,13 +7,80 @@ on:
     branches: [main]
     types: [opened, synchronize, reopened, ready_for_review]
 
+defaults:
+  run:
+    shell: bash
+
+# Cancel previous running actions for the same PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   python-format:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout code"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       # Formatting checks
       - name: "Code formatting check"
         run: ./bin/inv_wrapper.sh format-code
+
+  setup-cluster:
+    if: github.event.pull_request.draft == false
+    runs-on: self-hosted
+    env:
+      KUBECONFIG: .config/kubeadm_kubeconfig
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v4
+      - name: "Build and install containerd"
+        run: ./bin/inv_wrapper.sh containerd.build containerd.install --clean
+      - name: "Build and install nydus"
+        run: ./bin/inv_wrapper.sh nydus.build nydus.install --clean
+      - name: "Install k8s tooling"
+        run: ./bin/inv_wrapper.sh k8s.install --clean
+      - name: "Install single-node k8s cluster"
+        run: |
+          sudo swapoff -a
+          ./bin/inv_wrapper.sh kubeadm.create
+          kubectl get nodes
+      - name: "Install CoCo using operator"
+        run: ./bin/inv_wrapper.sh operator.install operator.install-cc-runtime
+      - name: "Install Knative"
+        # This command requires push access to ghcr.io/coco-serverless
+        run: ./bin/inv_wrapper.sh knative.install
+      - name: "Update the Kata agent"
+        run: ./bin/inv_wrapper.sh kata.build kata.replace-agent
+      - name: "Run python hello world"
+        run: |
+          ./bin/kubectl apply -f ./apps/helloworld-py
+          # Wait for pod to be ready
+          until [ "$(./bin/kubectl get pods -l ${{ env.POD_LABEL }} -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}')" = "True" ]; do echo "Waiting for pod to be ready..."; sleep 2; done
+          # Get the pod's IP
+          service_ip=$(./bin/kubectl get services -o jsonpath='{.items[?(@.metadata.name=="coco-helloworld-py-node-port")].spec.clusterIP}')
+          [ "$(curl -X GET ${service_ip}:8080)" = "Hello World!" ]
+          ./bin/kubectl delete -f ./apps/helloworld-py
+          # Wait for pod to be deleted
+          kubectl wait --for=delete -l ${{ env.POD_LABEL }} -f ./apps/helloworld-py
+          # Extra cautionary sleep
+          sleep 5
+        env:
+          POD_LABEL: apps.coco-serverless/name=helloworld-py
+      - name: "Run Knative hello world"
+        run: |
+          ./bin/kubectl apply -f ./apps/helloworld-knative
+          # Wait for pod to be ready
+          until [ "$(./bin/kubectl get pods -l ${{ env.POD_LABEL }} -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}')" = "True" ]; do echo "Waiting for pod to be ready..."; sleep 2; done
+          # Get the service URL
+          service_url=$(./bin/kubectl get ksvc helloworld-knative  --output=custom-columns=URL:.status.url --no-headers)
+          [ "$(curl ${service_url})" = "Hello World!" ]
+          ./bin/kubectl delete -f ./apps/helloworld-knative
+          # Wait for pod to be deleted
+          kubectl wait --for=delete -l ${{ env.POD_LABEL }} -f ./apps/helloworld-knative
+        env:
+          POD_LABEL: apps.coco-serverless/name=helloworld-py
+      - name: "Clean-up"
+        if: always()
+        run: ./bin/inv_wrapper.sh kubeadm.destroy

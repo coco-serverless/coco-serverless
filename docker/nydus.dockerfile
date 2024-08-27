@@ -9,10 +9,7 @@ FROM ubuntu:22.04
 RUN apt update \
     && apt upgrade -y \
     && apt install -y \
-        clang \
         curl \
-        libclang-dev \
-        libdevmapper-dev \
         git
 
 # Clone the dotfiles repo
@@ -38,17 +35,20 @@ RUN ln -sf ~/dotfiles/bash/.bashrc ~/.bashrc \
     && ln -sf ~/dotfiles/bash/.bash_aliases ~/.bash_aliases
 
 # ---------------------------
-# Kata Containers source set-up
+# Nydus-snapshotter source set-up
 # ---------------------------
 
 # Install APT dependencies
-RUN apt install -y \
-        gcc \
+RUN apt-get update \
+    && apt-get install -y \
+        gcc clang cmake \
         gopls \
         libseccomp-dev \
         make \
         musl-tools \
-        wget
+        wget \
+        libdevmapper-dev \
+        protobuf-compiler
 
 # Install latest rust and rust-analyser
 RUN curl --proto '=https' --tlsv1.3 https://sh.rustup.rs -sSf | sh -s -- -y \
@@ -58,7 +58,7 @@ RUN curl --proto '=https' --tlsv1.3 https://sh.rustup.rs -sSf | sh -s -- -y \
     && chmod +x /usr/bin/rust-analyzer
 
 # Install go
-ARG GO_VERSION="1.23.0"
+ARG GO_VERSION="1.21.1"
 RUN mkdir -p /tmp/go \
     && cd /tmp/go \
     && wget https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz \
@@ -68,22 +68,15 @@ RUN mkdir -p /tmp/go \
 # Fetch code and build the runtime and the agent
 ENV GOPATH=/go
 ENV PATH=${PATH}:/usr/local/go/bin:/root/.cargo/bin
-ARG CODE_DIR=/go/src/github.com/kata-containers/kata-containers
-ARG RUST_VERSION=1.78
+ARG CODE_DIR=/go/src/github.com/containerd/nydus-snapshotter
+ARG NYDUS_VERSION="0.13.14"
 RUN mkdir -p ${CODE_DIR} \
     && git clone\
-        # CoCo 0.9.0 ships with Kata 3.7.0, and we add our patches on top
-        -b sc2-main \
-        https://github.com/coco-serverless/kata-containers \
+        -b v${NYDUS_VERSION} \
+        https://github.com/containerd/nydus-snapshotter.git \
         ${CODE_DIR} \
     && git config --global --add safe.directory ${CODE_DIR} \
-    && cd ${CODE_DIR}/src/runtime \
-    && make \
-    && cd ${CODE_DIR}/src/agent \
-    # Kata build seems to be broken with Rust > 1.78, so we pin to an older
-    # version
-    && rustup default ${RUST_VERSION} \
-    && rustup target add x86_64-unknown-linux-musl \
+    && cd ${CODE_DIR} \
     && make
 
 # Configure environment variables

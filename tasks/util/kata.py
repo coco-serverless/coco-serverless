@@ -67,7 +67,7 @@ def copy_from_kata_workon_ctr(ctr_path, host_path, sudo=False):
 
 
 def replace_agent(
-    dst_initrd_path=join(KATA_IMG_DIR, "kata-containers-initrd-sev-sc2.img"),
+    dst_initrd_path=join(KATA_IMG_DIR, "kata-containers-initrd-confidential-sc2.img"),
     extra_files=None,
 ):
     """
@@ -87,7 +87,7 @@ def replace_agent(
     """
 
     # Use a hardcoded path, as we want to always start from a _clean_ initrd
-    initrd_path = join(KATA_IMG_DIR, "kata-containers-initrd-sev.img")
+    initrd_path = join(KATA_IMG_DIR, "kata-containers-initrd-confidential.img")
 
     # Make empty temporary dir to expand the initrd filesystem
     workdir = "/tmp/qemu-sev-initrd"

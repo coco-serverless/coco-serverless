@@ -172,7 +172,7 @@ def set_log_level(ctx, log_level):
 
 
 @task
-def install(ctx):
+def install(ctx, clean=False):
     """
     Install the built containerd
     """
@@ -195,17 +195,23 @@ def install(ctx):
     ctr_base_path = "/go/src/github.com/containerd/containerd/bin"
     host_base_path = "/usr/bin"
     for binary in binary_names:
+        if clean:
+            run(f"sudo rm -f {join(host_base_path, binary)}", shell=True, check=True)
+
         docker_cmd = "sudo docker cp {}:{}/{} {}/{}".format(
             tmp_ctr_name, ctr_base_path, binary, host_base_path, binary
         )
         try:
-            # TODO: we need to copy containerd to /opt/confidential-containers/bin
             run(docker_cmd, shell=True, check=True)
         except CalledProcessError as e:
             cleanup()
             raise e
 
     cleanup()
+
+    # Clean-up all runtime files for a clean start
+    if clean:
+        run("sudo rm -rf /var/lib/containerd", shell=True, check=True)
 
     # Configure the CNI (see containerd/scripts/setup/install-cni)
     cni_conf_file = "10-containerd-net.conflist"
@@ -220,9 +226,6 @@ def install(ctx):
     config_cmd = "containerd config default > {}".format(CONTAINERD_CONFIG_FILE)
     config_cmd = "sudo bash -c '{}'".format(config_cmd)
     run(config_cmd, shell=True, check=True)
-
-    # Configure the devmapper snapshotter for Knative
-    configure_devmapper_snapshotter()
 
     # Restart containerd service
     restart_containerd()

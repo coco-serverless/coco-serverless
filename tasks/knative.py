@@ -77,7 +77,7 @@ def install_metallb():
 
 
 @task
-def install(ctx):
+def install(ctx, skip_push=False):
     """
     Install Knative Serving on a running K8s cluster
 
@@ -142,7 +142,7 @@ def install(ctx):
     wait_for_pods_in_ns(KNATIVE_NAMESPACE, label="app=default-domain")
 
     # Replace the sidecar to use an image we control
-    do_replace_sidecar()
+    do_replace_sidecar(skip_push=skip_push)
 
     print("Succesfully deployed Knative! The external IP is: {}".format(actual_ip))
 
@@ -176,7 +176,7 @@ def uninstall(ctx):
 
 
 @task
-def replace_sidecar(ctx, reset_default=False, image_repo="ghcr.io"):
+def replace_sidecar(ctx, reset_default=False, image_repo="ghcr.io", skip_push=False):
     """
     Replace Knative's side-car image with an image we control
 
@@ -185,7 +185,7 @@ def replace_sidecar(ctx, reset_default=False, image_repo="ghcr.io"):
     default side-car image. Instead, we re-tag the corresponding image, and
     update Knative's deployment ConfigMap to use our image.
     """
-    do_replace_sidecar(reset_default, image_repo)
+    do_replace_sidecar(reset_default, image_repo, skip_push=skip_push)
 
 
 @task

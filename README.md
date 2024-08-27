@@ -1,4 +1,4 @@
-# CoCo Serverless
+# CoCo Serverless [![Integration tests](https://github.com/coco-serverless/coco-serverless/actions/workflows/tests.yml/badge.svg)](https://github.com/coco-serverless/coco-serverless/actions/workflows/tests.yml)
 
 The goal of this project is to deploy [Knative](https://knative.dev/docs/) on
 [CoCo](https://github.com/confidential-containers) and run some baseline
@@ -20,8 +20,11 @@ You will need a recent version of containerd to support host-side features like
 the Nydus snapshotter. To build and install it from source you may run:
 
 ```bash
-inv containerd.build
-inv containerd.install
+# Fresh containerd install
+inv containerd.build containerd.install --clean
+
+# Fresh nydus install
+inv nydus.build nydus.install --clean
 ```
 
 You also need all the kubernetes-related tooling: `kubectl`, `kubeadm`, and
@@ -37,6 +40,12 @@ You may also want to install `k9s`, a kubernetes monitoring tool:
 inv k9s.install
 ```
 
+Lastly, `kubeadm` may require to disable swap in the host:
+
+```bash
+sudo swapoff -a
+```
+
 ## Quick Start
 
 Deploy a (single-node) kubernetes cluster using `kubeadm`:
@@ -47,24 +56,20 @@ export KUBECONFIG=.config/kubeadm_kubeconfig
 ```
 
 Second, install both the operator and the CC runtime from the upstream tag.
-We currently pin to version `v0.8.0` (see the [`COCO_RELEASE_VERSION` variable](
+We currently pin to version `v0.9.0` (see the [`COCO_RELEASE_VERSION` variable](
 https://github.com/csegarragonz/coco-serverless/tree/main/tasks/util/env.py)).
 
 ```bash
-inv operator.install
-inv operator.install-cc-runtime
+inv operator.install operator.install-cc-runtime
 ```
 
 Third, update the `initrd` file to include our patched `kata-agent`:
 
 ```bash
-inv kata.replace-agent
+inv kata.build kata.replace-agent
 ```
 
-if it is the first time, you will have to manually build the agent following
-[these instructions](./docs/kata.md#replacing-the-kata-agent).
-
-Then, you are ready to run one of the supported apps:
+You are ready to run one of the supported apps:
 * [Hello World! (Py)](./docs/helloworld_py.md) - simple HTTP server running in Python to test CoCo and Kata.
 * [Hello World! (Knative)](./docs/helloworld_knative.md) - same app as before, but invoked over Knatvie.
 * [Hello Attested World! (Knative + Attestation)](./docs/helloworld_knative_attestation.md) - same setting as the Knative hello world, but with varying levels of attestation configured.

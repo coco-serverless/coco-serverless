@@ -29,9 +29,9 @@ if [ "$(ps -o comm= -p $$)" = "zsh" ]; then
 fi
 complete -F _complete_invoke -o default invoke inv
 
-# Pick up project-specific binaries
+# Useful env. variables
+export KUBECONFIG=${PROJ_ROOT}/.config/kubeadm_kubeconfig
 export PATH=${PROJ_ROOT}/bin:${PATH}
-
 export PS1="(coco-serverless) $PS1"
 
 popd >> /dev/null
