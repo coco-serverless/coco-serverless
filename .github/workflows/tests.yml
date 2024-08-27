@@ -49,7 +49,10 @@ jobs:
       - name: "Install CoCo using operator"
         run: ./bin/inv_wrapper.sh operator.install operator.install-cc-runtime
       - name: "Install Knative"
-        run: ./bin/inv_wrapper.sh knative.install --skip-push
+        # This command requires push access to ghcr.io/coco-serverless
+        run: ./bin/inv_wrapper.sh knative.install
+      - name: "Update the Kata agent"
+        run: ./bin/inv_wrapper.sh kata.build kata.replace-agent
       - name: "Run python hello world"
         run: |
           ./bin/kubectl apply -f ./apps/helloworld-py
