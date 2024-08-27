@@ -73,6 +73,9 @@ def replace_sidecar(
     )
     run_kubectl_command("apply -f {}".format(out_k8s_file))
 
+    # Apply fix to container image fetching
+    run(f"sudo ctr -n k8s.io content fetch {new_image_url_digest}", shell=True, check=True)
+
     # Finally, make sure to remove all pulled container images to avoid
     # unintended caching issues with CoCo
     docker_cmd = "docker rmi {}".format(KNATIVE_SIDECAR_IMAGE_TAG)
