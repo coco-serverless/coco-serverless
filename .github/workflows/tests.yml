@@ -61,6 +61,8 @@ jobs:
           ./bin/kubectl delete -f ./apps/helloworld-py
           # Wait for pod to be deleted
           kubectl wait --for=delete -l ${{ env.POD_LABEL }} -f ./apps/helloworld-py
+          # Extra cautionary sleep
+          sleep 5
         env:
           POD_LABEL: apps.coco-serverless/name=helloworld-py
       - name: "Run Knative hello world"
