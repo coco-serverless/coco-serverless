@@ -5,6 +5,12 @@ kubeadm
 kubectl
 kubelet
 k9s
+qemu-system-x86_64-igvm
+ovmf-svsm.fd
+svsm.bin
+*.qcow2
+bzImage
+coconut-qemu.igvm
 
 # Kubernetes stuff
 .config
@@ -14,3 +20,6 @@ venv
 
 # Templated files
 templated
+
+# logs
+*.log
