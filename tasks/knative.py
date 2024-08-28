@@ -8,16 +8,19 @@ from tasks.util.knative import (
 from tasks.util.kubeadm import run_kubectl_command, wait_for_pods_in_ns
 from time import sleep
 
-KNATIVE_VERSION = "1.11.0"
+KNATIVE_VERSION = "1.15.0"
 
 # Namespaces
-KNATIVE_NAMESPACE = "knative-serving"
+KNATIVE_EVENTING_NAMESPACE = "knative-eventing"
+KNATIVE_SERVING_NAMESPACE = "knative-serving"
 KOURIER_NAMESPACE = "kourier-system"
 ISTIO_NAMESPACE = "istio-system"
 
 # URLs
-KNATIVE_BASE_URL = "https://github.com/knative/serving/releases/download"
-KNATIVE_BASE_URL += "/knative-v{}".format(KNATIVE_VERSION)
+KNATIVE_SERVING_BASE_URL = "https://github.com/knative/serving/releases/download"
+KNATIVE_SERVING_BASE_URL += "/knative-v{}".format(KNATIVE_VERSION)
+KNATIVE_EVENTING_BASE_URL = "https://github.com/knative/eventing/releases/download"
+KNATIVE_EVENTING_BASE_URL += "/knative-v{}".format(KNATIVE_VERSION)
 KOURIER_BASE_URL = "https://github.com/knative/net-kourier/releases/download"
 KOURIER_BASE_URL += "/knative-v{}".format(KNATIVE_VERSION)
 
@@ -27,13 +30,13 @@ def install_kourier():
     run_kubectl_command(kube_cmd)
 
     # Wait for all components to be ready
-    wait_for_pods_in_ns(KNATIVE_NAMESPACE, label="app=net-kourier-controller")
+    wait_for_pods_in_ns(KNATIVE_SERVING_NAMESPACE, label="app=net-kourier-controller")
     wait_for_pods_in_ns(KOURIER_NAMESPACE, label="app=3scale-kourier-gateway")
 
     # Configure Knative Serving to use Kourier
     kube_cmd = [
         "patch configmap/config-network",
-        "--namespace {}".format(KNATIVE_NAMESPACE),
+        "--namespace {}".format(KNATIVE_SERVING_NAMESPACE),
         "--type merge",
         "--patch",
         '\'{"data":{"ingress-class":"kourier.ingress.networking.knative.dev"}}\'',
@@ -54,7 +57,7 @@ def install_istio():
 
     run_kubectl_command("apply -f {}".format(istio_url))
     run_kubectl_command("apply -f {}".format(join(istio_base_url, "net-istio.yaml")))
-    wait_for_pods_in_ns(KNATIVE_NAMESPACE, 6)
+    wait_for_pods_in_ns(KNATIVE_SERVING_NAMESPACE, 6)
     wait_for_pods_in_ns(ISTIO_NAMESPACE, 6)
 
 
@@ -79,7 +82,7 @@ def install_metallb():
 @task
 def install(ctx, skip_push=False):
     """
-    Install Knative Serving on a running K8s cluster
+    Install Knative on a running K8s cluster
 
     Steps here follow closely the Knative docs:
     https://knative.dev/docs/install/yaml-install/serving/install-serving-with-yaml
@@ -89,19 +92,50 @@ def install(ctx, skip_push=False):
     # Knative requires a functional LoadBalancer, so we use MetaLB
     install_metallb()
 
+    # -----
+    # Install Knative Serving
+    # -----
+
     # Create the knative CRDs
-    kube_cmd = "apply -f {}".format(join(KNATIVE_BASE_URL, "serving-crds.yaml"))
+    kube_cmd = "apply -f {}".format(join(KNATIVE_SERVING_BASE_URL, "serving-crds.yaml"))
     run_kubectl_command(kube_cmd)
 
     # Install the core serving components
-    kube_cmd = "apply -f {}".format(join(KNATIVE_BASE_URL, "serving-core.yaml"))
+    kube_cmd = "apply -f {}".format(join(KNATIVE_SERVING_BASE_URL, "serving-core.yaml"))
     run_kubectl_command(kube_cmd)
 
     # Wait for the core components to be ready
-    wait_for_pods_in_ns(KNATIVE_NAMESPACE, label="app=activator")
-    wait_for_pods_in_ns(KNATIVE_NAMESPACE, label="app=autoscaler")
-    wait_for_pods_in_ns(KNATIVE_NAMESPACE, label="app=controller")
-    wait_for_pods_in_ns(KNATIVE_NAMESPACE, label="app=webhook")
+    wait_for_pods_in_ns(KNATIVE_SERVING_NAMESPACE, label="app=activator")
+    wait_for_pods_in_ns(KNATIVE_SERVING_NAMESPACE, label="app=autoscaler")
+    wait_for_pods_in_ns(KNATIVE_SERVING_NAMESPACE, label="app=controller")
+    wait_for_pods_in_ns(KNATIVE_SERVING_NAMESPACE, label="app=webhook")
+
+    # -----
+    # Install Knative Eventing
+    # -----
+
+    # Create the knative CRDs
+    kube_cmd = "apply -f {}".format(
+        join(KNATIVE_EVENTING_BASE_URL, "eventing-crds.yaml")
+    )
+    run_kubectl_command(kube_cmd)
+
+    # Install the core serving components
+    kube_cmd = "apply -f {}".format(
+        join(KNATIVE_EVENTING_BASE_URL, "eventing-core.yaml")
+    )
+    run_kubectl_command(kube_cmd)
+
+    # Wait for the core components to be ready
+    wait_for_pods_in_ns(KNATIVE_EVENTING_NAMESPACE, label="app=eventing-controller")
+    wait_for_pods_in_ns(KNATIVE_EVENTING_NAMESPACE, label="app=eventing-webhook")
+    wait_for_pods_in_ns(
+        KNATIVE_EVENTING_NAMESPACE, label="sinks.knative.dev/sink=job-sink"
+    )
+
+    # -----
+    # Install a networking layer
+    # -----
 
     # Install a networking layer
     if net_layer == "istio":
@@ -136,10 +170,10 @@ def install(ctx, skip_push=False):
 
     # Deploy a DNS
     kube_cmd = "apply -f {}".format(
-        join(KNATIVE_BASE_URL, "serving-default-domain.yaml")
+        join(KNATIVE_SERVING_BASE_URL, "serving-default-domain.yaml")
     )
     run_kubectl_command(kube_cmd)
-    wait_for_pods_in_ns(KNATIVE_NAMESPACE, label="app=default-domain")
+    wait_for_pods_in_ns(KNATIVE_SERVING_NAMESPACE, label="app=default-domain")
 
     # Replace the sidecar to use an image we control
     do_replace_sidecar(skip_push=skip_push)
@@ -157,7 +191,7 @@ def uninstall(ctx):
     """
     # Delete DNS services
     kube_cmd = "delete -f {}".format(
-        join(KNATIVE_BASE_URL, "serving-default-domain.yaml")
+        join(KNATIVE_SERVING_BASE_URL, "serving-default-domain.yaml")
     )
     run_kubectl_command(kube_cmd)
 
@@ -166,12 +200,14 @@ def uninstall(ctx):
     run_kubectl_command(kube_cmd)
 
     # Delete all components in the knative-serving namespace
-    kube_cmd = "delete all --all -n {}".format(KNATIVE_NAMESPACE)
+    kube_cmd = "delete all --all -n {}".format(KNATIVE_SERVING_NAMESPACE)
     run_kubectl_command(kube_cmd)
-    run_kubectl_command("delete namespace {}".format(KNATIVE_NAMESPACE))
+    run_kubectl_command("delete namespace {}".format(KNATIVE_SERVING_NAMESPACE))
 
     # Delete CRDs
-    kube_cmd = "delete -f {}".format(join(KNATIVE_BASE_URL, "serving-crds.yaml"))
+    kube_cmd = "delete -f {}".format(
+        join(KNATIVE_SERVING_BASE_URL, "serving-crds.yaml")
+    )
     run_kubectl_command(kube_cmd)
 
 
