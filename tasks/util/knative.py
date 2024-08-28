@@ -74,10 +74,13 @@ def replace_sidecar(
     run_kubectl_command("apply -f {}".format(out_k8s_file))
 
     # Apply fix to container image fetching
-    run(
+    out = run(
         f"sudo ctr -n k8s.io content fetch {new_image_url_digest}",
         shell=True,
-        check=True,
+        capture_output=True,
+    )
+    assert out.returncode == 0, "Error fetching k8s content: {}".format(
+        out.stderr.decode("utf-8")
     )
 
     # Finally, make sure to remove all pulled container images to avoid
