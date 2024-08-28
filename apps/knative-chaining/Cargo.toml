@@ -1,0 +1,10 @@
+[package]
+name = "tless-cloudevent-handler"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+cloudevents-sdk = { version = "^0.7.0", features = ["warp"] }
+serde_json = { version = "1.0" }
+tokio = { version = "^1.0", features = ["full"] }
+warp = "^0.3"

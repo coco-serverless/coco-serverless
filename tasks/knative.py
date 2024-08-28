@@ -133,6 +133,35 @@ def install(ctx, skip_push=False):
         KNATIVE_EVENTING_NAMESPACE, label="sinks.knative.dev/sink=job-sink"
     )
 
+    # Install non-core serving components
+    kube_cmd = "apply -f {}".format(
+        join(KNATIVE_EVENTING_BASE_URL, "in-memory-channel.yaml")
+    )
+    run_kubectl_command(kube_cmd)
+
+    kube_cmd = "apply -f {}".format(
+        join(KNATIVE_EVENTING_BASE_URL, "mt-channel-broker.yaml")
+    )
+    run_kubectl_command(kube_cmd)
+
+    # Wait for non-core components to be ready
+    wait_for_pods_in_ns(
+        KNATIVE_EVENTING_NAMESPACE, label="app.kubernetes.io/component=imc-controller"
+    )
+    wait_for_pods_in_ns(
+        KNATIVE_EVENTING_NAMESPACE, label="app.kubernetes.io/component=imc-dispatcher"
+    )
+    wait_for_pods_in_ns(
+        KNATIVE_EVENTING_NAMESPACE,
+        label="app.kubernetes.io/component=broker-controller",
+    )
+    wait_for_pods_in_ns(
+        KNATIVE_EVENTING_NAMESPACE, label="app.kubernetes.io/component=broker-filter"
+    )
+    wait_for_pods_in_ns(
+        KNATIVE_EVENTING_NAMESPACE, label="app.kubernetes.io/component=broker-ingress"
+    )
+
     # -----
     # Install a networking layer
     # -----
