@@ -39,7 +39,7 @@ UK8S_KUBECONFIG_FILE = join(K8S_CONFIG_DIR, "uk8s_kubeconfig")
 
 # Kubeadm config
 
-FLANNEL_VERSION = "0.22.3"
+FLANNEL_VERSION = "0.25.6"
 KUBEADM_KUBECONFIG_FILE = join(K8S_CONFIG_DIR, "kubeadm_kubeconfig")
 
 # CoCo config

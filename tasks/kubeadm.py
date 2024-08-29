@@ -66,11 +66,27 @@ def create(ctx):
     node_label = "node.kubernetes.io/worker="
     run_kubectl_command("label node {} {}".format(node_name, node_label))
 
+    """
     # Configure flannel
     flannel_url = "https://github.com/flannel-io/flannel/releases/download"
     flannel_url += "/v{}/kube-flannel.yml".format(FLANNEL_VERSION)
     run_kubectl_command("apply -f {}".format(flannel_url))
     wait_for_pods_in_ns("kube-flannel", 1)
+    """
+
+    # Configure Calico
+    CALICO_VERSION = "3.28.1"
+    calico_url = "https://raw.githubusercontent.com/projectcalico/calico"
+    calico_url += f"/v{CALICO_VERSION}/manifests"
+    run_kubectl_command(f"create -f {calico_url}/tigera-operator.yaml")
+    run_kubectl_command(f"create -f {calico_url}/custom-resources.yaml")
+    # wait_for_pods_in_ns("calico-system", label="app.kubernetes.io/name=csi-node-driver")
+    # wait_for_pods_in_ns("calico-system", label="app.kubernetes.io/name=calico-typha")
+    # wait_for_pods_in_ns("calico-system", label="app.kubernetes.io/name=calico-node")
+    # wait_for_pods_in_ns("calico-system", label="app.kubernetes.io/name=calico-kube-controller")
+    # TODO: this one seems to be duplicated
+    # wait_for_pods_in_ns("calico-apiserver", label="app.kubernetes.io/name=calico-apiserver")
+    # wait_for_pods_in_ns("calico-apiserver", label="app.kubernetes.io/name=calico-apiserver")
 
 
 @task
