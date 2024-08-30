@@ -21,7 +21,6 @@ K8S_ADMIN_FILE = join(CONF_FILES_DIR, "kubeadm.conf")
 K8S_CONFIG_FILE = "/etc/kubernetes/admin.conf"
 # This value is hardcoded in ./.config/kubeadm.conf
 CRI_RUNTIME_SOCKET = "unix:///run/containerd/containerd.sock"
-FLANNEL_INSTALL_DIR = join(GLOBAL_INSTALL_DIR, "flannel")
 
 # Containerd
 
@@ -39,7 +38,7 @@ UK8S_KUBECONFIG_FILE = join(K8S_CONFIG_DIR, "uk8s_kubeconfig")
 
 # Kubeadm config
 
-FLANNEL_VERSION = "0.25.6"
+CALICO_VERSION = "3.28.1"
 KUBEADM_KUBECONFIG_FILE = join(K8S_CONFIG_DIR, "kubeadm_kubeconfig")
 
 # CoCo config

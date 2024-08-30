@@ -7,7 +7,7 @@ use warp::Filter;
 
 static FAN_OUT_SCALE: u32 = 5;
 thread_local! {
-    static S3_COUNTER: RefCell<u32> = RefCell::new(0);
+    static S3_COUNTER: RefCell<u32> = const { RefCell::new(0) };
 }
 
 // We must wait for the POST event to go through before we can return, as
@@ -107,25 +107,25 @@ pub fn process_event(mut event: Event) -> Event {
 
             // Return the last event through the HTTP respnse
             scaled_event.set_id("0");
-            return scaled_event;
+            scaled_event
         }
         "step-two" => {
             // We still need to POST the event manually but we need to do
             // it outside this method to be able to await on it (this method,
             // itself, is being await-ed on when called in a server loop)
 
-            return event;
+            event
         }
         "step-three" => {
             // Nothing to do after "step-three" as it is the last step in the chain
 
-            return event;
+            event
         }
         _ => panic!(
             "cloudevent: error: unrecognised destination: {:}",
             event.source()
         ),
-    };
+    }
 }
 
 #[tokio::main]
@@ -148,7 +148,7 @@ async fn main() {
             // we need to make sure that the POST is sent before we move on
             println!(
                 "cloudevent(s2): posting to {} event: {processed_event}",
-                processed_event.ty().to_string()
+                processed_event.ty()
             );
             post_event(processed_event.ty().to_string(), processed_event.clone())
                 .await

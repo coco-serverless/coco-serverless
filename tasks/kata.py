@@ -89,7 +89,9 @@ def set_log_level(ctx, log_level):
 def enable_annotation(ctx, annotation):
     for runtime in KATA_RUNTIMES:
         conf_file_path = join(KATA_CONFIG_DIR, "configuration-{}.toml".format(runtime))
-        enabled_annotations = read_value_from_toml(conf_file_path, "hypervisor.qemu.enable_annotations")
+        enabled_annotations = read_value_from_toml(
+            conf_file_path, "hypervisor.qemu.enable_annotations"
+        )
 
         if annotation in enabled_annotations:
             return
@@ -99,7 +101,7 @@ def enable_annotation(ctx, annotation):
         [hypervisor.qemu]
         enable_annotations = [ {ann} ]
         """.format(
-            ann=",".join([f"\"{a}\"" for a in enabled_annotations])
+            ann=",".join([f'"{a}"' for a in enabled_annotations])
         )
         update_toml(conf_file_path, updated_toml_str)
 
