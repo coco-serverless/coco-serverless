@@ -89,7 +89,7 @@ jobs:
           until [ "$(./bin/kubectl -n ${{ env.NAMESPACE }} get pods -l ${{ env.POD_LABEL_ONE }} -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}')" = "True" ]; do echo "Waiting for pod to be ready..."; sleep 2; done
           until [ "$(./bin/kubectl -n ${{ env.NAMESPACE }} get pods -l ${{ env.POD_LABEL_THREE }} -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}')" = "True" ]; do echo "Waiting for pod to be ready..."; sleep 2; done
           # Curl the channel URL
-          ./apps/knative_chaining/curl_cmd.sh
+          ./apps/knative-chaining/curl_cmd.sh
           # Wait for pod 3 to be scaled down
           until [ "$(kubectl -n ${{ env.NAMESPACE }} logs -l ${{ env.POD_LABEL_THREE }} | grep 'cloudevent(s3): done!' | wc -l)" = "1" ]; do echo "Waiting for chain to finish..."; sleep 2; done
           # Finally, clear-up
