@@ -83,7 +83,7 @@ jobs:
           POD_LABEL: apps.coco-serverless/name=helloworld-py
       - name: "Run knative chaining demo"
         run: |
-          ./bin/kubectl apply -f ./apps/knative-chaining
+          ./bin/kubectl apply -f ./apps/knative-chaining/chaining.yaml
           ./bin/inv_wrapper.sh kata.enable-annotation default_memory
           # Wait for both service pods to be ready
           until [ "$(./bin/kubectl -n ${{ env.NAMESPACE }} get pods -l ${{ env.POD_LABEL_ONE }} -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}')" = "True" ]; do echo "Waiting for pod to be ready..."; sleep 2; done

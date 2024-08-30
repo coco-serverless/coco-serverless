@@ -56,6 +56,22 @@ inv kubeadm.create
 
 ## Known Issues
 
+### Host Issues
+
+If you encounter an error from `containerd` failing to create any pods with
+a message similar to the following:
+
+```
+Failed to create pod sandbox: rpc error: code = Unknown desc = failed to create containerd task: failed to create shim task: Creating watcher returned error too many open files: unknown
+```
+
+then you need to increase the host kerenel's parameters:
+
+```bash
+sudo sysctl fs.inotify.max_user_instances=1280
+sudo sysctl fs.inotify.max_user_watches=655360
+```
+
 ### Nydus Clean-Up Issue
 
 If you encounter a `ContainerCreating` error with an error message along the
