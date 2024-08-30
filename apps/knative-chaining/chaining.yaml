@@ -64,14 +64,15 @@ metadata:
 spec:
   template:
     spec:
-      runtimeClassName: kata-qemu
-      # runtimeClassName: kata-qemu-sev
+      runtimeClassName: kata-qemu-sev
       containers:
         - image: ghcr.io/coco-serverless/coco-knative-chaining:unencrypted
           ports:
             - containerPort: 8080
           command: [ "cargo", "run", "--release" ]
     metadata:
+      labels:
+        apps.coco-serverless/name: knative-chaining-one
       annotations:
         # NOTE: we may have to enable this annotation in Kata's config file
         # under hypervisor.qemu.enable_annotations (add 'default_memory')
@@ -92,8 +93,7 @@ spec:
       parallelism: 1
       template:
         spec:
-          runtimeClassName: kata-qemu
-          # runtimeClassName: kata-qemu-sev
+          runtimeClassName: kata-qemu-sev
           restartPolicy: Never
           containers:
             - name: main
@@ -105,6 +105,8 @@ spec:
                 - name: CE_FROM_FILE
                   value: "on"
         metadata:
+          labels:
+            apps.coco-serverless/name: knative-chaining-two
           annotations:
             # NOTE: we may have to enable this annotation in Kata's config file
             # under hypervisor.qemu.enable_annotations (add 'default_memory')
@@ -120,14 +122,15 @@ metadata:
 spec:
   template:
     spec:
-      runtimeClassName: kata-qemu
-      # runtimeClassName: kata-qemu-sev
+      runtimeClassName: kata-qemu-sev
       containers:
         - image: ghcr.io/coco-serverless/coco-knative-chaining:unencrypted
           ports:
             - containerPort: 8080
           command: [ "cargo", "run", "--release" ]
     metadata:
+      labels:
+        apps.coco-serverless/name: knative-chaining-three
       annotations:
         autoscaling.knative.dev/scale-to-zero-pod-retention-period: "1m"
         # NOTE: we may have to enable this annotation in Kata's config file

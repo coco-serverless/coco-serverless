@@ -2,7 +2,7 @@ use cloudevents::binding::reqwest::RequestBuilderExt;
 use cloudevents::binding::warp::{filter, reply};
 use cloudevents::{AttributesReader, AttributesWriter, Event};
 use std::{cell::RefCell, env, fs, thread, time};
-use warp::reply::Response;
+use tokio::task::JoinHandle;
 use warp::Filter;
 
 static FAN_OUT_SCALE: u32 = 5;
@@ -10,9 +10,9 @@ thread_local! {
     static S3_COUNTER: RefCell<u32> = RefCell::new(0);
 }
 
-pub fn post_event(dest: String, event: Event) {
-    // WARNING: we use the type to attribute to indicate the
-    // reply-to attribute
+// We must wait for the POST event to go through before we can return, as
+// otherwise the chain may not make progress
+pub fn post_event(dest: String, event: Event) -> JoinHandle<()> {
     tokio::spawn(async {
         reqwest::Client::new()
             .post(dest)
@@ -24,13 +24,17 @@ pub fn post_event(dest: String, event: Event) {
             .await
             .map_err(|e| e.to_string())
             .unwrap();
-    });
+    })
 }
 
 // This function is a general wrapper that takes a cloud event as an input,
 // decides what function to execute, and outputs another cloud event
-pub fn process_event(mut event: Event) -> Response {
-    // Here we need to enforce the structure of our DAG:
+pub fn process_event(mut event: Event) -> Event {
+    // Response {
+    // -----
+    // Pre-process and function invocation
+    // -----
+
     event.set_source(match event.source().as_str() {
         "cli" => {
             println!("cloudevent: executing step-one from cli: {event}");
@@ -49,7 +53,7 @@ pub fn process_event(mut event: Event) -> Response {
             "step-two"
         }
         "step-two" => {
-            println!("cloudevent: executing step-two from step-one: {event}");
+            println!("cloudevent: executing step-three from step-two: {event}");
 
             // Simulate actual function execution by a sleep
             thread::sleep(time::Duration::from_millis(500));
@@ -75,7 +79,10 @@ pub fn process_event(mut event: Event) -> Response {
         ),
     });
 
-    // Post-process based on new source (i.e. current function)
+    // -----
+    // Post-process
+    // -----
+
     match event.source().as_str() {
         "step-one" => {
             // Store the destinattion channel
@@ -85,31 +92,34 @@ pub fn process_event(mut event: Event) -> Response {
 
             // Write the new destination channel
             // FIXME: this is hardcoded in chaining.yaml
-            scaled_event.set_type("http://two-to-three-kn-channel.chaining-test-svc.cluster.local");
+            scaled_event.set_type("http://two-to-three-kn-channel.chaining-test.svc.cluster.local");
 
-            println!("step-two: fanning out by a factor of {FAN_OUT_SCALE}");
+            println!("cloudevent(s1): fanning out by a factor of {FAN_OUT_SCALE}");
 
             for i in 1..FAN_OUT_SCALE {
                 scaled_event.set_id(i.to_string());
 
-                println!("Posting to {dst} event {i}/{FAN_OUT_SCALE}: {scaled_event}");
+                println!(
+                    "cloudevent(s1): posting to {dst} event {i}/{FAN_OUT_SCALE}: {scaled_event}"
+                );
                 post_event(dst.to_string(), scaled_event.clone());
             }
 
             // Return the last event through the HTTP respnse
             scaled_event.set_id("0");
-            return reply::from_event(scaled_event);
+            return scaled_event;
         }
         "step-two" => {
-            // After executing step-two, we just need to post a clone of the
-            // event to the type (i.e. destination) provided in it
-            post_event(event.ty().to_string(), event.clone());
+            // We still need to POST the event manually but we need to do
+            // it outside this method to be able to await on it (this method,
+            // itself, is being await-ed on when called in a server loop)
 
-            // FIXME: we return here but we know that we ignore the return
-            // value because step-two is a JobSink, and hence not invoked
-            // through HTTP. In the future we should make the function allow
-            // different types of return values
-            return reply::from_event(event);
+            return event;
+        }
+        "step-three" => {
+            // Nothing to do after "step-three" as it is the last step in the chain
+
+            return event;
         }
         _ => panic!(
             "cloudevent: error: unrecognised destination: {:}",
@@ -130,17 +140,26 @@ async fn main() {
             let json_value = serde_json::from_str(&file_contents).unwrap();
             let event: Event = serde_json::from_value(json_value).unwrap();
 
-            // FIXME: process_event returns an HTTP response. Naturally, when
-            // reading a CloudEvent from a file we have no-where to respond
-            // it to.
-            process_event(event);
+            let processed_event = process_event(event);
+
+            // After executing step-two, we just need to post a clone of the
+            // event to the type (i.e. destination) provided in it. Given that
+            // step-two runs in a JobSink, the pod will terminate on exit, so
+            // we need to make sure that the POST is sent before we move on
+            println!(
+                "cloudevent(s2): posting to {} event: {processed_event}",
+                processed_event.ty().to_string()
+            );
+            post_event(processed_event.ty().to_string(), processed_event.clone())
+                .await
+                .unwrap();
         }
         Err(env::VarError::NotPresent) => {
             let routes = warp::any()
                 // Extract event from request
                 .and(filter::to_event())
                 // Return the post-processed event
-                .map(process_event);
+                .map(|event| reply::from_event(process_event(event)));
 
             warp::serve(routes).run(([127, 0, 0, 1], 8080)).await;
         }

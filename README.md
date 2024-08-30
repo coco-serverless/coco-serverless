@@ -71,7 +71,8 @@ inv kata.build kata.replace-agent
 
 You are ready to run one of the supported apps:
 * [Hello World! (Py)](./docs/helloworld_py.md) - simple HTTP server running in Python to test CoCo and Kata.
-* [Hello World! (Knative)](./docs/helloworld_knative.md) - same app as before, but invoked over Knatvie.
+* [Hello World! (Knative)](./docs/helloworld_knative.md) - same app as before, but invoked over Knative.
+* [Knative Chaining](./docs/knative_chaining.md) - example of function chaining in Knative with CoCo.
 * [Hello Attested World! (Knative + Attestation)](./docs/helloworld_knative_attestation.md) - same setting as the Knative hello world, but with varying levels of attestation configured.
 
 If your app uses Knative, you will have to install it first:

@@ -16,7 +16,7 @@ from tasks.util.kata import (
     run_kata_workon_ctr,
     stop_kata_workon_ctr,
 )
-from tasks.util.toml import update_toml
+from tasks.util.toml import read_value_from_toml, update_toml
 
 KATA_SHIM_SOURCE_DIR = join(KATA_SOURCE_DIR, "src", "runtime")
 
@@ -81,6 +81,25 @@ def set_log_level(ctx, log_level):
         enable_debug = {enable_debug}
         """.format(
             enable_debug=enable_debug
+        )
+        update_toml(conf_file_path, updated_toml_str)
+
+
+@task
+def enable_annotation(ctx, annotation):
+    for runtime in KATA_RUNTIMES:
+        conf_file_path = join(KATA_CONFIG_DIR, "configuration-{}.toml".format(runtime))
+        enabled_annotations = read_value_from_toml(conf_file_path, "hypervisor.qemu.enable_annotations")
+
+        if annotation in enabled_annotations:
+            return
+
+        enabled_annotations.append(annotation)
+        updated_toml_str = """
+        [hypervisor.qemu]
+        enable_annotations = [ {ann} ]
+        """.format(
+            ann=",".join([f"\"{a}\"" for a in enabled_annotations])
         )
         update_toml(conf_file_path, updated_toml_str)
 
