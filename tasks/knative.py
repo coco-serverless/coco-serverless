@@ -108,7 +108,10 @@ def install(ctx, skip_push=False, debug=False):
     """
     net_layer = "kourier"
 
-    print(f"Installing Knative v{KNATIVE_VERSION} with {net_layer} as net layer...")
+    print(
+        f"Installing Knative v{KNATIVE_VERSION} with {net_layer} as net layer...",
+        end="",
+    )
 
     # Knative requires a functional LoadBalancer, so we use MetaLB
     install_metallb(debug=debug)
@@ -283,7 +286,7 @@ def install(ctx, skip_push=False, debug=False):
     # Replace the sidecar to use an image we control
     do_replace_sidecar(skip_push=skip_push, quiet=not debug)
 
-    print("Installation succesful!")
+    print("Success!")
 
 
 @task

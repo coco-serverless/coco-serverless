@@ -24,7 +24,7 @@ def create(ctx, debug=False):
     """
     Create a single-node k8s cluster
     """
-    print(f"Creating K8s (v{K8S_VERSION}) cluster using kubeadm...")
+    print(f"Creating K8s (v{K8S_VERSION}) cluster using kubeadm...", end="")
 
     # Start the cluster
     kubeadm_cmd = "sudo kubeadm init --config {}".format(K8S_ADMIN_FILE)
@@ -116,7 +116,7 @@ def create(ctx, debug=False):
         expected_num_of_pods=2,
     )
 
-    print("Cluster created!")
+    print("Success!")
 
 
 @task

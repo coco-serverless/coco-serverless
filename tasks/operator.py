@@ -16,7 +16,7 @@ def install(ctx, debug=False):
     """
     Install the cc-operator on the cluster
     """
-    print(f"Installing CoCo operator v{COCO_RELEASE_VERSION}...")
+    print(f"Installing CoCo operator v{COCO_RELEASE_VERSION}...", end="")
 
     # Install the operator from the confidential-containers/operator
     # release tag
@@ -31,7 +31,7 @@ def install(ctx, debug=False):
         debug=debug,
     )
 
-    print("Installation succesful!")
+    print("Success!")
 
 
 @task
@@ -39,7 +39,7 @@ def install_cc_runtime(ctx, debug=False):
     """
     Install the CoCo runtime through the operator
     """
-    print("Instal CoCo runtimes...")
+    print("Install CoCo runtimes...", end="")
 
     cc_runtime_url = join(
         OPERATOR_GITHUB_URL,
@@ -83,7 +83,7 @@ def install_cc_runtime(ctx, debug=False):
             " "
         )
 
-    print("Installation succesful!")
+    print("Success!")
 
 
 @task
