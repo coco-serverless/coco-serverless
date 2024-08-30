@@ -97,7 +97,6 @@ jobs:
         env:
           NAMESPACE: chaining-test
           POD_LABEL_ONE: apps.coco-serverless/name=knative-chaining-one
-          # POD_LABEL_TWO: apps.coco-serverless/name=knative-chaining-two
           POD_LABEL_THREE: apps.coco-serverless/name=knative-chaining-three
       - name: "Clean-up"
         if: always()

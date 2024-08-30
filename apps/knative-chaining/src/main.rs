@@ -30,7 +30,6 @@ pub fn post_event(dest: String, event: Event) -> JoinHandle<()> {
 // This function is a general wrapper that takes a cloud event as an input,
 // decides what function to execute, and outputs another cloud event
 pub fn process_event(mut event: Event) -> Event {
-    // Response {
     // -----
     // Pre-process and function invocation
     // -----
