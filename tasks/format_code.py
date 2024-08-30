@@ -1,13 +1,19 @@
 from invoke import task
+from os.path import join
 from subprocess import run
-from tasks.util.env import PROJ_ROOT
+from tasks.util.env import APPS_SOURCE_DIR, PROJ_ROOT
 
 
 @task(default=True)
 def format(ctx, check=False):
     """
-    Format Python code
+    Format code
     """
+
+    # -----
+    # Python formatting
+    # -----
+
     files_to_check = (
         run(
             'git ls-files -- "*.py"',
@@ -33,3 +39,16 @@ def format(ctx, check=False):
     ]
     flake8_cmd = " ".join(flake8_cmd)
     run(flake8_cmd, shell=True, check=True, cwd=PROJ_ROOT)
+
+    # -----
+    # Rust formatting
+    # -----
+
+    dirs_to_check = [join(APPS_SOURCE_DIR, "knative-chaining")]
+    for dir_to_check in dirs_to_check:
+        run(
+            "cargo fmt {}".format("--check" if check else ""),
+            shell=True,
+            check=True,
+            cwd=dir_to_check,
+        )
