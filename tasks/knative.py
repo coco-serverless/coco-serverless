@@ -25,13 +25,23 @@ KOURIER_BASE_URL = "https://github.com/knative/net-kourier/releases/download"
 KOURIER_BASE_URL += "/knative-v{}".format(KNATIVE_VERSION)
 
 
-def install_kourier():
+def install_kourier(debug=False):
     kube_cmd = "apply -f {}".format(join(KOURIER_BASE_URL, "kourier.yaml"))
-    run_kubectl_command(kube_cmd)
+    run_kubectl_command(kube_cmd, capture_output=not debug)
 
     # Wait for all components to be ready
-    wait_for_pods_in_ns(KNATIVE_SERVING_NAMESPACE, label="app=net-kourier-controller")
-    wait_for_pods_in_ns(KOURIER_NAMESPACE, label="app=3scale-kourier-gateway")
+    wait_for_pods_in_ns(
+        KNATIVE_SERVING_NAMESPACE,
+        label="app=net-kourier-controller",
+        expected_num_of_pods=1,
+        debug=debug,
+    )
+    wait_for_pods_in_ns(
+        KOURIER_NAMESPACE,
+        label="app=3scale-kourier-gateway",
+        expected_num_of_pods=1,
+        debug=debug,
+    )
 
     # Configure Knative Serving to use Kourier
     kube_cmd = [
@@ -42,10 +52,10 @@ def install_kourier():
         '\'{"data":{"ingress-class":"kourier.ingress.networking.knative.dev"}}\'',
     ]
     kube_cmd = " ".join(kube_cmd)
-    run_kubectl_command(kube_cmd)
+    run_kubectl_command(kube_cmd, capture_output=not debug)
 
 
-def install_istio():
+def install_istio(debug=False):
     istio_base_url = (
         "https://github.com/knative/net-istio/releases/download/knative-v{}".format(
             KNATIVE_VERSION
@@ -61,7 +71,7 @@ def install_istio():
     wait_for_pods_in_ns(ISTIO_NAMESPACE, 6)
 
 
-def install_metallb():
+def install_metallb(debug=False):
     """
     Install the MetalLB load balancer
     """
@@ -70,17 +80,26 @@ def install_metallb():
     metalb_url = "https://raw.githubusercontent.com/metallb/metallb/"
     metalb_url += "v{}/config/manifests/metallb-native.yaml".format(metalb_version)
     kube_cmd = "apply -f {}".format(metalb_url)
-    run_kubectl_command(kube_cmd)
-    wait_for_pods_in_ns("metallb-system", label="component=controller")
-    wait_for_pods_in_ns("metallb-system", label="component=speaker")
+    run_kubectl_command(kube_cmd, capture_output=not debug)
+    wait_for_pods_in_ns(
+        "metallb-system",
+        label="component=controller",
+        expected_num_of_pods=1,
+        debug=debug,
+    )
+    wait_for_pods_in_ns(
+        "metallb-system", label="component=speaker", expected_num_of_pods=1, debug=debug
+    )
 
     # Second, configure the IP address pool and L2 advertisement
     metallb_conf_file = join(CONF_FILES_DIR, "metallb_config.yaml")
-    run_kubectl_command("apply -f {}".format(metallb_conf_file))
+    run_kubectl_command(
+        "apply -f {}".format(metallb_conf_file), capture_output=not debug
+    )
 
 
 @task
-def install(ctx, skip_push=False):
+def install(ctx, skip_push=False, debug=False):
     """
     Install Knative on a running K8s cluster
 
@@ -89,8 +108,10 @@ def install(ctx, skip_push=False):
     """
     net_layer = "kourier"
 
+    print(f"Installing Knative v{KNATIVE_VERSION} with {net_layer} as net layer...")
+
     # Knative requires a functional LoadBalancer, so we use MetaLB
-    install_metallb()
+    install_metallb(debug=debug)
 
     # -----
     # Install Knative Serving
@@ -98,17 +119,37 @@ def install(ctx, skip_push=False):
 
     # Create the knative CRDs
     kube_cmd = "apply -f {}".format(join(KNATIVE_SERVING_BASE_URL, "serving-crds.yaml"))
-    run_kubectl_command(kube_cmd)
+    run_kubectl_command(kube_cmd, capture_output=not debug)
 
     # Install the core serving components
     kube_cmd = "apply -f {}".format(join(KNATIVE_SERVING_BASE_URL, "serving-core.yaml"))
-    run_kubectl_command(kube_cmd)
+    run_kubectl_command(kube_cmd, capture_output=not debug)
 
     # Wait for the core components to be ready
-    wait_for_pods_in_ns(KNATIVE_SERVING_NAMESPACE, label="app=activator")
-    wait_for_pods_in_ns(KNATIVE_SERVING_NAMESPACE, label="app=autoscaler")
-    wait_for_pods_in_ns(KNATIVE_SERVING_NAMESPACE, label="app=controller")
-    wait_for_pods_in_ns(KNATIVE_SERVING_NAMESPACE, label="app=webhook")
+    wait_for_pods_in_ns(
+        KNATIVE_SERVING_NAMESPACE,
+        label="app=activator",
+        expected_num_of_pods=1,
+        debug=debug,
+    )
+    wait_for_pods_in_ns(
+        KNATIVE_SERVING_NAMESPACE,
+        label="app=autoscaler",
+        expected_num_of_pods=1,
+        debug=debug,
+    )
+    wait_for_pods_in_ns(
+        KNATIVE_SERVING_NAMESPACE,
+        label="app=controller",
+        expected_num_of_pods=1,
+        debug=debug,
+    )
+    wait_for_pods_in_ns(
+        KNATIVE_SERVING_NAMESPACE,
+        label="app=webhook",
+        expected_num_of_pods=1,
+        debug=debug,
+    )
 
     # -----
     # Install Knative Eventing
@@ -118,48 +159,75 @@ def install(ctx, skip_push=False):
     kube_cmd = "apply -f {}".format(
         join(KNATIVE_EVENTING_BASE_URL, "eventing-crds.yaml")
     )
-    run_kubectl_command(kube_cmd)
+    run_kubectl_command(kube_cmd, capture_output=not debug)
 
     # Install the core serving components
     kube_cmd = "apply -f {}".format(
         join(KNATIVE_EVENTING_BASE_URL, "eventing-core.yaml")
     )
-    run_kubectl_command(kube_cmd)
+    run_kubectl_command(kube_cmd, capture_output=not debug)
 
     # Wait for the core components to be ready
-    wait_for_pods_in_ns(KNATIVE_EVENTING_NAMESPACE, label="app=eventing-controller")
-    wait_for_pods_in_ns(KNATIVE_EVENTING_NAMESPACE, label="app=eventing-webhook")
     wait_for_pods_in_ns(
-        KNATIVE_EVENTING_NAMESPACE, label="sinks.knative.dev/sink=job-sink"
+        KNATIVE_EVENTING_NAMESPACE,
+        label="app=eventing-controller",
+        expected_num_of_pods=1,
+        debug=debug,
+    )
+    wait_for_pods_in_ns(
+        KNATIVE_EVENTING_NAMESPACE,
+        label="app=eventing-webhook",
+        expected_num_of_pods=1,
+        debug=debug,
+    )
+    wait_for_pods_in_ns(
+        KNATIVE_EVENTING_NAMESPACE,
+        label="sinks.knative.dev/sink=job-sink",
+        expected_num_of_pods=1,
+        debug=debug,
     )
 
     # Install non-core serving components
     kube_cmd = "apply -f {}".format(
         join(KNATIVE_EVENTING_BASE_URL, "in-memory-channel.yaml")
     )
-    run_kubectl_command(kube_cmd)
+    run_kubectl_command(kube_cmd, capture_output=not debug)
 
     kube_cmd = "apply -f {}".format(
         join(KNATIVE_EVENTING_BASE_URL, "mt-channel-broker.yaml")
     )
-    run_kubectl_command(kube_cmd)
+    run_kubectl_command(kube_cmd, capture_output=not debug)
 
     # Wait for non-core components to be ready
     wait_for_pods_in_ns(
-        KNATIVE_EVENTING_NAMESPACE, label="app.kubernetes.io/component=imc-controller"
+        KNATIVE_EVENTING_NAMESPACE,
+        label="app.kubernetes.io/component=imc-controller",
+        expected_num_of_pods=1,
+        debug=debug,
     )
     wait_for_pods_in_ns(
-        KNATIVE_EVENTING_NAMESPACE, label="app.kubernetes.io/component=imc-dispatcher"
+        KNATIVE_EVENTING_NAMESPACE,
+        label="app.kubernetes.io/component=imc-dispatcher",
+        expected_num_of_pods=1,
+        debug=debug,
     )
     wait_for_pods_in_ns(
         KNATIVE_EVENTING_NAMESPACE,
         label="app.kubernetes.io/component=broker-controller",
+        expected_num_of_pods=1,
+        debug=debug,
     )
     wait_for_pods_in_ns(
-        KNATIVE_EVENTING_NAMESPACE, label="app.kubernetes.io/component=broker-filter"
+        KNATIVE_EVENTING_NAMESPACE,
+        label="app.kubernetes.io/component=broker-filter",
+        expected_num_of_pods=1,
+        debug=debug,
     )
     wait_for_pods_in_ns(
-        KNATIVE_EVENTING_NAMESPACE, label="app.kubernetes.io/component=broker-ingress"
+        KNATIVE_EVENTING_NAMESPACE,
+        label="app.kubernetes.io/component=broker-ingress",
+        expected_num_of_pods=1,
+        debug=debug,
     )
 
     # -----
@@ -170,16 +238,17 @@ def install(ctx, skip_push=False):
     if net_layer == "istio":
         net_layer_ns = ISTIO_NAMESPACE
         net_layer_service_name = "istio-ingressgateway"
-        install_istio()
+        install_istio(debug)
     elif net_layer == "kourier":
         net_layer_ns = KOURIER_NAMESPACE
         net_layer_service_name = "kourier"
-        install_kourier()
+        install_kourier(debug)
 
     # Update the Serving's ConfigMap to support running CoCo
-    # TODO: make sure we flush out the config file before merging
     knative_configmap = join(CONF_FILES_DIR, "knative_config.yaml")
-    run_kubectl_command("apply -f {}".format(knative_configmap))
+    run_kubectl_command(
+        "apply -f {}".format(knative_configmap), capture_output=not debug
+    )
 
     # Get Knative's external IP
     ip_cmd = [
@@ -192,7 +261,9 @@ def install(ctx, skip_push=False):
     actual_ip = run_kubectl_command(ip_cmd, capture_output=True)
     actual_ip_len = len(actual_ip.split("."))
     while actual_ip_len != expected_ip_len:
-        print("Waiting for kourier external IP to be assigned by the LB...")
+        if not debug:
+            print("Waiting for kourier external IP to be assigned by the LB...")
+
         sleep(3)
         actual_ip = run_kubectl_command(ip_cmd, capture_output=True)
         actual_ip_len = len(actual_ip.split("."))
@@ -201,13 +272,18 @@ def install(ctx, skip_push=False):
     kube_cmd = "apply -f {}".format(
         join(KNATIVE_SERVING_BASE_URL, "serving-default-domain.yaml")
     )
-    run_kubectl_command(kube_cmd)
-    wait_for_pods_in_ns(KNATIVE_SERVING_NAMESPACE, label="app=default-domain")
+    run_kubectl_command(kube_cmd, capture_output=not debug)
+    wait_for_pods_in_ns(
+        KNATIVE_SERVING_NAMESPACE,
+        label="app=default-domain",
+        expected_num_of_pods=1,
+        debug=debug,
+    )
 
     # Replace the sidecar to use an image we control
-    do_replace_sidecar(skip_push=skip_push)
+    do_replace_sidecar(skip_push=skip_push, quiet=not debug)
 
-    print("Succesfully deployed Knative! The external IP is: {}".format(actual_ip))
+    print("Installation succesful!")
 
 
 @task

@@ -4,6 +4,10 @@ We support function chaining in Knative using a combination of primitives from
 both Knative Serving and Knative Eventing, together with the CloudEvents
 specification.
 
+> [!WARN]
+> Knative Eventing requires hairpin traffic to be enabled in the cluster's
+> CNI configuration. Flannel did not work for us so we had to move to Calico.
+
 In particular, we use:
 - Knative Services: for nodes in the DAG (i.e. functions).
 - Knative JobSinks: like services, but for fan-out scenatios where we want a

@@ -8,6 +8,7 @@ from tasks.util.env import (
     CALICO_VERSION,
     K8S_ADMIN_FILE,
     K8S_CONFIG_DIR,
+    K8S_VERSION,
     KUBEADM_KUBECONFIG_FILE,
 )
 from tasks.util.kubeadm import (
@@ -23,6 +24,8 @@ def create(ctx, debug=False):
     """
     Create a single-node k8s cluster
     """
+    print(f"Creating K8s (v{K8S_VERSION}) cluster using kubeadm...")
+
     # Start the cluster
     kubeadm_cmd = "sudo kubeadm init --config {}".format(K8S_ADMIN_FILE)
     if debug:
@@ -113,6 +116,8 @@ def create(ctx, debug=False):
         expected_num_of_pods=2,
     )
 
+    print("Cluster created!")
+
 
 @task
 def destroy(ctx, debug=False):
@@ -129,10 +134,10 @@ def destroy(ctx, debug=False):
         """
         ip_cmd = "sudo ip link set dev {} down".format(dev_name)
         # The command may fail?
-        run(ip_cmd, shell=True)
+        run(ip_cmd, shell=True, capture_output=True)
         ip_cmd = "sudo ip link del {}".format(dev_name)
         # The command may fail?
-        run(ip_cmd, shell=True)
+        run(ip_cmd, shell=True, capture_output=True)
 
     def remove_cni():
         rmtree("/etc/cni/net.d", ignore_errors=True)
