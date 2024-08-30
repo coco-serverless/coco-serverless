@@ -5,9 +5,10 @@ from shutil import rmtree
 from subprocess import run
 from tasks.util.env import (
     CRI_RUNTIME_SOCKET,
-    FLANNEL_VERSION,
+    CALICO_VERSION,
     K8S_ADMIN_FILE,
     K8S_CONFIG_DIR,
+    K8S_VERSION,
     KUBEADM_KUBECONFIG_FILE,
 )
 from tasks.util.kubeadm import (
@@ -19,14 +20,21 @@ from time import sleep
 
 
 @task
-def create(ctx):
+def create(ctx, debug=False):
     """
     Create a single-node k8s cluster
     """
+    print(f"Creating K8s (v{K8S_VERSION}) cluster using kubeadm...", end="")
+
     # Start the cluster
     kubeadm_cmd = "sudo kubeadm init --config {}".format(K8S_ADMIN_FILE)
-    # kubeadm_cmd = "sudo kubeadm init"
-    run(kubeadm_cmd, shell=True, check=True)
+    if debug:
+        run(kubeadm_cmd, shell=True, check=True)
+    else:
+        out = run(kubeadm_cmd, shell=True, capture_output=True)
+        assert out.returncode == 0, "Error running cmd: {} (error: {})".format(
+            kubeadm_cmd, out.stderr
+        )
 
     if not exists(K8S_CONFIG_DIR):
         makedirs(K8S_CONFIG_DIR)
@@ -60,23 +68,61 @@ def create(ctx):
     for role in ["control-plane"]:
         node_label = "node-role.kubernetes.io/{}:NoSchedule-".format(role)
         taint_cmd = "taint nodes {} {}".format(node_name, node_label)
-        run_kubectl_command(taint_cmd)
+        run_kubectl_command(taint_cmd, capture_output=not debug)
 
     # In addition, make sure the node has the worker label (required by CoCo)
     node_label = "node.kubernetes.io/worker="
-    run_kubectl_command("label node {} {}".format(node_name, node_label))
+    run_kubectl_command(
+        "label node {} {}".format(node_name, node_label), capture_output=not debug
+    )
 
-    # Configure flannel
-    flannel_url = "https://github.com/flannel-io/flannel/releases/download"
-    flannel_url += "/v{}/kube-flannel.yml".format(FLANNEL_VERSION)
-    run_kubectl_command("apply -f {}".format(flannel_url))
-    wait_for_pods_in_ns("kube-flannel", 1)
+    # Configure Calico
+    calico_url = "https://raw.githubusercontent.com/projectcalico/calico"
+    calico_url += f"/v{CALICO_VERSION}/manifests"
+    run_kubectl_command(
+        f"create -f {calico_url}/tigera-operator.yaml", capture_output=not debug
+    )
+    run_kubectl_command(
+        f"create -f {calico_url}/custom-resources.yaml", capture_output=not debug
+    )
+    wait_for_pods_in_ns(
+        "calico-system",
+        label="app.kubernetes.io/name=csi-node-driver",
+        debug=debug,
+        expected_num_of_pods=1,
+    )
+    wait_for_pods_in_ns(
+        "calico-system",
+        label="app.kubernetes.io/name=calico-typha",
+        debug=debug,
+        expected_num_of_pods=1,
+    )
+    wait_for_pods_in_ns(
+        "calico-system",
+        label="app.kubernetes.io/name=calico-node",
+        debug=debug,
+        expected_num_of_pods=1,
+    )
+    wait_for_pods_in_ns(
+        "calico-system",
+        label="app.kubernetes.io/name=calico-kube-controllers",
+        expected_num_of_pods=1,
+        debug=debug,
+    )
+    wait_for_pods_in_ns(
+        "calico-apiserver",
+        label="app.kubernetes.io/name=calico-apiserver",
+        debug=debug,
+        expected_num_of_pods=2,
+    )
+
+    print("Success!")
 
 
 @task
-def destroy(ctx):
+def destroy(ctx, debug=False):
     """
-    Destroy a k8s cluster initialised with `inv k8s.create`
+    Destroy a k8s cluster initialised with `inv kubeadm.create`
     """
 
     def remove_link(dev_name):
@@ -88,21 +134,23 @@ def destroy(ctx):
         """
         ip_cmd = "sudo ip link set dev {} down".format(dev_name)
         # The command may fail?
-        run(ip_cmd, shell=True)
+        run(ip_cmd, shell=True, capture_output=True)
         ip_cmd = "sudo ip link del {}".format(dev_name)
         # The command may fail?
-        run(ip_cmd, shell=True)
+        run(ip_cmd, shell=True, capture_output=True)
 
     def remove_cni():
         rmtree("/etc/cni/net.d", ignore_errors=True)
         remove_link("cni0")
 
-    def remove_flannel():
-        remove_link("flannel.1")
-
     kubeadm_cmd = "sudo kubeadm reset -f --cri-socket='{}'".format(CRI_RUNTIME_SOCKET)
-    run(kubeadm_cmd, shell=True, check=True)
+    if debug:
+        run(kubeadm_cmd, shell=True, check=True)
+    else:
+        out = run(kubeadm_cmd, shell=True, capture_output=True)
+        assert out.returncode == 0, "Error running cmd: {} (error: {})".format(
+            kubeadm_cmd, out.stderr
+        )
 
     # Remove networking stuff
     remove_cni()
-    remove_flannel()

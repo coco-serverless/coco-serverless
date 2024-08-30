@@ -17,7 +17,7 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
-  python-format:
+  code-format:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@v4
       # Formatting checks
       - name: "Code formatting check"
-        run: ./bin/inv_wrapper.sh format-code
+        run: ./bin/inv_wrapper.sh format-code --check
 
   setup-cluster:
     if: github.event.pull_request.draft == false
@@ -81,6 +81,23 @@ jobs:
           kubectl wait --for=delete -l ${{ env.POD_LABEL }} -f ./apps/helloworld-knative
         env:
           POD_LABEL: apps.coco-serverless/name=helloworld-py
+      - name: "Run knative chaining demo"
+        run: |
+          ./bin/kubectl apply -f ./apps/knative-chaining/chaining.yaml
+          ./bin/inv_wrapper.sh kata.enable-annotation default_memory
+          # Wait for both service pods to be ready
+          until [ "$(./bin/kubectl -n ${{ env.NAMESPACE }} get pods -l ${{ env.POD_LABEL_ONE }} -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}')" = "True" ]; do echo "Waiting for pod to be ready..."; sleep 2; done
+          until [ "$(./bin/kubectl -n ${{ env.NAMESPACE }} get pods -l ${{ env.POD_LABEL_THREE }} -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}')" = "True" ]; do echo "Waiting for pod to be ready..."; sleep 2; done
+          # Curl the channel URL
+          ./apps/knative-chaining/curl_cmd.sh
+          # Wait for pod 3 to be scaled down
+          until [ "$(kubectl -n ${{ env.NAMESPACE }} logs -l ${{ env.POD_LABEL_THREE }} | grep 'cloudevent(s3): done!' | wc -l)" = "1" ]; do echo "Waiting for chain to finish..."; sleep 2; done
+          # Finally, clear-up
+          ./bin/kubectl apply -f ./apps/knative-chaining
+        env:
+          NAMESPACE: chaining-test
+          POD_LABEL_ONE: apps.coco-serverless/name=knative-chaining-one
+          POD_LABEL_THREE: apps.coco-serverless/name=knative-chaining-three
       - name: "Clean-up"
         if: always()
         run: ./bin/inv_wrapper.sh kubeadm.destroy

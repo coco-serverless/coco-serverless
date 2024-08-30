@@ -1,0 +1,191 @@
+# -----
+# This YAML describes a chaining pipeline in Knative. We build the pipeline
+# using three primitives:
+# - Knative Services: nodes in the DAG (i.e. functions)
+# - Knative JobSinks: like services, but for fan-out scenatios.
+# - Knative Channels: edges in the DAG
+# - Knative Subscriptions: determine the beginning and ending of channels
+#
+# Knative uses CloudEvents to send data around the chains. We use the
+# CloudEvent's SDK to listen for requests from our Knative service, and
+# respond to them.
+#
+# We implement a fan-out/fan-in pattern (a la MapReduce), where the fan-out
+# degree is determined at run-time. To specify a certain fan-out degree we
+# use JobSinks which guarantee the execution of one Job per each different
+# CloudEvent uniquely identified by the (ce-source, ce-id) pair.
+# -----
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: chaining-test
+---
+# We need to have as many channels as edges in our workflow DAG. Alternatively,
+# we could enforce edges by using a Broker/Trigger pattern and filtering on
+# CloudEvent properties
+apiVersion: messaging.knative.dev/v1
+kind: Channel
+metadata:
+  name: ingress-to-one
+  namespace: chaining-test
+spec:
+  channelTemplate:
+    apiVersion: messaging.knative.dev/v1
+    kind: InMemoryChannel
+---
+apiVersion: messaging.knative.dev/v1
+kind: Channel
+metadata:
+  name: one-to-two
+  namespace: chaining-test
+spec:
+  channelTemplate:
+    apiVersion: messaging.knative.dev/v1
+    kind: InMemoryChannel
+---
+apiVersion: messaging.knative.dev/v1
+kind: Channel
+metadata:
+  name: two-to-three
+  namespace: chaining-test
+spec:
+  channelTemplate:
+    apiVersion: messaging.knative.dev/v1
+    kind: InMemoryChannel
+---
+# We can re-use the same image for all our steps in the chain. Depending on
+# the CloudEvent metadata the image will do one thing or another. In
+# addition, the channel and subscription structure enforces the right routing
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: coco-knative-chaining-one
+  namespace: chaining-test
+spec:
+  template:
+    spec:
+      runtimeClassName: kata-qemu-sev
+      containers:
+        - image: ghcr.io/coco-serverless/coco-knative-chaining:unencrypted
+          ports:
+            - containerPort: 8080
+          command: [ "cargo", "run", "--release" ]
+    metadata:
+      labels:
+        apps.coco-serverless/name: knative-chaining-one
+      annotations:
+        # NOTE: we may have to enable this annotation in Kata's config file
+        # under hypervisor.qemu.enable_annotations (add 'default_memory')
+        io.katacontainers.config.hypervisor.default_memory: "6144"
+---
+# JobSink guarantees one Job per CloudEvent, satisfying our dynamic scale-up
+# requirements. However, JobSink's propagate CloudEvents through a volume
+# mount, rather than an HTTP request.
+apiVersion: sinks.knative.dev/v1alpha1
+kind: JobSink
+metadata:
+  name: coco-knative-chaining-two
+  namespace: chaining-test
+spec:
+  job:
+    spec:
+      completions: 1
+      parallelism: 1
+      template:
+        spec:
+          runtimeClassName: kata-qemu-sev
+          restartPolicy: Never
+          containers:
+            - name: main
+              image: ghcr.io/coco-serverless/coco-knative-chaining:unencrypted
+              ports:
+                - containerPort: 8080
+              command: [ "cargo", "run", "--release" ]
+              env:
+                - name: CE_FROM_FILE
+                  value: "on"
+        metadata:
+          labels:
+            apps.coco-serverless/name: knative-chaining-two
+          annotations:
+            # NOTE: we may have to enable this annotation in Kata's config file
+            # under hypervisor.qemu.enable_annotations (add 'default_memory')
+            io.katacontainers.config.hypervisor.default_memory: "6144"
+---
+# For this last service, we want to give it a high-grace period to make sure
+# that the same instance processes all of the events
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: coco-knative-chaining-three
+  namespace: chaining-test
+spec:
+  template:
+    spec:
+      runtimeClassName: kata-qemu-sev
+      containers:
+        - image: ghcr.io/coco-serverless/coco-knative-chaining:unencrypted
+          ports:
+            - containerPort: 8080
+          command: [ "cargo", "run", "--release" ]
+    metadata:
+      labels:
+        apps.coco-serverless/name: knative-chaining-three
+      annotations:
+        autoscaling.knative.dev/scale-to-zero-pod-retention-period: "1m"
+        # NOTE: we may have to enable this annotation in Kata's config file
+        # under hypervisor.qemu.enable_annotations (add 'default_memory')
+        io.katacontainers.config.hypervisor.default_memory: "6144"
+---
+apiVersion: messaging.knative.dev/v1
+kind: Subscription
+metadata:
+  name: edge-one-subscription
+  namespace: chaining-test
+spec:
+  channel:
+    apiVersion: messaging.knative.dev/v1
+    kind: Channel
+    name: ingress-to-one
+  reply:
+    ref:
+      apiVersion: messaging.knative.dev/v1
+      kind: InMemoryChannel
+      name: one-to-two
+  subscriber:
+    ref:
+      apiVersion: serving.knative.dev/v1
+      kind: Service
+      name: coco-knative-chaining-one
+---
+apiVersion: messaging.knative.dev/v1
+kind: Subscription
+metadata:
+  name: edge-two-subscription
+  namespace: chaining-test
+spec:
+  channel:
+    apiVersion: messaging.knative.dev/v1
+    kind: Channel
+    name: one-to-two
+  subscriber:
+    ref:
+      apiVersion: sinks.knative.dev/v1alpha1
+      kind: JobSink
+      name: coco-knative-chaining-two
+---
+apiVersion: messaging.knative.dev/v1
+kind: Subscription
+metadata:
+  name: edge-three-subscription
+  namespace: chaining-test
+spec:
+  channel:
+    apiVersion: messaging.knative.dev/v1
+    kind: Channel
+    name: two-to-three
+  subscriber:
+    ref:
+      apiVersion: serving.knative.dev/v1
+      kind: Service
+      name: coco-knative-chaining-three

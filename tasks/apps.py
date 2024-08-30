@@ -3,7 +3,10 @@ from os.path import join
 from subprocess import run
 from tasks.util.env import APPS_SOURCE_DIR, GHCR_URL, GITHUB_USER
 
-APP_LIST = {"helloworld-py": join(APPS_SOURCE_DIR, "helloworld-py")}
+APP_LIST = {
+    "helloworld-py": join(APPS_SOURCE_DIR, "helloworld-py"),
+    "knative-chaining": join(APPS_SOURCE_DIR, "knative-chaining"),
+}
 
 
 @task

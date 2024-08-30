@@ -14,12 +14,17 @@ def run_kubectl_command(cmd, capture_output=False):
     run(k8s_cmd, shell=True, check=True)
 
 
-def wait_for_pods_in_ns(ns=None, expected_num_of_pods=0, label=None):
+def wait_for_pods_in_ns(ns=None, expected_num_of_pods=0, label=None, debug=False):
     """
     Wait for pods in a namespace to be ready
     """
     while True:
-        print("Waiting for pods to be ready...")
+        if debug:
+            print(
+                f"Waiting for {expected_num_of_pods} pods to be ready in ns: "
+                "{ns} (label: {label}"
+            )
+
         cmd = [
             "-n {}".format(ns) if ns else "",
             "get pods",
@@ -34,14 +39,21 @@ def wait_for_pods_in_ns(ns=None, expected_num_of_pods=0, label=None):
 
         statuses = [o.strip() for o in output.split(" ") if o.strip()]
         if expected_num_of_pods > 0 and len(statuses) != expected_num_of_pods:
-            print(
-                "Expecting {} pods, have {}".format(expected_num_of_pods, len(statuses))
-            )
+            if debug:
+                print(
+                    "Expecting {} pods, have {}".format(
+                        expected_num_of_pods, len(statuses)
+                    )
+                )
         elif all([s == "True" for s in statuses]):
-            print("All pods ready, continuing...")
+            if debug:
+                print("All pods ready, continuing...")
+
             break
 
-        print("Pods not ready, waiting ({})".format(output))
+        if debug:
+            print("Pods not ready, waiting ({})".format(output))
+
         sleep(5)
 
 
