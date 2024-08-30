@@ -84,7 +84,7 @@ jobs:
       - name: "Run knative chaining demo"
         run: |
           ./bin/kubectl apply -f ./apps/knative-chaining
-          inv kata.enable-annotation default_memory
+          ./bin/inv_wrapper.sh kata.enable-annotation default_memory
           # Wait for both service pods to be ready
           until [ "$(./bin/kubectl -n ${{ env.NAMESPACE }} get pods -l ${{ env.POD_LABEL_ONE }} -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}')" = "True" ]; do echo "Waiting for pod to be ready..."; sleep 2; done
           until [ "$(./bin/kubectl -n ${{ env.NAMESPACE }} get pods -l ${{ env.POD_LABEL_THREE }} -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}')" = "True" ]; do echo "Waiting for pod to be ready..."; sleep 2; done
