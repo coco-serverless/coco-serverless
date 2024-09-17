@@ -16,6 +16,9 @@ inv -l
 
 ## Pre-Requisites
 
+First, make sure your host has been set-up according to AMD's [host set-up]
+(https://github.com/AMDESE/AMDSEV/tree/snp-latest) instructions.
+
 You will need a recent version of containerd to support host-side features like
 the Nydus snapshotter. To build and install it from source you may run:
 
