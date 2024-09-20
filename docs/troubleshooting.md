@@ -56,6 +56,17 @@ inv kubeadm.create
 
 ## Known Issues
 
+### Cluster Creation Issues
+
+Sometimes after rebboot, `inv kubeadm.create` failes because it cannot start
+the `kubelet` process. If you check the `kubelet` logs (
+`sudo journalctl -xeu kubelet`) and you see that it failed to start due to
+swapping issues you must disable swap:
+
+```bash
+sudo swapoff -a
+```
+
 ### Host Issues
 
 If you encounter an error from `containerd` failing to create any pods with
