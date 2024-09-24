@@ -16,7 +16,7 @@ KATA_SOURCE_DIR = "/go/src/github.com/kata-containers/kata-containers"
 KATA_AGENT_SOURCE_DIR = join(KATA_SOURCE_DIR, "src", "agent")
 
 
-def run_kata_workon_ctr():
+def run_kata_workon_ctr(mount_path=None):
     """
     Start Kata workon container image if it is not running. Return `True` if
     we actually did start the container
@@ -27,6 +27,11 @@ def run_kata_workon_ctr():
     docker_cmd = [
         "docker run",
         "-d -t",
+        (
+            f"-v {mount_path}:/go/src/github.com/kata-containers/kata-containers"
+            if mount_path
+            else ""
+        ),
         "--name {}".format(KATA_WORKON_CTR_NAME),
         KATA_WORKON_IMAGE_TAG,
         "bash",

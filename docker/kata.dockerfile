@@ -1,4 +1,4 @@
-FROM csegarragonz/dotfiles:0.2.0 as dotfiles
+FROM csegarragonz/dotfiles:0.2.0 AS dotfiles
 FROM ubuntu:22.04
 
 # ---------------------------
@@ -51,9 +51,10 @@ RUN apt install -y \
         wget
 
 # Install latest rust and rust-analyser
+ARG RUST_ANALYZER_VERSION="2024-09-02"
 RUN curl --proto '=https' --tlsv1.3 https://sh.rustup.rs -sSf | sh -s -- -y \
     && curl -L \
-        https://github.com/rust-lang/rust-analyzer/releases/latest/download/rust-analyzer-x86_64-unknown-linux-gnu.gz \
+        https://github.com/rust-lang/rust-analyzer/releases/download/${RUST_ANALYZER_VERSION}/rust-analyzer-x86_64-unknown-linux-gnu.gz \
         | gunzip -c - > /usr/bin/rust-analyzer \
     && chmod +x /usr/bin/rust-analyzer
 

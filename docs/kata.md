@@ -33,11 +33,28 @@ inv kata.cli
 Replacing the Kata Agent is something we may do regularly, and is a fairly
 automated process.
 
-First, enter the Kata CLI, make changes to the `kata-agent` binary, and re-build
-it:
+The agent replacement script copies the agent binary from our Kata work-on
+docker image. There are two ways in which the copying happens:
+
+### One-off Copy
+
+If the work-on image is not running, the script will copy the built-in binary
+from the built-in image. The steps are:
+
+```bash
+inv kata.build
+inv kata.replace-agent
+```
+
+### Hot-Patch
+
+To develop on Kata, and quickly generate new `initrd`s, you may use the Kata
+CLI. In this case, when the work-on image is running, the replacement script
+will copy the binary from the CLI. Note that, as previously mentioned,
+any changes made therein are not persisted across container restarts.
 
 ```bas
-inv kata.cli
+inv kata.cli [--mount-path <path_to_local_kata_checkout>]
 cd src/agent
 ...
 # Make changes
