@@ -52,7 +52,7 @@ jobs:
         # This command requires push access to ghcr.io/coco-serverless
         run: ./bin/inv_wrapper.sh knative.install
       - name: "Update the Kata agent"
-        run: ./bin/inv_wrapper.sh kata.build kata.replace-agent
+        run: ./bin/inv_wrapper.sh kata.build --nocache kata.replace-agent
       - name: "Run python hello world"
         run: |
           ./bin/kubectl apply -f ./apps/helloworld-py
