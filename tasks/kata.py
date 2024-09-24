@@ -35,11 +35,11 @@ def build(ctx, nocache=False):
 
 
 @task
-def cli(ctx):
+def cli(ctx, mount_path=None):
     """
     Get a working environemnt to develop Kata
     """
-    run_kata_workon_ctr()
+    run_kata_workon_ctr(mount_path=mount_path)
     run("docker exec -it {} bash".format(KATA_WORKON_CTR_NAME), shell=True, check=True)
 
 
