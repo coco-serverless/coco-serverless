@@ -15,7 +15,7 @@ spec:
         apps.coco-serverless/name: helloworld-py
         io.katacontainers.config.pre_attestation.enabled: "false"
     spec:
-      runtimeClassName: kata-qemu-sev
+      runtimeClassName: kata-qemu-snp
       containers:
       - name: helloworld-py
         image: ghcr.io/coco-serverless/coco-helloworld-py:unencrypted

@@ -43,7 +43,7 @@ KUBEADM_KUBECONFIG_FILE = join(K8S_CONFIG_DIR, "kubeadm_kubeconfig")
 
 # CoCo config
 
-COCO_RELEASE_VERSION = "0.9.0"
+COCO_RELEASE_VERSION = "0.10.0"
 KATA_ROOT = join("/opt", "kata")
 
 # Kata config
