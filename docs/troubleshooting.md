@@ -83,6 +83,43 @@ sudo sysctl fs.inotify.max_user_instances=1280
 sudo sysctl fs.inotify.max_user_watches=655360
 ```
 
+### Container Creation Issues
+
+If the container fails to start with an error along the lines of:
+
+```bash
+ No such file or directory (os error 2) while canonicalizing /run/kata-containers/image/layers/...
+```
+
+you may have a combination of an old guest components and/or nydus snapshotter.
+To fix the issue make sure that:
+
+you are using the latest nydus snapshotter:
+
+```bash
+inv nydus.install
+```
+
+you are using the latest guest components:
+
+```bash
+inv kata.build kata.replace-agent
+```
+
+you have nuked the containerd and nydus caches:
+
+```bash
+rm -rf /var/lib/containerd
+rm -rf /var/lib/cotnainerd-nydus
+```
+
+then restart `containerd` and `nydus`:
+
+```bash
+sudo service containerd restart
+sudo service nydus-snapshotter restart
+```
+
 ### Nydus Clean-Up Issue
 
 If you encounter a `ContainerCreating` error with an error message along the

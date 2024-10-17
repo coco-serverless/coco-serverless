@@ -27,6 +27,7 @@ the Nydus snapshotter. To build and install it from source you may run:
 inv containerd.build containerd.install --clean
 
 # Fresh nydus install
+# TODO: i think operator.install may overwrite this!
 inv nydus.build nydus.install --clean
 ```
 
