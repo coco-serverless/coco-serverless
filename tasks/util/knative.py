@@ -75,7 +75,7 @@ def replace_sidecar(
 
     # Apply fix to container image fetching
     out = run(
-        f"sudo ctr -n k8s.io content fetch {new_image_url_digest}",
+        f"sudo ctr -n k8s.io content fetch -k {new_image_url_digest}",
         shell=True,
         capture_output=True,
     )
@@ -107,4 +107,18 @@ def configure_self_signed_certs(path_to_certs_dir, secret_name):
         "-n knative-serving patch deployment controller --patch-file {}".format(
             out_k8s_file
         )
+    )
+
+
+def patch_autoscaler(path_to_certs_dir, secret_name, quiet=False):
+    """
+    Patch Knative's auto-scaler so that our services are initially scaled-down
+    to zero. They will scale-up the first time we send an HTTP request.
+    """
+    k8s_filename = "knative_autoscaler_patch.yaml"
+    run_kubectl_command(
+        "-n knative-serving patch configmap config-autoscaler --patch-file {}".format(
+            k8s_filename
+        ),
+        capture_output=quiet,
     )

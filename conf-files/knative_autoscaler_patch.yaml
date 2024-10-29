@@ -1,0 +1,9 @@
+# Patch the auto-scaler behaviour so that, by default, services are scaled-down
+# to zero. This makes it easier in our case to measure cold starts
+data:
+  initial-scale: "0"
+  allow-zero-initial-scale: "true"
+  # Set a short stable-window and scale-to-zero-grace-period to make sure cold
+  # start (or start-up) tests finish in a reasonable time
+  scale-to-zero-grace-period: "3s"
+  stable-window: "6s"

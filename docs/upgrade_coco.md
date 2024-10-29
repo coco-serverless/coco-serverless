@@ -3,6 +3,22 @@
 CoCo cuts out new releases often. Here is what you need to do when a new
 release comes out.
 
+### Clean-Up Previous Versions
+
+CoCo does not like in-place upgrades. To ensure a smooth upgrade make sure
+you first clean-up the previous install:
+
+```bash
+inv kuebadm.destroy
+sudo rm -rf /opt/kata
+sudo rm -rf /opt/confidential-containers
+```
+
+### Upgrade Host Kernel
+
+CoCo relies on specific patches for the host kernel. Make sure you upgrade
+to the version they point to.
+
 ### Upgrade CoCo Version Tag
 
 First, bump the `COCO_RELEASE_VERSION` in `tasks/util/env.py`. Then work-out

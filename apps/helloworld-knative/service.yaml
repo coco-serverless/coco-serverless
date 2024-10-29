@@ -11,7 +11,7 @@ spec:
         apps.coco-serverless/name: helloworld-py
         io.katacontainers.config.pre_attestation.enabled: "false"
     spec:
-      runtimeClassName: kata-qemu-sev
+      runtimeClassName: kata-qemu-snp
       # coco-knative: need to run user container as root
       securityContext:
         runAsUser: 1000

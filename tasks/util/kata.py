@@ -178,9 +178,8 @@ def replace_agent(
         dst_initrd_path,
         workdir,
     )
-    out = run(
-        initrd_pack_cmd, shell=True, check=True, env=work_env, capture_output=True
-    )
+    out = run(initrd_pack_cmd, shell=True, env=work_env, capture_output=True)
+    print(initrd_pack_cmd)
     assert out.returncode == 0, "Error packing initrd: {}".format(
         out.stderr.decode("utf-8")
     )

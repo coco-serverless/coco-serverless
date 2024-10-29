@@ -3,6 +3,7 @@ from os.path import join
 from tasks.util.env import CONF_FILES_DIR
 from tasks.util.knative import (
     configure_self_signed_certs as do_configure_self_signed_certs,
+    patch_autoscaler as do_patch_autoscaler,
     replace_sidecar as do_replace_sidecar,
 )
 from tasks.util.kubeadm import run_kubectl_command, wait_for_pods_in_ns
@@ -285,6 +286,9 @@ def install(ctx, skip_push=False, debug=False):
 
     # Replace the sidecar to use an image we control
     do_replace_sidecar(skip_push=skip_push, quiet=not debug)
+
+    # Patch the auto-scaler
+    do_patch_autoscaler(quiet=not debug)
 
     print("Success!")
 

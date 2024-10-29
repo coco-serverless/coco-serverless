@@ -85,6 +85,7 @@ def start(ctx):
     ]
     openssl_cmd = " ".join(openssl_cmd)
     if not exists(HOST_CERT_PATH):
+        print(f"running: {openssl_cmd}")
         run(openssl_cmd, shell=True, check=True)
 
     # Start self-hosted local registry with HTTPS
@@ -165,7 +166,7 @@ server = "https://{registry_url}"
         dns_file: {"path": "/etc/hosts", "mode": "w"},
         HOST_CERT_PATH: {"path": "/etc/ssl/certs/ca-certificates.crt", "mode": "a"},
     }
-    replace_agent(ctx, extra_files=extra_files)
+    replace_agent(extra_files=extra_files)
 
     # ----------
     # Knative config
