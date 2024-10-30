@@ -1,6 +1,0 @@
-ServiceId,Event,TimeStampSecs
-0,Initialized,1698784625.0
-0,PodScheduled,1698784625.0
-0,SandboxReady,1698784631.003848
-0,Ready,1698784642.0
-0,ContainersReady,1698784642.0
