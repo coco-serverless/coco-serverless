@@ -17,6 +17,7 @@ from . import operator
 from . import ovmf
 from . import qemu
 from . import registry
+from . import sc2
 from . import sev
 from . import skopeo
 
@@ -41,6 +42,7 @@ ns = Collection(
     ovmf,
     qemu,
     registry,
+    sc2,
     sev,
     skopeo,
 )
