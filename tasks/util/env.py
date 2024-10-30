@@ -29,7 +29,7 @@ CONTAINERD_CONFIG_FILE = join(CONTAINERD_CONFIG_ROOT, "config.toml")
 
 # Image Registry config
 
-LOCAL_REGISTRY_URL = "registry.coco-csg.com"
+LOCAL_REGISTRY_URL = "sc2cr.io"
 GHCR_URL = "ghcr.io"
 GITHUB_USER = "coco-serverless"
 # MicroK8s config
@@ -43,7 +43,7 @@ KUBEADM_KUBECONFIG_FILE = join(K8S_CONFIG_DIR, "kubeadm_kubeconfig")
 
 # CoCo config
 
-COCO_RELEASE_VERSION = "0.9.0"
+COCO_RELEASE_VERSION = "0.10.0"
 KATA_ROOT = join("/opt", "kata")
 
 # Kata config
@@ -51,7 +51,7 @@ KATA_CONFIG_DIR = join(KATA_ROOT, "share", "defaults", "kata-containers")
 KATA_IMG_DIR = join(KATA_ROOT, "share", "kata-containers")
 KATA_WORKON_CTR_NAME = "kata-workon"
 KATA_WORKON_IMAGE_TAG = "kata-build"
-KATA_RUNTIMES = ["qemu", "qemu-sev", "qemu-snp"]
+KATA_RUNTIMES = ["qemu", "qemu-coco-dev", "qemu-sev", "qemu-snp"]
 
 # Apps config
 

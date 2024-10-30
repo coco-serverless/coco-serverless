@@ -29,7 +29,7 @@ complete -F _complete_invoke -o default invoke inv
 # Useful env. variables
 export KUBECONFIG=${PROJ_ROOT}/.config/kubeadm_kubeconfig
 export PATH=${PROJ_ROOT}/bin:${PATH}
-export PS1="(coco-serverless) $PS1"
+export PS1="(sc2-deploy) $PS1"
 
 popd >> /dev/null
 

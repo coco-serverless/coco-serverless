@@ -22,7 +22,7 @@ def wait_for_pods_in_ns(ns=None, expected_num_of_pods=0, label=None, debug=False
         if debug:
             print(
                 f"Waiting for {expected_num_of_pods} pods to be ready in ns: "
-                f"{ns} (label: {label}"
+                f"{ns} (label: {label})"
             )
 
         cmd = [

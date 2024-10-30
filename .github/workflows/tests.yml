@@ -35,14 +35,13 @@ jobs:
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v4
-      - name: "Build and install containerd"
-        run: ./bin/inv_wrapper.sh containerd.build containerd.install --clean
-      - name: "Build and install nydus"
-        run: ./bin/inv_wrapper.sh nydus.build nydus.install --clean
       - name: "Install k8s tooling"
         run: ./bin/inv_wrapper.sh k8s.install --clean
       - name: "Install single-node k8s cluster"
         run: |
+          # Ensure a clean start
+          sudo rm -rf /opt/kata
+          sudo rm -rf /opt/confidential-containers
           sudo swapoff -a
           ./bin/inv_wrapper.sh kubeadm.create
           kubectl get nodes
@@ -51,8 +50,6 @@ jobs:
       - name: "Install Knative"
         # This command requires push access to ghcr.io/coco-serverless
         run: ./bin/inv_wrapper.sh knative.install
-      - name: "Update the Kata agent"
-        run: ./bin/inv_wrapper.sh kata.build --nocache kata.replace-agent
       - name: "Run python hello world"
         run: |
           ./bin/kubectl apply -f ./apps/helloworld-py
@@ -71,8 +68,7 @@ jobs:
       - name: "Run Knative hello world"
         run: |
           ./bin/kubectl apply -f ./apps/helloworld-knative
-          # Wait for pod to be ready
-          until [ "$(./bin/kubectl get pods -l ${{ env.POD_LABEL }} -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}')" = "True" ]; do echo "Waiting for pod to be ready..."; sleep 2; done
+          sleep 1
           # Get the service URL
           service_url=$(./bin/kubectl get ksvc helloworld-knative  --output=custom-columns=URL:.status.url --no-headers)
           [ "$(curl ${service_url})" = "Hello World!" ]
@@ -83,17 +79,15 @@ jobs:
           POD_LABEL: apps.coco-serverless/name=helloworld-py
       - name: "Run knative chaining demo"
         run: |
-          ./bin/kubectl apply -f ./apps/knative-chaining/chaining.yaml
           ./bin/inv_wrapper.sh kata.enable-annotation default_memory
-          # Wait for both service pods to be ready
-          until [ "$(./bin/kubectl -n ${{ env.NAMESPACE }} get pods -l ${{ env.POD_LABEL_ONE }} -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}')" = "True" ]; do echo "Waiting for pod to be ready..."; sleep 2; done
-          until [ "$(./bin/kubectl -n ${{ env.NAMESPACE }} get pods -l ${{ env.POD_LABEL_THREE }} -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}')" = "True" ]; do echo "Waiting for pod to be ready..."; sleep 2; done
+          ./bin/kubectl apply -f ./apps/knative-chaining/chaining.yaml
+          sleep 1
           # Curl the channel URL
           ./apps/knative-chaining/curl_cmd.sh
           # Wait for pod 3 to be scaled down
           until [ "$(kubectl -n ${{ env.NAMESPACE }} logs -l ${{ env.POD_LABEL_THREE }} | grep 'cloudevent(s3): done!' | wc -l)" = "1" ]; do echo "Waiting for chain to finish..."; sleep 2; done
           # Finally, clear-up
-          ./bin/kubectl apply -f ./apps/knative-chaining
+          ./bin/kubectl delete -f ./apps/knative-chaining
         env:
           NAMESPACE: chaining-test
           POD_LABEL_ONE: apps.coco-serverless/name=knative-chaining-one

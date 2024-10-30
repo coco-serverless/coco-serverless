@@ -73,7 +73,7 @@ ARG CODE_DIR=/go/src/github.com/kata-containers/kata-containers
 ARG RUST_VERSION=1.78
 RUN mkdir -p ${CODE_DIR} \
     && git clone\
-        # CoCo 0.9.0 ships with Kata 3.7.0, and we add our patches on top
+        # CoCo 0.10.0 ships with Kata 3.9.0, and we add our patches on top
         -b sc2-main \
         https://github.com/coco-serverless/kata-containers \
         ${CODE_DIR} \
