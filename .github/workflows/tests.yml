@@ -39,6 +39,9 @@ jobs:
         run: ./bin/inv_wrapper.sh k8s.install --clean
       - name: "Install single-node k8s cluster"
         run: |
+          # Ensure a clean start
+          sudo rm -rf /opt/kata
+          sudo rm -rf /opt/confidential-containers
           sudo swapoff -a
           ./bin/inv_wrapper.sh kubeadm.create
           kubectl get nodes
@@ -65,8 +68,7 @@ jobs:
       - name: "Run Knative hello world"
         run: |
           ./bin/kubectl apply -f ./apps/helloworld-knative
-          # Wait for pod to be ready
-          until [ "$(./bin/kubectl get pods -l ${{ env.POD_LABEL }} -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}')" = "True" ]; do echo "Waiting for pod to be ready..."; sleep 2; done
+          sleep 1
           # Get the service URL
           service_url=$(./bin/kubectl get ksvc helloworld-knative  --output=custom-columns=URL:.status.url --no-headers)
           [ "$(curl ${service_url})" = "Hello World!" ]
