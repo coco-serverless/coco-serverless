@@ -51,8 +51,9 @@ jobs:
       - name: "Install Knative"
         # This command requires push access to ghcr.io/coco-serverless
         run: ./bin/inv_wrapper.sh knative.install
-      - name: "Update the Kata agent"
-        run: ./bin/inv_wrapper.sh kata.build --nocache kata.replace-agent
+          # For the moment, we do not need to update the agent
+          #       - name: "Update the Kata agent"
+          #         run: ./bin/inv_wrapper.sh kata.build --nocache kata.replace-agent
       - name: "Run python hello world"
         run: |
           ./bin/kubectl apply -f ./apps/helloworld-py
