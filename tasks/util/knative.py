@@ -110,7 +110,7 @@ def configure_self_signed_certs(path_to_certs_dir, secret_name):
     )
 
 
-def patch_autoscaler(path_to_certs_dir, secret_name, quiet=False):
+def patch_autoscaler(quiet=False):
     """
     Patch Knative's auto-scaler so that our services are initially scaled-down
     to zero. They will scale-up the first time we send an HTTP request.
@@ -118,7 +118,7 @@ def patch_autoscaler(path_to_certs_dir, secret_name, quiet=False):
     k8s_filename = "knative_autoscaler_patch.yaml"
     run_kubectl_command(
         "-n knative-serving patch configmap config-autoscaler --patch-file {}".format(
-            k8s_filename
+            join(CONF_FILES_DIR, k8s_filename)
         ),
         capture_output=quiet,
     )

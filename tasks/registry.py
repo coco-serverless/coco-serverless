@@ -21,11 +21,11 @@ REGISTRY_KEY_FILE = "domain.key"
 HOST_KEY_PATH = join(HOST_CERT_DIR, REGISTRY_KEY_FILE)
 REGISTRY_CERT_FILE = "domain.crt"
 HOST_CERT_PATH = join(HOST_CERT_DIR, REGISTRY_CERT_FILE)
-REGISTRY_CTR_NAME = "csg-coco-registry"
+REGISTRY_CTR_NAME = "sc2-registry"
 
-REGISTRY_IMAGE_TAG = "registry:2.7"
+REGISTRY_IMAGE_TAG = "registry:2"
 
-K8S_SECRET_NAME = "csg-coco-registry-customca"
+K8S_SECRET_NAME = "sc2-registry-customca"
 
 
 @task
@@ -58,13 +58,13 @@ def start(ctx):
         run(write_cmd, shell=True, check=True)
 
         # If creating a new registry, also update the local SSL certificates
-        system_cert_path = "/usr/share/ca-certificates/coco_csg_registry.crt"
+        system_cert_path = "/usr/share/ca-certificates/sc2_registry.crt"
         run(
             "sudo cp {} {}".format(HOST_CERT_PATH, system_cert_path),
             shell=True,
             check=True,
         )
-        run("sudo dpkg-reconfigure ca-certificates")
+        run("sudo dpkg-reconfigure ca-certificates", shell=True, check=True)
 
     # ----------
     # Docker Registry Config
@@ -85,7 +85,6 @@ def start(ctx):
     ]
     openssl_cmd = " ".join(openssl_cmd)
     if not exists(HOST_CERT_PATH):
-        print(f"running: {openssl_cmd}")
         run(openssl_cmd, shell=True, check=True)
 
     # Start self-hosted local registry with HTTPS
@@ -111,6 +110,10 @@ def start(ctx):
     else:
         print("WARNING: skipping starting container as it is already running...")
 
+    # ----------
+    # dockerd config
+    # ----------
+
     # Configure docker to be able to push to this registry
     docker_certs_dir = join("/etc/docker/certs.d", LOCAL_REGISTRY_URL)
     if not exists(docker_certs_dir):
@@ -119,6 +122,9 @@ def start(ctx):
     docker_ca_cert_file = join(docker_certs_dir, "ca.crt")
     cp_cmd = "sudo cp {} {}".format(HOST_CERT_PATH, docker_ca_cert_file)
     run(cp_cmd, shell=True, check=True)
+
+    # Re-start docker to pick up the new certificates
+    run("sudo service docker restart", shell=True, check=True)
 
     # ----------
     # containerd config
@@ -138,13 +144,15 @@ def start(ctx):
     if not exists(containerd_certs_dir):
         run("sudo mkdir -p {}".format(containerd_certs_dir), shell=True, check=True)
 
+    containerd_cert_path = join(containerd_certs_dir, "sc2_registry.crt")
     containerd_certs_file = """
 server = "https://{registry_url}"
 
 [host."https://{registry_url}"]
-  skip_verify = true
+  capabilities = ["pull", "resolve"]
+  ca = "{containerd_cert_path}"
     """.format(
-        registry_url=LOCAL_REGISTRY_URL
+        registry_url=LOCAL_REGISTRY_URL, containerd_cert_path=containerd_cert_path
     )
     run(
         "sudo sh -c \"echo '{}' > {}\"".format(
@@ -153,6 +161,9 @@ server = "https://{registry_url}"
         shell=True,
         check=True,
     )
+
+    # Copy the certificate to the corresponding containerd directory
+    run(f"sudo cp {HOST_CERT_PATH} {containerd_cert_path}", shell=True, check=True)
 
     # Restart containerd to pick up the changes (?)
     run("sudo service containerd restart", shell=True, check=True)

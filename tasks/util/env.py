@@ -29,7 +29,7 @@ CONTAINERD_CONFIG_FILE = join(CONTAINERD_CONFIG_ROOT, "config.toml")
 
 # Image Registry config
 
-LOCAL_REGISTRY_URL = "registry.coco-csg.com"
+LOCAL_REGISTRY_URL = "sc2cr.io"
 GHCR_URL = "ghcr.io"
 GITHUB_USER = "coco-serverless"
 # MicroK8s config
