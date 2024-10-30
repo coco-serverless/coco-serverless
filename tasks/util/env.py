@@ -51,7 +51,7 @@ KATA_CONFIG_DIR = join(KATA_ROOT, "share", "defaults", "kata-containers")
 KATA_IMG_DIR = join(KATA_ROOT, "share", "kata-containers")
 KATA_WORKON_CTR_NAME = "kata-workon"
 KATA_WORKON_IMAGE_TAG = "kata-build"
-KATA_RUNTIMES = ["qemu", "qemu-sev", "qemu-snp"]
+KATA_RUNTIMES = ["qemu", "qemu-coco-dev", "qemu-sev", "qemu-snp"]
 
 # Apps config
 

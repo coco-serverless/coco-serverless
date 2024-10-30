@@ -94,7 +94,7 @@ def enable_annotation(ctx, annotation):
         )
 
         if annotation in enabled_annotations:
-            return
+            continue
 
         enabled_annotations.append(annotation)
         updated_toml_str = """
