@@ -60,16 +60,13 @@ ENV PATH=${PATH}:/root/.cargo/bin
 ARG CODE_DIR=/usr/src/guest-components
 RUN mkdir -p ${CODE_DIR} \
     && git clone\
-        # Note that we use our fork from CC-0.7.0 + patches
-        -b csg-main \
-        https://github.com/csegarragonz/guest-components \
+        # Note that we use our fork from 0.10.0 + patches
+        -b sc2-main \
+        https://github.com/sc2-sys/guest-components \
         ${CODE_DIR} \
     && git config --global --add safe.directory ${CODE_DIR} \
     && cd ${CODE_DIR}/image-rs \
     && cargo build --release
-    #     && cd ${CODE_DIR}/src/agent \
-    #     && rustup target add x86_64-unknown-linux-musl \
-    #     && make
 
 # Configure environment variables
 RUN echo "export PATH=${PATH}:/root/.cargo/bin" >> ~/.bashrc

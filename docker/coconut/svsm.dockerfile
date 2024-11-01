@@ -1,4 +1,4 @@
-FROM ubuntu:24.04 
+FROM ubuntu:24.04
 
 RUN apt update \
     && apt upgrade -y \
@@ -21,7 +21,7 @@ COPY ${OVMF_DIR}/ovmf-svsm.fd /bin/ovmf-svsm.fd
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y \
     && . "$HOME/.cargo/env" \
     && rustup target add x86_64-unknown-none \
-    && git clone https://github.com/coco-serverless/svsm.git ~/svsm \
+    && git clone https://github.com/sc2-sys/svsm.git ~/svsm \
     && cd ~/svsm \
     && git submodule update --init \
     && cargo install bindgen-cli \

@@ -40,6 +40,10 @@ def start(ctx, debug=False, clean=False):
         )
     )
 
+    # ----------
+    # Docker Registry Config
+    # ----------
+
     if clean and is_ctr_running(REGISTRY_CTR_NAME):
         if debug:
             print(f"WARNING: stopping registry container: {REGISTRY_CTR_NAME}")
@@ -50,46 +54,6 @@ def start(ctx, debug=False, clean=False):
         assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
         if debug:
             print(result.stdout.decode("utf-8").strip())
-
-    # ----------
-    # DNS Config
-    # ----------
-
-    # Add DNS entry (careful to be able to sudo-edit the file)
-    dns_file = "/etc/hosts"
-    dns_contents = (
-        run("sudo cat {}".format(dns_file), shell=True, capture_output=True)
-        .stdout.decode("utf-8")
-        .strip()
-        .split("\n")
-    )
-
-    # Only write the DNS entry if it is not there yet
-    dns_line = "{} {}".format(this_ip, LOCAL_REGISTRY_URL)
-    must_write = not any([dns_line in line for line in dns_contents])
-
-    if must_write:
-        actual_dns_line = "\n# CSG: DNS entry for local registry\n{}".format(dns_line)
-        write_cmd = "sudo sh -c \"echo '{}' >> {}\"".format(actual_dns_line, dns_file)
-        run(write_cmd, shell=True, check=True)
-
-        # If creating a new registry, also update the local SSL certificates
-        system_cert_path = "/usr/share/ca-certificates/sc2_registry.crt"
-        run(
-            "sudo cp {} {}".format(HOST_CERT_PATH, system_cert_path),
-            shell=True,
-            check=True,
-        )
-        result = run(
-            "sudo dpkg-reconfigure ca-certificates", shell=True, capture_output=True
-        )
-        assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
-        if debug:
-            print(result.stdout.decode("utf-8").strip())
-
-    # ----------
-    # Docker Registry Config
-    # ----------
 
     # Create certificates for registry
     if not exists(HOST_CERT_DIR):
@@ -136,6 +100,42 @@ def start(ctx, debug=False, clean=False):
     else:
         if debug:
             print("WARNING: skipping starting container as it is already running...")
+
+    # ----------
+    # DNS Config
+    # ----------
+
+    # Add DNS entry (careful to be able to sudo-edit the file)
+    dns_file = "/etc/hosts"
+    dns_contents = (
+        run("sudo cat {}".format(dns_file), shell=True, capture_output=True)
+        .stdout.decode("utf-8")
+        .strip()
+        .split("\n")
+    )
+
+    # Only write the DNS entry if it is not there yet
+    dns_line = "{} {}".format(this_ip, LOCAL_REGISTRY_URL)
+    must_write = not any([dns_line in line for line in dns_contents])
+
+    if must_write:
+        actual_dns_line = "\n# CSG: DNS entry for local registry\n{}".format(dns_line)
+        write_cmd = "sudo sh -c \"echo '{}' >> {}\"".format(actual_dns_line, dns_file)
+        run(write_cmd, shell=True, check=True)
+
+        # If creating a new registry, also update the local SSL certificates
+        system_cert_path = "/usr/share/ca-certificates/sc2_registry.crt"
+        run(
+            "sudo cp {} {}".format(HOST_CERT_PATH, system_cert_path),
+            shell=True,
+            check=True,
+        )
+        result = run(
+            "sudo dpkg-reconfigure ca-certificates", shell=True, capture_output=True
+        )
+        assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
+        if debug:
+            print(result.stdout.decode("utf-8").strip())
 
     # ----------
     # dockerd config

@@ -73,9 +73,9 @@ inv sc2.destroy
 ## Further Reading
 
 For further documentation, you may want to check these other documents:
-* [Attestation](./docs/attestation.md) - attestation particularities of CoCo and SEV(-ES).
+* [Attestation](./docs/attestation.md) - instructions to set-up remote attestation in SC2.
 * [CoCo Upgrade](./docs/upgrade_coco.md) - upgrade the current CoCo version.
-* [Guest Components](./docs/guest_components.md) - patch `image-rs` or other guest components.
+* [Guest Components](./docs/guest_components.md) - instructions to patch components inside SC2 guests.
 * [Host Kernel](./docs/host_kernel.md) - bump the kernel version in the host.
 * [K8s](./docs/k8s.md) - documentation about configuring a single-node Kubernetes cluster.
 * [Kata](./docs/kata.md) - instructions to build our custom Kata fork and `initrd` images.
