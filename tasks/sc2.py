@@ -13,7 +13,7 @@ from tasks.registry import (
     start as start_local_registry,
     stop as stop_local_registry,
 )
-from tasks.util.env import COCO_ROOT, KATA_ROOT
+from tasks.util.env import COCO_ROOT, KATA_ROOT, KATA_VERSION, print_dotted_line
 from tasks.util.kata import replace_agent as replace_kata_agent
 
 
@@ -51,8 +51,11 @@ def deploy(ctx, debug=False, clean=False):
     # Install Knative
     knative_install(ctx, debug=debug)
 
-    # Apply general patches to the Kata Agent (and initrd)
+    # Apply general patches to the Kata Agent (and initrd), making sure we
+    # have the latest patched version
+    print_dotted_line(f"Pulling latest Kata image (v{KATA_VERSION})")
     replace_kata_agent(debug=debug)
+    print("Success!")
 
     # TODO: apply SC2 patches to things
 

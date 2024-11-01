@@ -44,14 +44,17 @@ KUBEADM_KUBECONFIG_FILE = join(K8S_CONFIG_DIR, "kubeadm_kubeconfig")
 # CoCo config
 
 COCO_RELEASE_VERSION = "0.10.0"
-KATA_ROOT = join("/opt", "kata")
 COCO_ROOT = join("/opt", "confidential-containers")
+
+# Kata Version is determined by CoCo version
+KATA_VERSION = "3.9.0"
+KATA_ROOT = join("/opt", "kata")
 
 # Kata config
 KATA_CONFIG_DIR = join(KATA_ROOT, "share", "defaults", "kata-containers")
 KATA_IMG_DIR = join(KATA_ROOT, "share", "kata-containers")
 KATA_WORKON_CTR_NAME = "kata-workon"
-KATA_WORKON_IMAGE_TAG = "kata-build"
+KATA_IMAGE_TAG = join(GHCR_URL, GITHUB_ORG, "kata-containers") + f":{KATA_VERSION}"
 KATA_RUNTIMES = ["qemu", "qemu-coco-dev", "qemu-sev", "qemu-snp"]
 
 # Apps config

@@ -6,7 +6,7 @@ from tasks.util.env import (
     KATA_CONFIG_DIR,
     KATA_RUNTIMES,
     KATA_WORKON_CTR_NAME,
-    KATA_WORKON_IMAGE_TAG,
+    KATA_IMAGE_TAG,
     PROJ_ROOT,
 )
 from tasks.util.kata import (
@@ -22,16 +22,19 @@ KATA_SHIM_SOURCE_DIR = join(KATA_SOURCE_DIR, "src", "runtime")
 
 
 @task
-def build(ctx, nocache=False):
+def build(ctx, nocache=False, push=False):
     """
     Build the Kata Containers workon docker image
     """
     docker_cmd = "docker build {} -t {} -f {} .".format(
         "--no-cache" if nocache else "",
-        KATA_WORKON_IMAGE_TAG,
+        KATA_IMAGE_TAG,
         join(PROJ_ROOT, "docker", "kata.dockerfile"),
     )
     run(docker_cmd, shell=True, check=True, cwd=PROJ_ROOT)
+
+    if push:
+        run(f"docker push {KATA_IMAGE_TAG}", shell=True, check=True)
 
 
 @task

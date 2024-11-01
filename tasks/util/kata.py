@@ -7,7 +7,7 @@ from tasks.util.env import (
     KATA_IMG_DIR,
     KATA_RUNTIMES,
     KATA_WORKON_CTR_NAME,
-    KATA_WORKON_IMAGE_TAG,
+    KATA_IMAGE_TAG,
 )
 from tasks.util.registry import HOST_CERT_PATH
 from tasks.util.toml import read_value_from_toml, remove_entry_from_toml, update_toml
@@ -34,7 +34,7 @@ def run_kata_workon_ctr(mount_path=None):
             else ""
         ),
         "--name {}".format(KATA_WORKON_CTR_NAME),
-        KATA_WORKON_IMAGE_TAG,
+        KATA_IMAGE_TAG,
         "bash",
     ]
     docker_cmd = " ".join(docker_cmd)
