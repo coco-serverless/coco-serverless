@@ -31,7 +31,7 @@ CONTAINERD_CONFIG_FILE = join(CONTAINERD_CONFIG_ROOT, "config.toml")
 
 LOCAL_REGISTRY_URL = "sc2cr.io"
 GHCR_URL = "ghcr.io"
-GITHUB_USER = "coco-serverless"
+GITHUB_ORG = "sc2-sys"
 # MicroK8s config
 
 UK8S_KUBECONFIG_FILE = join(K8S_CONFIG_DIR, "uk8s_kubeconfig")

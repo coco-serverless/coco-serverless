@@ -35,21 +35,9 @@ jobs:
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v4
-      - name: "Install k8s tooling"
-        run: ./bin/inv_wrapper.sh k8s.install --clean
-      - name: "Install single-node k8s cluster"
-        run: |
-          # Ensure a clean start
-          sudo rm -rf /opt/kata
-          sudo rm -rf /opt/confidential-containers
-          sudo swapoff -a
-          ./bin/inv_wrapper.sh kubeadm.create
-          kubectl get nodes
-      - name: "Install CoCo using operator"
-        run: ./bin/inv_wrapper.sh operator.install operator.install-cc-runtime
-      - name: "Install Knative"
-        # This command requires push access to ghcr.io/coco-serverless
-        run: ./bin/inv_wrapper.sh knative.install
+      - name: "Install SC2"
+        run: ./bin/inv_wrapper.sh sc2.deploy --clean
+
       - name: "Run python hello world"
         run: |
           ./bin/kubectl apply -f ./apps/helloworld-py
@@ -65,6 +53,7 @@ jobs:
           sleep 5
         env:
           POD_LABEL: apps.coco-serverless/name=helloworld-py
+
       - name: "Run Knative hello world"
         run: |
           ./bin/kubectl apply -f ./apps/helloworld-knative
@@ -77,6 +66,7 @@ jobs:
           kubectl wait --for=delete -l ${{ env.POD_LABEL }} -f ./apps/helloworld-knative
         env:
           POD_LABEL: apps.coco-serverless/name=helloworld-py
+
       - name: "Run knative chaining demo"
         run: |
           ./bin/inv_wrapper.sh kata.enable-annotation default_memory
@@ -92,6 +82,7 @@ jobs:
           NAMESPACE: chaining-test
           POD_LABEL_ONE: apps.coco-serverless/name=knative-chaining-one
           POD_LABEL_THREE: apps.coco-serverless/name=knative-chaining-three
+
       - name: "Clean-up"
         if: always()
-        run: ./bin/inv_wrapper.sh kubeadm.destroy
+        run: ./bin/inv_wrapper.sh sc2.destroy

@@ -29,13 +29,17 @@ def install_cni(debug=False, clean=False):
     cni_url += "download/v{}/{}".format(CNI_VERSION, cni_tar)
 
     # Download the TAR
-    result = run("sudo curl -LO {}".format(cni_url), shell=True, capture_output=True, cwd=cni_dir)
+    result = run(
+        "sudo curl -LO {}".format(cni_url), shell=True, capture_output=True, cwd=cni_dir
+    )
     assert result.returncode == 0
     if debug:
         print(result.stdout.decode("utf-8").strip())
 
     # Untar
-    result = run("sudo tar -xf {}".format(cni_tar), shell=True, capture_output=True, cwd=cni_dir)
+    result = run(
+        "sudo tar -xf {}".format(cni_tar), shell=True, capture_output=True, cwd=cni_dir
+    )
     assert result.returncode == 0
     if debug:
         print(result.stdout.decode("utf-8").strip())
@@ -61,13 +65,17 @@ def install_crictl(debug=False):
     circtl_url += "download/v{}/{}".format(CRICTL_VERSION, circtl_tar)
 
     # Download the TAR
-    result = run("curl -LO {}".format(circtl_url), shell=True, capture_output=True, cwd=work_dir)
+    result = run(
+        "curl -LO {}".format(circtl_url), shell=True, capture_output=True, cwd=work_dir
+    )
     assert result.returncode == 0
     if debug:
         print(result.stdout.decode("utf-8").strip())
 
     # Untar
-    result = run("tar -xf {}".format(circtl_tar), shell=True, capture_output=True, cwd=work_dir)
+    result = run(
+        "tar -xf {}".format(circtl_tar), shell=True, capture_output=True, cwd=work_dir
+    )
     assert result.returncode == 0
     if debug:
         print(result.stdout.decode("utf-8").strip())

@@ -9,6 +9,7 @@ from tasks.util.env import (
     KATA_WORKON_CTR_NAME,
     KATA_WORKON_IMAGE_TAG,
 )
+from tasks.util.registry import HOST_CERT_PATH
 from tasks.util.toml import read_value_from_toml, remove_entry_from_toml, update_toml
 
 # This path is hardcoded in the docker image: ./docker/kata.dockerfile
@@ -76,7 +77,6 @@ def copy_from_kata_workon_ctr(ctr_path, host_path, sudo=False, debug=False):
 
 def replace_agent(
     dst_initrd_path=join(KATA_IMG_DIR, "kata-containers-initrd-confidential-sc2.img"),
-    extra_files=None,
     debug=False,
 ):
     """
@@ -94,6 +94,12 @@ def replace_agent(
     By using the extra_flags optional argument, you can pass a dictionary of
     host_path: guest_path pairs of files you want to be included in the initrd.
     """
+    # This is a list of files that we want to _always_ include in our custom
+    # agent builds
+    extra_files = {
+        "/etc/hosts": {"path": "/etc/hosts", "mode": "w"},
+        HOST_CERT_PATH: {"path": "/etc/ssl/certs/ca-certificates.crt", "mode": "a"},
+    }
 
     # Use a hardcoded path, as we want to always start from a _clean_ initrd
     initrd_path = join(KATA_IMG_DIR, "kata-containers-initrd-confidential.img")
@@ -118,13 +124,17 @@ def replace_agent(
         "kata-agent",
     )
     agent_initrd_path = join(workdir, "usr/bin/kata-agent")
-    copy_from_kata_workon_ctr(agent_host_path, agent_initrd_path, sudo=True, debug=debug)
+    copy_from_kata_workon_ctr(
+        agent_host_path, agent_initrd_path, sudo=True, debug=debug
+    )
 
     # We also need to manually copy the agent to <root_fs>/sbin/init (note that
     # <root_fs>/init is a symlink to <root_fs>/sbin/init)
     alt_agent_initrd_path = join(workdir, "sbin", "init")
     run("sudo rm {}".format(alt_agent_initrd_path), shell=True, check=True)
-    copy_from_kata_workon_ctr(agent_host_path, alt_agent_initrd_path, sudo=True, debug=debug)
+    copy_from_kata_workon_ctr(
+        agent_host_path, alt_agent_initrd_path, sudo=True, debug=debug
+    )
 
     # Include any extra files that the caller may have provided
     if extra_files is not None:
@@ -175,7 +185,9 @@ def replace_agent(
     ctr_lib_path = join(KATA_SOURCE_DIR, "tools", "osbuilder", "scripts", "lib.sh")
     initrd_builder_path = join(kata_tmp_scripts, "initrd-builder", "initrd_builder.sh")
     copy_from_kata_workon_ctr(ctr_initrd_builder_path, initrd_builder_path, debug=debug)
-    copy_from_kata_workon_ctr(ctr_lib_path, join(kata_tmp_scripts, "scripts", "lib.sh"), debug=debug)
+    copy_from_kata_workon_ctr(
+        ctr_lib_path, join(kata_tmp_scripts, "scripts", "lib.sh"), debug=debug
+    )
     work_env = {"AGENT_INIT": "yes"}
     initrd_pack_cmd = "sudo {} -o {} {}".format(
         initrd_builder_path,

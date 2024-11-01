@@ -1,5 +1,6 @@
 from invoke import task
 from subprocess import run
+from tasks.demo_apps import push_to_local_registry as push_demo_apps_to_local_registry
 from tasks.k8s import install as k8s_tooling_install
 from tasks.k9s import install as k9s_install
 from tasks.knative import install as knative_install
@@ -13,6 +14,7 @@ from tasks.registry import (
     stop as stop_local_registry,
 )
 from tasks.util.env import COCO_ROOT, KATA_ROOT
+from tasks.util.kata import replace_agent as replace_kata_agent
 
 
 @task(default=True)
@@ -49,7 +51,13 @@ def deploy(ctx, debug=False, clean=False):
     # Install Knative
     knative_install(ctx, debug=debug)
 
+    # Apply general patches to the Kata Agent (and initrd)
+    replace_kata_agent(debug=debug)
+
     # TODO: apply SC2 patches to things
+
+    # Push demo apps to local registry for easy testing
+    push_demo_apps_to_local_registry(ctx, debug=debug)
 
 
 @task

@@ -109,7 +109,9 @@ def install(ctx, skip_push=False, debug=False):
     """
     net_layer = "kourier"
 
-    print_dotted_line(f"Installing Knative (v{KNATIVE_VERSION}) with {net_layer} as net layer")
+    print_dotted_line(
+        f"Installing Knative (v{KNATIVE_VERSION}) with {net_layer} as net layer"
+    )
 
     # Knative requires a functional LoadBalancer, so we use MetaLB
     install_metallb(debug=debug)
@@ -321,7 +323,9 @@ def uninstall(ctx):
 
 
 @task
-def replace_sidecar(ctx, reset_default=False, image_repo=LOCAL_REGISTRY_URL, skip_push=False):
+def replace_sidecar(
+    ctx, reset_default=False, image_repo=LOCAL_REGISTRY_URL, skip_push=False
+):
     """
     Replace Knative's side-car image with an image we control
 

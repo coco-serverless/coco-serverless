@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>SC2: Deploy</h1>
+  <h1><code>sc2-deploy</code></h1>
 
   <p>
     <strong>Deployment and build scripts for
@@ -9,6 +9,7 @@
   <p>
     <a href="https://github.com/coco-serverless/coco-serverless/actions/workflows/tests.yml"><img src="https://github.com/coco-serverless/coco-serverless/actions/workflows/tests.yml/badge.svg" alt="Integration Tests" /></a>
   </p>
+  <hr>
 </div>
 
 SC2 is a system to run serverless functions in confidential containers. It
@@ -51,6 +52,7 @@ You can now check that everything is running by running a simple hello world:
 ```bash
 # Knative demo
 kubectl apply -f ./demo-apps/helloworld-knative
+curl $(kubectl get ksvc helloworld-knative  --output=custom-columns=URL:.status.url --no-headers)
 
 # Non-Knative demo
 kubectl apply -f ./demo-apps/helloworld-py

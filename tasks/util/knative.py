@@ -1,9 +1,10 @@
 from os import makedirs
 from os.path import exists, join
 from subprocess import run
-from tasks.util.env import CONF_FILES_DIR, LOCAL_REGISTRY_URL, TEMPLATED_FILES_DIR, GITHUB_USER
+from tasks.util.env import CONF_FILES_DIR, LOCAL_REGISTRY_URL, TEMPLATED_FILES_DIR
 from tasks.util.k8s import template_k8s_file
 from tasks.util.kubeadm import run_kubectl_command
+from tasks.util.registry import K8S_SECRET_NAME
 
 # Knative Serving Side-Car Tag
 KNATIVE_SIDECAR_IMAGE_TAG = "gcr.io/knative-releases/knative.dev/serving/cmd/"
@@ -75,14 +76,14 @@ def replace_sidecar(
 
     # Apply fix to container image fetching
     # FIXME(nydus): do we still need this?
-    out = run(
-        f"sudo ctr -n k8s.io content fetch -k {new_image_url_digest}",
-        shell=True,
-        capture_output=True,
-    )
-    assert out.returncode == 0, "Error fetching k8s content: {}".format(
-        out.stderr.decode("utf-8")
-    )
+    #     out = run(
+    #         f"sudo ctr -n k8s.io content fetch -k {new_image_url_digest}",
+    #         shell=True,
+    #         capture_output=True,
+    #     )
+    #     assert out.returncode == 0, "Error fetching k8s content: {}".format(
+    #         out.stderr.decode("utf-8")
+    #     )
 
     # Finally, make sure to remove all pulled container images to avoid
     # unintended caching issues with CoCo
@@ -92,7 +93,9 @@ def replace_sidecar(
     do_run(docker_cmd, quiet)
 
 
-def configure_self_signed_certs(path_to_certs_dir, secret_name, debug=False):
+def configure_self_signed_certs(
+    path_to_certs_dir, secret_name=K8S_SECRET_NAME, debug=False
+):
     """
     Configure Knative to like our self-signed certificates
     """
@@ -108,7 +111,7 @@ def configure_self_signed_certs(path_to_certs_dir, secret_name, debug=False):
         "-n knative-serving patch deployment controller --patch-file {}".format(
             out_k8s_file
         ),
-        capture_output=not debug
+        capture_output=not debug,
     )
 
 

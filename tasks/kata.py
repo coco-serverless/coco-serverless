@@ -1,5 +1,5 @@
 from invoke import task
-from os.path import join
+from os.path import abspath, join
 from subprocess import run
 from tasks.util.env import (
     KATA_ROOT,
@@ -39,6 +39,9 @@ def cli(ctx, mount_path=None):
     """
     Get a working environemnt to develop Kata
     """
+    if mount_path is not None:
+        mount_path = abspath(mount_path)
+
     run_kata_workon_ctr(mount_path=mount_path)
     run("docker exec -it {} bash".format(KATA_WORKON_CTR_NAME), shell=True, check=True)
 
@@ -107,7 +110,7 @@ def enable_annotation(ctx, annotation):
 
 
 @task
-def replace_agent(ctx, extra_files=None):
+def replace_agent(ctx):
     """
     Replace the kata-agent with a custom-built one
 
@@ -123,7 +126,7 @@ def replace_agent(ctx, extra_files=None):
     By using the extra_flags optional argument, you can pass a dictionary of
     host_path: guest_path pairs of files you want to be included in the initrd.
     """
-    do_replace_agent(extra_files=extra_files)
+    do_replace_agent()
 
 
 @task

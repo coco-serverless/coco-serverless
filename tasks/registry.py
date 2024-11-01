@@ -6,28 +6,26 @@ from tasks.util.docker import is_ctr_running
 from tasks.util.env import (
     CONTAINERD_CONFIG_FILE,
     CONTAINERD_CONFIG_ROOT,
-    K8S_CONFIG_DIR,
     LOCAL_REGISTRY_URL,
     print_dotted_line,
     get_node_url,
 )
-from tasks.util.kata import replace_agent
 from tasks.util.knative import configure_self_signed_certs
 from tasks.util.kubeadm import run_kubectl_command
+from tasks.util.registry import (
+    HOST_CERT_DIR,
+    GUEST_CERT_DIR,
+    REGISTRY_KEY_FILE,
+    HOST_KEY_PATH,
+    REGISTRY_CERT_FILE,
+    HOST_CERT_PATH,
+    K8S_SECRET_NAME,
+    REGISTRY_CTR_NAME,
+)
 from tasks.util.toml import update_toml
-
-HOST_CERT_DIR = join(K8S_CONFIG_DIR, "local-registry")
-GUEST_CERT_DIR = "/certs"
-REGISTRY_KEY_FILE = "domain.key"
-HOST_KEY_PATH = join(HOST_CERT_DIR, REGISTRY_KEY_FILE)
-REGISTRY_CERT_FILE = "domain.crt"
-HOST_CERT_PATH = join(HOST_CERT_DIR, REGISTRY_CERT_FILE)
-REGISTRY_CTR_NAME = "sc2-registry"
 
 REGISTRY_VERSION = "2.8"
 REGISTRY_IMAGE_TAG = f"registry:{REGISTRY_VERSION}"
-
-K8S_SECRET_NAME = "sc2-registry-customca"
 
 
 @task
@@ -36,13 +34,19 @@ def start(ctx, debug=False, clean=False):
     Configure a local container registry reachable from CoCo guests in K8s
     """
     this_ip = get_node_url()
-    print_dotted_line(f"Configuring local docker registry (v{REGISTRY_VERSION}) at IP: {this_ip} (name: {LOCAL_REGISTRY_URL})")
+    print_dotted_line(
+        "Configuring local docker registry (v{}) at IP: {} (name: {})".format(
+            REGISTRY_VERSION, this_ip, LOCAL_REGISTRY_URL
+        )
+    )
 
     if clean and is_ctr_running(REGISTRY_CTR_NAME):
         if debug:
             print(f"WARNING: stopping registry container: {REGISTRY_CTR_NAME}")
 
-        result = run(f"docker rm -f {REGISTRY_CTR_NAME}", shell=True, capture_output=True)
+        result = run(
+            f"docker rm -f {REGISTRY_CTR_NAME}", shell=True, capture_output=True
+        )
         assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
         if debug:
             print(result.stdout.decode("utf-8").strip())
@@ -76,7 +80,9 @@ def start(ctx, debug=False, clean=False):
             shell=True,
             check=True,
         )
-        result = run("sudo dpkg-reconfigure ca-certificates", shell=True, capture_output=True)
+        result = run(
+            "sudo dpkg-reconfigure ca-certificates", shell=True, capture_output=True
+        )
         assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
         if debug:
             print(result.stdout.decode("utf-8").strip())
@@ -191,14 +197,17 @@ server = "https://{registry_url}"
 
     # ----------
     # Kata config
+    #
+    # We need to do two things to get the Kata Agent to pull an image from our
+    # local registry with a self-signed certificate:
+    # 1. Include our self-signed ceritifcate, and DNS entry, into the agent
+    # 2. Re-build the agent with native-tls (instead of rusttls) so that we
+    #    read the certificates (rusttls deliberately does not read from files
+    #    in the filesystem)
+    #
+    # We concentrate all modifications to the agent in a single call to
+    # do_replace_agent, part of our deployment.
     # ----------
-
-    # Populate the right DNS config and certificate files in the agent
-    extra_files = {
-        dns_file: {"path": "/etc/hosts", "mode": "w"},
-        HOST_CERT_PATH: {"path": "/etc/ssl/certs/ca-certificates.crt", "mode": "a"},
-    }
-    replace_agent(extra_files=extra_files)
 
     # ----------
     # Knative config
@@ -213,7 +222,7 @@ server = "https://{registry_url}"
     run_kubectl_command(kube_cmd, capture_output=not debug)
 
     # Second, patch the controller deployment
-    configure_self_signed_certs(HOST_CERT_PATH, K8S_SECRET_NAME, debug=debug)
+    configure_self_signed_certs(HOST_CERT_DIR, K8S_SECRET_NAME, debug=debug)
 
     print("Success!")
 

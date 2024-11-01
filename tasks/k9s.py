@@ -30,7 +30,9 @@ def install(ctx, debug=False):
         print(result.stdout.decode("utf-8").strip())
 
     # Untar
-    result = run("tar -xf {}".format(tar_name), shell=True, capture_output=True, cwd=workdir)
+    result = run(
+        "tar -xf {}".format(tar_name), shell=True, capture_output=True, cwd=workdir
+    )
     assert result.returncode == 0
     if debug:
         print(result.stdout.decode("utf-8").strip())
