@@ -1,7 +1,7 @@
 from os import makedirs
 from os.path import exists, join
 from subprocess import run
-from tasks.util.env import CONF_FILES_DIR, TEMPLATED_FILES_DIR, GITHUB_USER
+from tasks.util.env import CONF_FILES_DIR, LOCAL_REGISTRY_URL, TEMPLATED_FILES_DIR, GITHUB_USER
 from tasks.util.k8s import template_k8s_file
 from tasks.util.kubeadm import run_kubectl_command
 
@@ -13,7 +13,7 @@ KNATIVE_SIDECAR_IMAGE_TAG += (
 
 
 def replace_sidecar(
-    reset_default=False, image_repo="ghcr.io", quiet=False, skip_push=False
+    reset_default=False, image_repo=LOCAL_REGISTRY_URL, quiet=False, skip_push=False
 ):
     def do_run(cmd, quiet):
         if quiet:
@@ -42,7 +42,7 @@ def replace_sidecar(
     do_run(docker_cmd, quiet)
 
     # Re-tag it, and push it to our controlled registry
-    image_name = f"{GITHUB_USER}/coco-knative-sidecar"
+    image_name = "system/knative-sidecar"
     image_tag = "unencrypted"
     new_image_url = "{}/{}:{}".format(image_repo, image_name, image_tag)
     docker_cmd = "docker tag {} {}".format(KNATIVE_SIDECAR_IMAGE_TAG, new_image_url)
@@ -74,6 +74,7 @@ def replace_sidecar(
     run_kubectl_command("apply -f {}".format(out_k8s_file))
 
     # Apply fix to container image fetching
+    # FIXME(nydus): do we still need this?
     out = run(
         f"sudo ctr -n k8s.io content fetch -k {new_image_url_digest}",
         shell=True,
@@ -91,7 +92,7 @@ def replace_sidecar(
     do_run(docker_cmd, quiet)
 
 
-def configure_self_signed_certs(path_to_certs_dir, secret_name):
+def configure_self_signed_certs(path_to_certs_dir, secret_name, debug=False):
     """
     Configure Knative to like our self-signed certificates
     """
@@ -106,11 +107,12 @@ def configure_self_signed_certs(path_to_certs_dir, secret_name):
     run_kubectl_command(
         "-n knative-serving patch deployment controller --patch-file {}".format(
             out_k8s_file
-        )
+        ),
+        capture_output=not debug
     )
 
 
-def patch_autoscaler(quiet=False):
+def patch_autoscaler(debug=False):
     """
     Patch Knative's auto-scaler so that our services are initially scaled-down
     to zero. They will scale-up the first time we send an HTTP request.
@@ -120,5 +122,5 @@ def patch_autoscaler(quiet=False):
         "-n knative-serving patch configmap config-autoscaler --patch-file {}".format(
             join(CONF_FILES_DIR, k8s_filename)
         ),
-        capture_output=quiet,
+        capture_output=not debug,
     )

@@ -3,16 +3,18 @@ from os import makedirs
 from os.path import exists, join
 from shutil import rmtree
 from subprocess import run
-from tasks.util.env import BIN_DIR, CONF_FILES_DIR, K8S_VERSION
+from tasks.util.env import BIN_DIR, CONF_FILES_DIR, K8S_VERSION, print_dotted_line
 from tasks.util.network import download_binary, symlink_global_bin
 
+CNI_VERSION = "1.3.0"
+CRICTL_VERSION = "1.28.0"
 
-def install_cni(clean=False):
+
+def install_cni(debug=False, clean=False):
     """
     Install CNI
     """
     cni_root = "/opt/cni"
-    cni_version = "1.3.0"
 
     cni_dir = join(cni_root, "bin")
 
@@ -22,21 +24,27 @@ def install_cni(clean=False):
     if not exists(cni_dir):
         run("sudo mkdir -p {}".format(cni_dir), shell=True, check=True)
 
-    cni_tar = "cni-plugins-linux-amd64-v{}.tgz".format(cni_version)
+    cni_tar = "cni-plugins-linux-amd64-v{}.tgz".format(CNI_VERSION)
     cni_url = "https://github.com/containernetworking/plugins/releases/"
-    cni_url += "download/v{}/{}".format(cni_version, cni_tar)
+    cni_url += "download/v{}/{}".format(CNI_VERSION, cni_tar)
 
     # Download the TAR
-    run("sudo curl -LO {}".format(cni_url), shell=True, check=True, cwd=cni_dir)
+    result = run("sudo curl -LO {}".format(cni_url), shell=True, capture_output=True, cwd=cni_dir)
+    assert result.returncode == 0
+    if debug:
+        print(result.stdout.decode("utf-8").strip())
 
     # Untar
-    run("sudo tar -xf {}".format(cni_tar), shell=True, check=True, cwd=cni_dir)
+    result = run("sudo tar -xf {}".format(cni_tar), shell=True, capture_output=True, cwd=cni_dir)
+    assert result.returncode == 0
+    if debug:
+        print(result.stdout.decode("utf-8").strip())
 
-    # Remote the TAR
+    # Remove the TAR
     run("sudo rm {}".format(join(cni_dir, cni_tar)), shell=True, check=True)
 
 
-def install_crictl():
+def install_crictl(debug=False):
     """
     Install the crictl container management tool
     """
@@ -48,16 +56,21 @@ def install_crictl():
     makedirs(work_dir)
 
     circtl_binary = "crictl"
-    circtl_version = "1.28.0"
-    circtl_tar = "crictl-v{}-linux-amd64.tar.gz".format(circtl_version)
+    circtl_tar = "crictl-v{}-linux-amd64.tar.gz".format(CRICTL_VERSION)
     circtl_url = "https://github.com/kubernetes-sigs/cri-tools/releases/"
-    circtl_url += "download/v{}/{}".format(circtl_version, circtl_tar)
+    circtl_url += "download/v{}/{}".format(CRICTL_VERSION, circtl_tar)
 
     # Download the TAR
-    run("curl -LO {}".format(circtl_url), shell=True, check=True, cwd=work_dir)
+    result = run("curl -LO {}".format(circtl_url), shell=True, capture_output=True, cwd=work_dir)
+    assert result.returncode == 0
+    if debug:
+        print(result.stdout.decode("utf-8").strip())
 
     # Untar
-    run("tar -xf {}".format(circtl_tar), shell=True, check=True, cwd=work_dir)
+    result = run("tar -xf {}".format(circtl_tar), shell=True, capture_output=True, cwd=work_dir)
+    assert result.returncode == 0
+    if debug:
+        print(result.stdout.decode("utf-8").strip())
 
     # Copy the binary and symlink
     circtl_binary_path = join(BIN_DIR, circtl_binary)
@@ -66,12 +79,12 @@ def install_crictl():
         shell=True,
         check=True,
     )
-    symlink_global_bin(circtl_binary_path, circtl_binary)
+    symlink_global_bin(circtl_binary_path, circtl_binary, debug=debug)
 
     rmtree(work_dir)
 
 
-def install_k8s(clean=False):
+def install_k8s(debug=False, clean=False):
     """
     Install the k8s binaries: kubectl, kubeadm, and kubelet
     """
@@ -80,8 +93,8 @@ def install_k8s(clean=False):
 
     for binary in binaries:
         url = join(base_url, binary)
-        binary_path = download_binary(url, binary)
-        symlink_global_bin(binary_path, binary)
+        binary_path = download_binary(url, binary, debug=debug)
+        symlink_global_bin(binary_path, binary, debug=debug)
 
 
 def configure_kubelet_service(clean=False):
@@ -107,13 +120,21 @@ def configure_kubelet_service(clean=False):
 
 
 @task
-def install(ctx, clean=False):
+def install(ctx, debug=False, clean=False):
     """
     Install and configure all tools to deploy a single-node k8s cluster
     """
-    install_cni(clean)
-    install_crictl()
-    install_k8s()
+    print_dotted_line(f"Installing CNI (v{CNI_VERSION})")
+    install_cni(debug=debug, clean=clean)
+    print("Success!")
+
+    print_dotted_line(f"Installing crictl (v{CRICTL_VERSION})")
+    install_crictl(debug=debug)
+    print("Success!")
+
+    print_dotted_line(f"Installing kubectl & friends (v{K8S_VERSION})")
+    install_k8s(debug=debug, clean=clean)
+    print("Success!")
 
     # Start kubelet service
-    configure_kubelet_service(clean)
+    configure_kubelet_service(clean=clean)

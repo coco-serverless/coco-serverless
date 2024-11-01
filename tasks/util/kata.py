@@ -46,15 +46,16 @@ def run_kata_workon_ctr(mount_path=None):
 
 
 def stop_kata_workon_ctr():
-    run(
+    result = run(
         "docker rm -f {}".format(KATA_WORKON_CTR_NAME),
         shell=True,
         check=True,
         capture_output=True,
     )
+    assert result.returncode == 0
 
 
-def copy_from_kata_workon_ctr(ctr_path, host_path, sudo=False):
+def copy_from_kata_workon_ctr(ctr_path, host_path, sudo=False, debug=False):
     ctr_started = run_kata_workon_ctr()
 
     docker_cmd = "docker cp {}:{} {}".format(
@@ -64,7 +65,9 @@ def copy_from_kata_workon_ctr(ctr_path, host_path, sudo=False):
     )
     if sudo:
         docker_cmd = "sudo {}".format(docker_cmd)
-    run(docker_cmd, shell=True, check=True)
+    result = run(docker_cmd, shell=True, capture_output=True)
+    if debug:
+        print(result.stdout.decode("utf-8").strip())
 
     # If the Kata workon ctr was not running before, make sure we delete it
     if ctr_started:
@@ -74,6 +77,7 @@ def copy_from_kata_workon_ctr(ctr_path, host_path, sudo=False):
 def replace_agent(
     dst_initrd_path=join(KATA_IMG_DIR, "kata-containers-initrd-confidential-sc2.img"),
     extra_files=None,
+    debug=False,
 ):
     """
     Replace the kata-agent with a custom-built one
@@ -114,13 +118,13 @@ def replace_agent(
         "kata-agent",
     )
     agent_initrd_path = join(workdir, "usr/bin/kata-agent")
-    copy_from_kata_workon_ctr(agent_host_path, agent_initrd_path, sudo=True)
+    copy_from_kata_workon_ctr(agent_host_path, agent_initrd_path, sudo=True, debug=debug)
 
     # We also need to manually copy the agent to <root_fs>/sbin/init (note that
     # <root_fs>/init is a symlink to <root_fs>/sbin/init)
     alt_agent_initrd_path = join(workdir, "sbin", "init")
     run("sudo rm {}".format(alt_agent_initrd_path), shell=True, check=True)
-    copy_from_kata_workon_ctr(agent_host_path, alt_agent_initrd_path, sudo=True)
+    copy_from_kata_workon_ctr(agent_host_path, alt_agent_initrd_path, sudo=True, debug=debug)
 
     # Include any extra files that the caller may have provided
     if extra_files is not None:
@@ -170,8 +174,8 @@ def replace_agent(
     )
     ctr_lib_path = join(KATA_SOURCE_DIR, "tools", "osbuilder", "scripts", "lib.sh")
     initrd_builder_path = join(kata_tmp_scripts, "initrd-builder", "initrd_builder.sh")
-    copy_from_kata_workon_ctr(ctr_initrd_builder_path, initrd_builder_path)
-    copy_from_kata_workon_ctr(ctr_lib_path, join(kata_tmp_scripts, "scripts", "lib.sh"))
+    copy_from_kata_workon_ctr(ctr_initrd_builder_path, initrd_builder_path, debug=debug)
+    copy_from_kata_workon_ctr(ctr_lib_path, join(kata_tmp_scripts, "scripts", "lib.sh"), debug=debug)
     work_env = {"AGENT_INIT": "yes"}
     initrd_pack_cmd = "sudo {} -o {} {}".format(
         initrd_builder_path,
@@ -179,7 +183,6 @@ def replace_agent(
         workdir,
     )
     out = run(initrd_pack_cmd, shell=True, env=work_env, capture_output=True)
-    print(initrd_pack_cmd)
     assert out.returncode == 0, "Error packing initrd: {}".format(
         out.stderr.decode("utf-8")
     )

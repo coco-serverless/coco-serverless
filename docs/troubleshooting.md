@@ -120,6 +120,18 @@ sudo service containerd restart
 sudo service nydus-snapshotter restart
 ```
 
+### Nydus Caching Issue
+
+For images with the same digest, nydus seems to cache the image tag. Meaning
+that if you re-tag the same image, nydus will still try to pull the old tag.
+
+To fix this, delete the duplicated image tags (i.e. tags with the same digest)
+using something like:
+
+```bash
+sudo ctr -n k8s.io image rm $(sudo ctr -n k8s.io image ls | grep coco | awk '{print $1}')
+```
+
 ### Nydus Clean-Up Issue
 
 If you encounter a `ContainerCreating` error with an error message along the

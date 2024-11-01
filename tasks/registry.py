@@ -8,6 +8,7 @@ from tasks.util.env import (
     CONTAINERD_CONFIG_ROOT,
     K8S_CONFIG_DIR,
     LOCAL_REGISTRY_URL,
+    print_dotted_line,
     get_node_url,
 )
 from tasks.util.kata import replace_agent
@@ -23,17 +24,28 @@ REGISTRY_CERT_FILE = "domain.crt"
 HOST_CERT_PATH = join(HOST_CERT_DIR, REGISTRY_CERT_FILE)
 REGISTRY_CTR_NAME = "sc2-registry"
 
-REGISTRY_IMAGE_TAG = "registry:2"
+REGISTRY_VERSION = "2.8"
+REGISTRY_IMAGE_TAG = f"registry:{REGISTRY_VERSION}"
 
 K8S_SECRET_NAME = "sc2-registry-customca"
 
 
 @task
-def start(ctx):
+def start(ctx, debug=False, clean=False):
     """
     Configure a local container registry reachable from CoCo guests in K8s
     """
     this_ip = get_node_url()
+    print_dotted_line(f"Configuring local docker registry (v{REGISTRY_VERSION}) at IP: {this_ip} (name: {LOCAL_REGISTRY_URL})")
+
+    if clean and is_ctr_running(REGISTRY_CTR_NAME):
+        if debug:
+            print(f"WARNING: stopping registry container: {REGISTRY_CTR_NAME}")
+
+        result = run(f"docker rm -f {REGISTRY_CTR_NAME}", shell=True, capture_output=True)
+        assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
+        if debug:
+            print(result.stdout.decode("utf-8").strip())
 
     # ----------
     # DNS Config
@@ -64,7 +76,10 @@ def start(ctx):
             shell=True,
             check=True,
         )
-        run("sudo dpkg-reconfigure ca-certificates", shell=True, check=True)
+        result = run("sudo dpkg-reconfigure ca-certificates", shell=True, capture_output=True)
+        assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
+        if debug:
+            print(result.stdout.decode("utf-8").strip())
 
     # ----------
     # Docker Registry Config
@@ -85,7 +100,10 @@ def start(ctx):
     ]
     openssl_cmd = " ".join(openssl_cmd)
     if not exists(HOST_CERT_PATH):
-        run(openssl_cmd, shell=True, check=True)
+        result = run(openssl_cmd, shell=True, capture_output=True)
+        assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
+        if debug:
+            print(result.stdout.decode("utf-8").strip())
 
     # Start self-hosted local registry with HTTPS
     docker_cmd = [
@@ -107,8 +125,11 @@ def start(ctx):
         assert out.returncode == 0, "Failed starting docker container: {}".format(
             out.stderr
         )
+        if debug:
+            print(out.stdout.decode("utf-8").strip())
     else:
-        print("WARNING: skipping starting container as it is already running...")
+        if debug:
+            print("WARNING: skipping starting container as it is already running...")
 
     # ----------
     # dockerd config
@@ -165,7 +186,7 @@ server = "https://{registry_url}"
     # Copy the certificate to the corresponding containerd directory
     run(f"sudo cp {HOST_CERT_PATH} {containerd_cert_path}", shell=True, check=True)
 
-    # Restart containerd to pick up the changes (?)
+    # Restart containerd to pick up the changes
     run("sudo service containerd restart", shell=True, check=True)
 
     # ----------
@@ -189,14 +210,16 @@ server = "https://{registry_url}"
             K8S_SECRET_NAME, HOST_CERT_PATH
         )
     )
-    run_kubectl_command(kube_cmd)
+    run_kubectl_command(kube_cmd, capture_output=not debug)
 
     # Second, patch the controller deployment
-    configure_self_signed_certs(HOST_CERT_PATH, K8S_SECRET_NAME)
+    configure_self_signed_certs(HOST_CERT_PATH, K8S_SECRET_NAME, debug=debug)
+
+    print("Success!")
 
 
 @task
-def stop(ctx):
+def stop(ctx, debug=False):
     """
     Remove the container registry in the k8s cluster
 
@@ -206,9 +229,12 @@ def stop(ctx):
     # For Knative, we only need to delete the secret, as the other bit is a
     # patch to the controller deployment that can be applied again
     kube_cmd = "-n knative-serving delete secret {}".format(K8S_SECRET_NAME)
-    run_kubectl_command(kube_cmd)
+    run_kubectl_command(kube_cmd, capture_output=not debug)
 
     # For Kata and containerd, all configuration is reversible, so we only
     # need to sop the container image
-    docker_cmd = "docker run --rm -f {}".format(REGISTRY_CTR_NAME)
-    run(docker_cmd, shell=True, check=True)
+    docker_cmd = "docker rm -f {}".format(REGISTRY_CTR_NAME)
+    result = run(docker_cmd, shell=True, capture_output=True)
+    assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
+    if debug:
+        print(result.stdout.decode("utf-8").strip())

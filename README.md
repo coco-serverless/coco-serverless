@@ -1,109 +1,71 @@
-# CoCo Serverless [![Integration tests](https://github.com/coco-serverless/coco-serverless/actions/workflows/tests.yml/badge.svg)](https://github.com/coco-serverless/coco-serverless/actions/workflows/tests.yml)
+<div align="center">
+  <h1>SC2: Deploy</h1>
 
-The goal of this project is to deploy [Knative](https://knative.dev/docs/) on
-[CoCo](https://github.com/confidential-containers) and run some baseline
-benchmarks.
-All instructions in this repository assume that you have checked-out the source
-code, and have activated the python virtual environment:
+  <p>
+    <strong>Deployment and build scripts for
+    <a href="https://github.com/sc2-sys/">Serverless Confidential Containers (SC2)</a></strong>
+  </p>
+
+  <p>
+    <a href="https://github.com/coco-serverless/coco-serverless/actions/workflows/tests.yml"><img src="https://github.com/coco-serverless/coco-serverless/actions/workflows/tests.yml/badge.svg" alt="Integration Tests" /></a>
+  </p>
+</div>
+
+SC2 is a system to run serverless functions in confidential containers. It
+is deployed on a Kubernetes cluster on top of [Knative](
+https://knative.dev/docs/), and builds on the [Confidential Containers](
+https://github.com/confidential-containers) project.
+
+SC2 currently only supports AMD SEV-SNP as underlying TEE, and requires
+deployment on a bare-metal host. Before moving forward, make sure you have
+SEV-SNP enabled in your server, and check [`snphost ok`](
+https://github.com/virtee/snphost.git) is happy.
+
+Lastly, make sure you are using the exact host kernel:
+
+| **SEV-SNP** | **TDX** |
+|---|---|
+| [6.8.0-rc5-next-20240221-snp-host-cc2568386](https://github.com/confidential-containers/linux/tree/amd-snp-host-202402240000) | [6.8.0-1004-intel](https://git.launchpad.net/~kobuk-team/ubuntu/+source/linux-intel/tree/?h=noble-main-next) |
+
+## Quick Start
+
+To get started with SC2, clone this repository and run:
 
 ```bash
 source ./bin/workon.sh
 
-# List available tasks
-inv -l
+# The following will call `sudo` under the hood
+inv sc2.deploy [--debug] [--clean]
 ```
 
-## Pre-Requisites
+the previous command will: install a single-node k8s cluster with CoCo, install
+Knative, and install SC2.
 
-First, make sure your host has been set-up according to AMD's [host set-up](
-https://github.com/AMDESE/AMDSEV/tree/snp-latest) instructions.
+> [!WARNING]
+> Deploying SC2 will patch many components of the system like `containerd`,
+> `docker`, `nydus-snapshotter`, and `kata`. We recommend installing on a
+> fresh host and, potentially, using the `--clean` flag.
 
-You will need a recent version of containerd to support host-side features like
-the Nydus snapshotter. To build and install it from source you may run:
+You can now check that everything is running by running a simple hello world:
 
 ```bash
-# Fresh containerd install
-inv containerd.build containerd.install --clean
+# Knative demo
+kubectl apply -f ./demo-apps/helloworld-knative
 
-# Fresh nydus install
-# TODO: i think operator.install may overwrite this!
-inv nydus.build nydus.install --clean
+# Non-Knative demo
+kubectl apply -f ./demo-apps/helloworld-py
+curl $(kubectl get services -o jsonpath='{.items[?(@.metadata.name=="coco-helloworld-py-node-port")].spec.clusterIP}'):8080
 ```
 
-You also need all the kubernetes-related tooling: `kubectl`, `kubeadm`, and
-`kubelet`:
+for more complex applications and workloads, please check our [applications](
+https://github.com/sc2-sys/applications) and [experiments](
+https://github.com/sc2-sys/experiments).
+
+After you are done using SC2, you may completely remove the cluster by
+running:
 
 ```bash
-inv k8s.install [--clean]
-```
-
-You may also want to install `k9s`, a kubernetes monitoring tool:
-
-```bash
-inv k9s.install
-```
-
-Lastly, `kubeadm` may require to disable swap in the host:
-
-```bash
-sudo swapoff -a
-```
-
-## Quick Start
-
-Deploy a (single-node) kubernetes cluster using `kubeadm`:
-
-```bash
-inv kubeadm.create
-export KUBECONFIG=.config/kubeadm_kubeconfig
-```
-
-Second, install both the operator and the CC runtime from the upstream tag.
-We currently pin to version `v0.9.0` (see the [`COCO_RELEASE_VERSION` variable](
-https://github.com/csegarragonz/coco-serverless/tree/main/tasks/util/env.py)).
-
-```bash
-inv operator.install operator.install-cc-runtime
-```
-
-Third, update the `initrd` file to include our patched `kata-agent`:
-
-```bash
-inv kata.build kata.replace-agent
-```
-
-You are ready to run one of the supported apps:
-* [Hello World! (Py)](./docs/helloworld_py.md) - simple HTTP server running in Python to test CoCo and Kata.
-* [Hello World! (Knative)](./docs/helloworld_knative.md) - same app as before, but invoked over Knative.
-* [Knative Chaining](./docs/knative_chaining.md) - example of function chaining in Knative with CoCo.
-* [Hello Attested World! (Knative + Attestation)](./docs/helloworld_knative_attestation.md) - same setting as the Knative hello world, but with varying levels of attestation configured.
-
-If your app uses Knative, you will have to install it first:
-
-```bash
-inv knative.install
-```
-
-## Evaluation
-
-The goal of the project is to measure the performance of Knative with CoCo,
-and compare it to other isolation mechanisms using standarised benchmarks. To
-This extent, we provide a thorough evaluation in the [evaluation](./eval)
-directory.
-
-## Uninstall
-
-In order to uninstall components for debugging purposes, you may un-install the CoCo runtime, and then the operator as follows:
-
-```bash
-inv operator.uninstall-cc-runtime
-inv operator.uninstall
-```
-
-Lastly, you can completely remove the `k8s` cluster by running:
-
-```bash
-inv kubeadm.destroy
+inv sc2.destroy
 ```
 
 ## Further Reading

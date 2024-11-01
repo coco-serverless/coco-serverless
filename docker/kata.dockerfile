@@ -75,7 +75,7 @@ RUN mkdir -p ${CODE_DIR} \
     && git clone\
         # CoCo 0.10.0 ships with Kata 3.9.0, and we add our patches on top
         -b sc2-main \
-        https://github.com/coco-serverless/kata-containers \
+        https://github.com/sc2-sys/kata-containers \
         ${CODE_DIR} \
     && git config --global --add safe.directory ${CODE_DIR} \
     && cd ${CODE_DIR}/src/runtime \

@@ -45,6 +45,7 @@ KUBEADM_KUBECONFIG_FILE = join(K8S_CONFIG_DIR, "kubeadm_kubeconfig")
 
 COCO_RELEASE_VERSION = "0.10.0"
 KATA_ROOT = join("/opt", "kata")
+COCO_ROOT = join("/opt", "confidential-containers")
 
 # Kata config
 KATA_CONFIG_DIR = join(KATA_ROOT, "share", "defaults", "kata-containers")
@@ -55,11 +56,16 @@ KATA_RUNTIMES = ["qemu", "qemu-coco-dev", "qemu-sev", "qemu-snp"]
 
 # Apps config
 
-APPS_SOURCE_DIR = join(PROJ_ROOT, "apps")
+APPS_SOURCE_DIR = join(PROJ_ROOT, "demo-apps")
 
 # KBS Config
 
 KBS_PORT = 44444
+
+
+def print_dotted_line(message, dot_length=90):
+    dots = "." * (dot_length - len(message))
+    print(f"{message}{dots}", end="", flush=True)
 
 
 def get_node_url():

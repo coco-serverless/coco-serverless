@@ -1,6 +1,6 @@
 from invoke import task
 from os.path import join
-from tasks.util.env import CONF_FILES_DIR
+from tasks.util.env import CONF_FILES_DIR, LOCAL_REGISTRY_URL, print_dotted_line
 from tasks.util.knative import (
     configure_self_signed_certs as do_configure_self_signed_certs,
     patch_autoscaler as do_patch_autoscaler,
@@ -109,10 +109,7 @@ def install(ctx, skip_push=False, debug=False):
     """
     net_layer = "kourier"
 
-    print(
-        f"Installing Knative v{KNATIVE_VERSION} with {net_layer} as net layer...",
-        end="",
-    )
+    print_dotted_line(f"Installing Knative (v{KNATIVE_VERSION}) with {net_layer} as net layer")
 
     # Knative requires a functional LoadBalancer, so we use MetaLB
     install_metallb(debug=debug)
@@ -191,7 +188,7 @@ def install(ctx, skip_push=False, debug=False):
         debug=debug,
     )
 
-    # Install non-core serving components
+    # Install non-core eventing components
     kube_cmd = "apply -f {}".format(
         join(KNATIVE_EVENTING_BASE_URL, "in-memory-channel.yaml")
     )
@@ -288,7 +285,7 @@ def install(ctx, skip_push=False, debug=False):
     do_replace_sidecar(skip_push=skip_push, quiet=not debug)
 
     # Patch the auto-scaler
-    do_patch_autoscaler(quiet=not debug)
+    do_patch_autoscaler(debug=debug)
 
     print("Success!")
 
@@ -324,7 +321,7 @@ def uninstall(ctx):
 
 
 @task
-def replace_sidecar(ctx, reset_default=False, image_repo="ghcr.io", skip_push=False):
+def replace_sidecar(ctx, reset_default=False, image_repo=LOCAL_REGISTRY_URL, skip_push=False):
     """
     Replace Knative's side-car image with an image we control
 

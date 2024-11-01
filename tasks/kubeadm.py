@@ -10,6 +10,7 @@ from tasks.util.env import (
     K8S_CONFIG_DIR,
     K8S_VERSION,
     KUBEADM_KUBECONFIG_FILE,
+    print_dotted_line,
 )
 from tasks.util.kubeadm import (
     get_node_name,
@@ -24,7 +25,7 @@ def create(ctx, debug=False):
     """
     Create a single-node k8s cluster
     """
-    print(f"Creating K8s (v{K8S_VERSION}) cluster using kubeadm...", end="")
+    print_dotted_line(f"Creating K8s (v{K8S_VERSION}) cluster using kubeadm")
 
     # Start the cluster
     kubeadm_cmd = "sudo kubeadm init --config {}".format(K8S_ADMIN_FILE)
