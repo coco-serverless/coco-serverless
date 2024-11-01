@@ -136,8 +136,6 @@ def install(ctx, skip_push=False, debug=False):
     kube_cmd = "apply -f {}".format(join(KNATIVE_SERVING_BASE_URL, "serving-core.yaml"))
     run_kubectl_command(kube_cmd, capture_output=not debug)
 
-    print("bar")
-
     # Wait for the core components to be ready
     wait_for_pods_in_ns(
         KNATIVE_SERVING_NAMESPACE,
