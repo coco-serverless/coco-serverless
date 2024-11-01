@@ -11,17 +11,16 @@ from tasks.util.env import (
     print_dotted_line,
     get_node_url,
 )
-from tasks.util.knative import configure_self_signed_certs
 from tasks.util.kubeadm import run_kubectl_command
 from tasks.util.registry import (
-    HOST_CERT_DIR,
     GUEST_CERT_DIR,
-    REGISTRY_KEY_FILE,
-    HOST_KEY_PATH,
-    REGISTRY_CERT_FILE,
+    HOST_CERT_DIR,
     HOST_CERT_PATH,
+    HOST_KEY_PATH,
     K8S_SECRET_NAME,
+    REGISTRY_CERT_FILE,
     REGISTRY_CTR_NAME,
+    REGISTRY_KEY_FILE,
 )
 from tasks.util.toml import update_toml
 
@@ -214,18 +213,12 @@ server = "https://{registry_url}"
 
     # ----------
     # Knative config
+    #
+    # We need to patch the Knative deployment to trust our self-signed
+    # certificates. However, Knative needs the local registry to be running to
+    # be able to upload the side-car image there. To this extent, we defer
+    # the configuration of Knative to the Knative install script.
     # ----------
-
-    # First, create a k8s secret with the credentials
-    kube_cmd = (
-        "-n knative-serving create secret generic {} --from-file=ca.crt={}".format(
-            K8S_SECRET_NAME, HOST_CERT_PATH
-        )
-    )
-    run_kubectl_command(kube_cmd, capture_output=not debug)
-
-    # Second, patch the controller deployment
-    configure_self_signed_certs(HOST_CERT_DIR, K8S_SECRET_NAME, debug=debug)
 
     print("Success!")
 
