@@ -121,8 +121,12 @@ def install(ctx, skip_push=False, debug=False):
         f"Installing Knative (v{KNATIVE_VERSION}) with {net_layer} as net layer"
     )
 
+    print("eh")
+
     # Knative requires a functional LoadBalancer, so we use MetaLB
     install_metallb(debug=debug)
+
+    print("foo")
 
     # -----
     # Install Knative Serving
@@ -135,6 +139,8 @@ def install(ctx, skip_push=False, debug=False):
     # Install the core serving components
     kube_cmd = "apply -f {}".format(join(KNATIVE_SERVING_BASE_URL, "serving-core.yaml"))
     run_kubectl_command(kube_cmd, capture_output=not debug)
+
+    print("bar")
 
     # Wait for the core components to be ready
     wait_for_pods_in_ns(
@@ -161,8 +167,6 @@ def install(ctx, skip_push=False, debug=False):
         expected_num_of_pods=1,
         debug=debug,
     )
-
-    print("foo")
 
     # -----
     # Install Knative Eventing
@@ -199,8 +203,6 @@ def install(ctx, skip_push=False, debug=False):
         expected_num_of_pods=1,
         debug=debug,
     )
-
-    print("bar")
 
     # Install non-core eventing components
     kube_cmd = "apply -f {}".format(
@@ -249,8 +251,6 @@ def install(ctx, skip_push=False, debug=False):
     # Install a networking layer
     # -----
 
-    print("baz")
-
     # Install a networking layer
     if net_layer == "istio":
         net_layer_ns = ISTIO_NAMESPACE
@@ -284,8 +284,6 @@ def install(ctx, skip_push=False, debug=False):
         sleep(3)
         actual_ip = run_kubectl_command(ip_cmd, capture_output=True)
         actual_ip_len = len(actual_ip.split("."))
-
-    print("bat")
 
     # Deploy a DNS
     kube_cmd = "apply -f {}".format(
