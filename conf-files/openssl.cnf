@@ -1,0 +1,10 @@
+[ req ]
+default_bits       = 4096
+distinguished_name = req_distinguished_name
+prompt             = no
+
+[ req_distinguished_name ]
+C  = UK
+ST = Greater London
+L  = London
+O  = My Company

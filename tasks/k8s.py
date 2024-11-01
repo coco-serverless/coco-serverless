@@ -32,7 +32,7 @@ def install_cni(debug=False, clean=False):
     result = run(
         "sudo curl -LO {}".format(cni_url), shell=True, capture_output=True, cwd=cni_dir
     )
-    assert result.returncode == 0
+    assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
     if debug:
         print(result.stdout.decode("utf-8").strip())
 
@@ -40,7 +40,7 @@ def install_cni(debug=False, clean=False):
     result = run(
         "sudo tar -xf {}".format(cni_tar), shell=True, capture_output=True, cwd=cni_dir
     )
-    assert result.returncode == 0
+    assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
     if debug:
         print(result.stdout.decode("utf-8").strip())
 
@@ -68,7 +68,7 @@ def install_crictl(debug=False):
     result = run(
         "curl -LO {}".format(circtl_url), shell=True, capture_output=True, cwd=work_dir
     )
-    assert result.returncode == 0
+    assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
     if debug:
         print(result.stdout.decode("utf-8").strip())
 
@@ -76,7 +76,7 @@ def install_crictl(debug=False):
     result = run(
         "tar -xf {}".format(circtl_tar), shell=True, capture_output=True, cwd=work_dir
     )
-    assert result.returncode == 0
+    assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
     if debug:
         print(result.stdout.decode("utf-8").strip())
 

@@ -4,6 +4,7 @@ from os.path import exists, join
 from subprocess import run
 from tasks.util.docker import is_ctr_running
 from tasks.util.env import (
+    CONF_FILES_DIR,
     CONTAINERD_CONFIG_FILE,
     CONTAINERD_CONFIG_ROOT,
     LOCAL_REGISTRY_URL,
@@ -63,10 +64,12 @@ def start(ctx, debug=False, clean=False):
         "openssl req",
         "-newkey rsa:4096",
         "-nodes -sha256",
+        "-config {}".format(join(CONF_FILES_DIR, "openssl.cnf")),
         "-keyout {}".format(HOST_KEY_PATH),
         '-addext "subjectAltName = DNS:{}"'.format(LOCAL_REGISTRY_URL),
         "-x509 -days 365",
         "-out {}".format(HOST_CERT_PATH),
+        "> /dev/null 2>&1",
     ]
     openssl_cmd = " ".join(openssl_cmd)
     if not exists(HOST_CERT_PATH):

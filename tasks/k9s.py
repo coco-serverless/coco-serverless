@@ -25,7 +25,7 @@ def install(ctx, debug=False):
     # Download the TAR
     cmd = "curl -LO {}".format(url)
     result = run(cmd, shell=True, capture_output=True, cwd=workdir)
-    assert result.returncode == 0
+    assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
     if debug:
         print(result.stdout.decode("utf-8").strip())
 
@@ -33,7 +33,7 @@ def install(ctx, debug=False):
     result = run(
         "tar -xf {}".format(tar_name), shell=True, capture_output=True, cwd=workdir
     )
-    assert result.returncode == 0
+    assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
     if debug:
         print(result.stdout.decode("utf-8").strip())
 
