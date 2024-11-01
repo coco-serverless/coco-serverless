@@ -31,7 +31,7 @@ CONTAINERD_CONFIG_FILE = join(CONTAINERD_CONFIG_ROOT, "config.toml")
 
 LOCAL_REGISTRY_URL = "sc2cr.io"
 GHCR_URL = "ghcr.io"
-GITHUB_USER = "coco-serverless"
+GITHUB_ORG = "sc2-sys"
 # MicroK8s config
 
 UK8S_KUBECONFIG_FILE = join(K8S_CONFIG_DIR, "uk8s_kubeconfig")
@@ -44,22 +44,31 @@ KUBEADM_KUBECONFIG_FILE = join(K8S_CONFIG_DIR, "kubeadm_kubeconfig")
 # CoCo config
 
 COCO_RELEASE_VERSION = "0.10.0"
+COCO_ROOT = join("/opt", "confidential-containers")
+
+# Kata Version is determined by CoCo version
+KATA_VERSION = "3.9.0"
 KATA_ROOT = join("/opt", "kata")
 
 # Kata config
 KATA_CONFIG_DIR = join(KATA_ROOT, "share", "defaults", "kata-containers")
 KATA_IMG_DIR = join(KATA_ROOT, "share", "kata-containers")
 KATA_WORKON_CTR_NAME = "kata-workon"
-KATA_WORKON_IMAGE_TAG = "kata-build"
+KATA_IMAGE_TAG = join(GHCR_URL, GITHUB_ORG, "kata-containers") + f":{KATA_VERSION}"
 KATA_RUNTIMES = ["qemu", "qemu-coco-dev", "qemu-sev", "qemu-snp"]
 
 # Apps config
 
-APPS_SOURCE_DIR = join(PROJ_ROOT, "apps")
+APPS_SOURCE_DIR = join(PROJ_ROOT, "demo-apps")
 
 # KBS Config
 
 KBS_PORT = 44444
+
+
+def print_dotted_line(message, dot_length=90):
+    dots = "." * (dot_length - len(message))
+    print(f"{message}{dots}", end="", flush=True)
 
 
 def get_node_url():

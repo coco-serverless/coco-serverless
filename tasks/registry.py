@@ -4,36 +4,104 @@ from os.path import exists, join
 from subprocess import run
 from tasks.util.docker import is_ctr_running
 from tasks.util.env import (
+    CONF_FILES_DIR,
     CONTAINERD_CONFIG_FILE,
     CONTAINERD_CONFIG_ROOT,
-    K8S_CONFIG_DIR,
     LOCAL_REGISTRY_URL,
+    print_dotted_line,
     get_node_url,
 )
-from tasks.util.kata import replace_agent
-from tasks.util.knative import configure_self_signed_certs
 from tasks.util.kubeadm import run_kubectl_command
+from tasks.util.registry import (
+    GUEST_CERT_DIR,
+    HOST_CERT_DIR,
+    HOST_CERT_PATH,
+    HOST_KEY_PATH,
+    K8S_SECRET_NAME,
+    REGISTRY_CERT_FILE,
+    REGISTRY_CTR_NAME,
+    REGISTRY_KEY_FILE,
+)
 from tasks.util.toml import update_toml
 
-HOST_CERT_DIR = join(K8S_CONFIG_DIR, "local-registry")
-GUEST_CERT_DIR = "/certs"
-REGISTRY_KEY_FILE = "domain.key"
-HOST_KEY_PATH = join(HOST_CERT_DIR, REGISTRY_KEY_FILE)
-REGISTRY_CERT_FILE = "domain.crt"
-HOST_CERT_PATH = join(HOST_CERT_DIR, REGISTRY_CERT_FILE)
-REGISTRY_CTR_NAME = "sc2-registry"
-
-REGISTRY_IMAGE_TAG = "registry:2"
-
-K8S_SECRET_NAME = "sc2-registry-customca"
+REGISTRY_VERSION = "2.8"
+REGISTRY_IMAGE_TAG = f"registry:{REGISTRY_VERSION}"
 
 
 @task
-def start(ctx):
+def start(ctx, debug=False, clean=False):
     """
     Configure a local container registry reachable from CoCo guests in K8s
     """
     this_ip = get_node_url()
+    print_dotted_line(
+        "Configuring local docker registry (v{}) at IP: {} (name: {})".format(
+            REGISTRY_VERSION, this_ip, LOCAL_REGISTRY_URL
+        )
+    )
+
+    # ----------
+    # Docker Registry Config
+    # ----------
+
+    if clean and is_ctr_running(REGISTRY_CTR_NAME):
+        if debug:
+            print(f"WARNING: stopping registry container: {REGISTRY_CTR_NAME}")
+
+        result = run(
+            f"docker rm -f {REGISTRY_CTR_NAME}", shell=True, capture_output=True
+        )
+        assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
+        if debug:
+            print(result.stdout.decode("utf-8").strip())
+
+    # Create certificates for registry
+    if not exists(HOST_CERT_DIR):
+        makedirs(HOST_CERT_DIR)
+
+    openssl_cmd = [
+        "openssl req",
+        "-newkey rsa:4096",
+        "-nodes -sha256",
+        "-config {}".format(join(CONF_FILES_DIR, "openssl.cnf")),
+        "-keyout {}".format(HOST_KEY_PATH),
+        '-addext "subjectAltName = DNS:{}"'.format(LOCAL_REGISTRY_URL),
+        "-x509 -days 365",
+        "-out {}".format(HOST_CERT_PATH),
+        "> /dev/null 2>&1",
+    ]
+    openssl_cmd = " ".join(openssl_cmd)
+    if not exists(HOST_CERT_PATH):
+        result = run(openssl_cmd, shell=True, capture_output=True)
+        assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
+        if debug:
+            print(result.stdout.decode("utf-8").strip())
+
+    # Start self-hosted local registry with HTTPS
+    docker_cmd = [
+        "docker run -d",
+        "--restart=always",
+        "--name {}".format(REGISTRY_CTR_NAME),
+        "-v {}:{}".format(HOST_CERT_DIR, GUEST_CERT_DIR),
+        "-e REGISTRY_HTTP_ADDR=0.0.0.0:443",
+        "-e REGISTRY_HTTP_TLS_CERTIFICATE={}".format(
+            join(GUEST_CERT_DIR, REGISTRY_CERT_FILE)
+        ),
+        "-e REGISTRY_HTTP_TLS_KEY={}".format(join(GUEST_CERT_DIR, REGISTRY_KEY_FILE)),
+        "-p 443:443",
+        REGISTRY_IMAGE_TAG,
+    ]
+    docker_cmd = " ".join(docker_cmd)
+    if not is_ctr_running(REGISTRY_CTR_NAME):
+        out = run(docker_cmd, shell=True, capture_output=True)
+        assert out.returncode == 0, "Failed starting docker container: {}".format(
+            out.stderr
+        )
+        if debug:
+            print(out.stdout.decode("utf-8").strip())
+    else:
+        if debug:
+            print("WARNING: skipping starting container as it is already running...")
 
     # ----------
     # DNS Config
@@ -64,51 +132,12 @@ def start(ctx):
             shell=True,
             check=True,
         )
-        run("sudo dpkg-reconfigure ca-certificates", shell=True, check=True)
-
-    # ----------
-    # Docker Registry Config
-    # ----------
-
-    # Create certificates for registry
-    if not exists(HOST_CERT_DIR):
-        makedirs(HOST_CERT_DIR)
-
-    openssl_cmd = [
-        "openssl req",
-        "-newkey rsa:4096",
-        "-nodes -sha256",
-        "-keyout {}".format(HOST_KEY_PATH),
-        '-addext "subjectAltName = DNS:{}"'.format(LOCAL_REGISTRY_URL),
-        "-x509 -days 365",
-        "-out {}".format(HOST_CERT_PATH),
-    ]
-    openssl_cmd = " ".join(openssl_cmd)
-    if not exists(HOST_CERT_PATH):
-        run(openssl_cmd, shell=True, check=True)
-
-    # Start self-hosted local registry with HTTPS
-    docker_cmd = [
-        "docker run -d",
-        "--restart=always",
-        "--name {}".format(REGISTRY_CTR_NAME),
-        "-v {}:{}".format(HOST_CERT_DIR, GUEST_CERT_DIR),
-        "-e REGISTRY_HTTP_ADDR=0.0.0.0:443",
-        "-e REGISTRY_HTTP_TLS_CERTIFICATE={}".format(
-            join(GUEST_CERT_DIR, REGISTRY_CERT_FILE)
-        ),
-        "-e REGISTRY_HTTP_TLS_KEY={}".format(join(GUEST_CERT_DIR, REGISTRY_KEY_FILE)),
-        "-p 443:443",
-        REGISTRY_IMAGE_TAG,
-    ]
-    docker_cmd = " ".join(docker_cmd)
-    if not is_ctr_running(REGISTRY_CTR_NAME):
-        out = run(docker_cmd, shell=True, capture_output=True)
-        assert out.returncode == 0, "Failed starting docker container: {}".format(
-            out.stderr
+        result = run(
+            "sudo dpkg-reconfigure ca-certificates", shell=True, capture_output=True
         )
-    else:
-        print("WARNING: skipping starting container as it is already running...")
+        assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
+        if debug:
+            print(result.stdout.decode("utf-8").strip())
 
     # ----------
     # dockerd config
@@ -165,38 +194,37 @@ server = "https://{registry_url}"
     # Copy the certificate to the corresponding containerd directory
     run(f"sudo cp {HOST_CERT_PATH} {containerd_cert_path}", shell=True, check=True)
 
-    # Restart containerd to pick up the changes (?)
+    # Restart containerd to pick up the changes
     run("sudo service containerd restart", shell=True, check=True)
 
     # ----------
     # Kata config
+    #
+    # We need to do two things to get the Kata Agent to pull an image from our
+    # local registry with a self-signed certificate:
+    # 1. Include our self-signed ceritifcate, and DNS entry, into the agent
+    # 2. Re-build the agent with native-tls (instead of rusttls) so that we
+    #    read the certificates (rusttls deliberately does not read from files
+    #    in the filesystem)
+    #
+    # We concentrate all modifications to the agent in a single call to
+    # do_replace_agent, part of our deployment.
     # ----------
-
-    # Populate the right DNS config and certificate files in the agent
-    extra_files = {
-        dns_file: {"path": "/etc/hosts", "mode": "w"},
-        HOST_CERT_PATH: {"path": "/etc/ssl/certs/ca-certificates.crt", "mode": "a"},
-    }
-    replace_agent(extra_files=extra_files)
 
     # ----------
     # Knative config
+    #
+    # We need to patch the Knative deployment to trust our self-signed
+    # certificates. However, Knative needs the local registry to be running to
+    # be able to upload the side-car image there. To this extent, we defer
+    # the configuration of Knative to the Knative install script.
     # ----------
 
-    # First, create a k8s secret with the credentials
-    kube_cmd = (
-        "-n knative-serving create secret generic {} --from-file=ca.crt={}".format(
-            K8S_SECRET_NAME, HOST_CERT_PATH
-        )
-    )
-    run_kubectl_command(kube_cmd)
-
-    # Second, patch the controller deployment
-    configure_self_signed_certs(HOST_CERT_PATH, K8S_SECRET_NAME)
+    print("Success!")
 
 
 @task
-def stop(ctx):
+def stop(ctx, debug=False):
     """
     Remove the container registry in the k8s cluster
 
@@ -206,9 +234,12 @@ def stop(ctx):
     # For Knative, we only need to delete the secret, as the other bit is a
     # patch to the controller deployment that can be applied again
     kube_cmd = "-n knative-serving delete secret {}".format(K8S_SECRET_NAME)
-    run_kubectl_command(kube_cmd)
+    run_kubectl_command(kube_cmd, capture_output=not debug)
 
     # For Kata and containerd, all configuration is reversible, so we only
     # need to sop the container image
-    docker_cmd = "docker run --rm -f {}".format(REGISTRY_CTR_NAME)
-    run(docker_cmd, shell=True, check=True)
+    docker_cmd = "docker rm -f {}".format(REGISTRY_CTR_NAME)
+    result = run(docker_cmd, shell=True, capture_output=True)
+    assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
+    if debug:
+        print(result.stdout.decode("utf-8").strip())

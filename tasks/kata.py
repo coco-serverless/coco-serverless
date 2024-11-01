@@ -1,12 +1,12 @@
 from invoke import task
-from os.path import join
+from os.path import abspath, join
 from subprocess import run
 from tasks.util.env import (
     KATA_ROOT,
     KATA_CONFIG_DIR,
     KATA_RUNTIMES,
     KATA_WORKON_CTR_NAME,
-    KATA_WORKON_IMAGE_TAG,
+    KATA_IMAGE_TAG,
     PROJ_ROOT,
 )
 from tasks.util.kata import (
@@ -22,16 +22,19 @@ KATA_SHIM_SOURCE_DIR = join(KATA_SOURCE_DIR, "src", "runtime")
 
 
 @task
-def build(ctx, nocache=False):
+def build(ctx, nocache=False, push=False):
     """
     Build the Kata Containers workon docker image
     """
     docker_cmd = "docker build {} -t {} -f {} .".format(
         "--no-cache" if nocache else "",
-        KATA_WORKON_IMAGE_TAG,
+        KATA_IMAGE_TAG,
         join(PROJ_ROOT, "docker", "kata.dockerfile"),
     )
     run(docker_cmd, shell=True, check=True, cwd=PROJ_ROOT)
+
+    if push:
+        run(f"docker push {KATA_IMAGE_TAG}", shell=True, check=True)
 
 
 @task
@@ -39,6 +42,9 @@ def cli(ctx, mount_path=None):
     """
     Get a working environemnt to develop Kata
     """
+    if mount_path is not None:
+        mount_path = abspath(mount_path)
+
     run_kata_workon_ctr(mount_path=mount_path)
     run("docker exec -it {} bash".format(KATA_WORKON_CTR_NAME), shell=True, check=True)
 
@@ -107,7 +113,7 @@ def enable_annotation(ctx, annotation):
 
 
 @task
-def replace_agent(ctx, extra_files=None):
+def replace_agent(ctx):
     """
     Replace the kata-agent with a custom-built one
 
@@ -123,7 +129,7 @@ def replace_agent(ctx, extra_files=None):
     By using the extra_flags optional argument, you can pass a dictionary of
     host_path: guest_path pairs of files you want to be included in the initrd.
     """
-    do_replace_agent(extra_files=extra_files)
+    do_replace_agent()
 
 
 @task

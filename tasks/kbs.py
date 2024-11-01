@@ -1,7 +1,7 @@
 from invoke import task
 from os.path import exists, join
 from subprocess import run
-from tasks.util.env import GHCR_URL, GITHUB_USER
+from tasks.util.env import GHCR_URL, GITHUB_ORG
 from tasks.util.kbs import (
     SIMPLE_KBS_DIR,
     SIGNATURE_POLICY_NONE,
@@ -10,7 +10,7 @@ from tasks.util.kbs import (
     provision_launch_digest as do_provision_launch_digest,
 )
 
-SIMPLE_KBS_SERVER_IMAGE_NAME = join(GHCR_URL, GITHUB_USER, "simple-kbs-server:latest")
+SIMPLE_KBS_SERVER_IMAGE_NAME = join(GHCR_URL, GITHUB_ORG, "simple-kbs-server:latest")
 COMPOSE_ENV = {"SIMPLE_KBS_IMAGE": SIMPLE_KBS_SERVER_IMAGE_NAME}
 
 
@@ -168,12 +168,12 @@ def provision_launch_digest(ctx, signature_policy=SIGNATURE_POLICY_NONE, clean=F
     # For the purposes of the demo, we hardcode the images we include in the
     # policy to be included in the signature policy
     images_to_sign = [
-        f"docker.io/{GITHUB_USER}/coco-helloworld-py",
-        f"docker.io/{GITHUB_USER}/coco-knative-sidecar",
-        f"ghcr.io/{GITHUB_USER}/coco-helloworld-py",
-        f"ghcr.io/{GITHUB_USER}/coco-knative-sidecar",
-        f"registry.coco-csg.com/{GITHUB_USER}/coco-helloworld-py",
-        f"registry.coco-csg.com/{GITHUB_USER}/coco-knative-sidecar",
+        f"docker.io/{GITHUB_ORG}/coco-helloworld-py",
+        f"docker.io/{GITHUB_ORG}/coco-knative-sidecar",
+        f"ghcr.io/{GITHUB_ORG}/coco-helloworld-py",
+        f"ghcr.io/{GITHUB_ORG}/coco-knative-sidecar",
+        f"registry.coco-csg.com/{GITHUB_ORG}/coco-helloworld-py",
+        f"registry.coco-csg.com/{GITHUB_ORG}/coco-knative-sidecar",
     ]
 
     do_provision_launch_digest(

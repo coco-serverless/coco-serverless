@@ -1,9 +1,9 @@
 from invoke import Collection
 
-from . import apps
 from . import coco
 from . import containerd
 from . import cosign
+from . import demo_apps
 from . import format_code
 from . import gc
 from . import k8s
@@ -24,10 +24,10 @@ from . import skopeo
 from tasks.coconut import ns as coconut_ns
 
 ns = Collection(
-    apps,
     coco,
     containerd,
     cosign,
+    demo_apps,
     format_code,
     gc,
     k8s,

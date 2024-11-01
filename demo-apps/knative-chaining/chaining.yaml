@@ -66,13 +66,13 @@ spec:
     spec:
       runtimeClassName: kata-qemu-snp
       containers:
-        - image: ghcr.io/coco-serverless/coco-knative-chaining:unencrypted
+        - image: sc2cr.io/applications/knative-chaining:unencrypted
           ports:
             - containerPort: 8080
           command: [ "cargo", "run", "--release" ]
     metadata:
       labels:
-        apps.coco-serverless/name: knative-chaining-one
+        apps.sc2.io/name: knative-chaining-one
       annotations:
         # NOTE: we may have to enable this annotation in Kata's config file
         # under hypervisor.qemu.enable_annotations (add 'default_memory')
@@ -97,7 +97,7 @@ spec:
           restartPolicy: Never
           containers:
             - name: main
-              image: ghcr.io/coco-serverless/coco-knative-chaining:unencrypted
+              image: sc2cr.io/applications/knative-chaining:unencrypted
               ports:
                 - containerPort: 8080
               command: [ "cargo", "run", "--release" ]
@@ -106,7 +106,7 @@ spec:
                   value: "on"
         metadata:
           labels:
-            apps.coco-serverless/name: knative-chaining-two
+            apps.sc2.io/name: knative-chaining-two
           annotations:
             # NOTE: we may have to enable this annotation in Kata's config file
             # under hypervisor.qemu.enable_annotations (add 'default_memory')
@@ -124,13 +124,13 @@ spec:
     spec:
       runtimeClassName: kata-qemu-snp
       containers:
-        - image: ghcr.io/coco-serverless/coco-knative-chaining:unencrypted
+        - image: sc2cr.io/applications/knative-chaining:unencrypted
           ports:
             - containerPort: 8080
           command: [ "cargo", "run", "--release" ]
     metadata:
       labels:
-        apps.coco-serverless/name: knative-chaining-three
+        apps.sc2.io/name: knative-chaining-three
       annotations:
         autoscaling.knative.dev/scale-to-zero-pod-retention-period: "1m"
         # NOTE: we may have to enable this annotation in Kata's config file

@@ -6,14 +6,14 @@ spec:
   template:
     metadata:
       labels:
-        apps.coco-serverless/name: helloworld-py
+        apps.sc2.io/name: helloworld-py
     spec:
       runtimeClassName: kata-qemu-snp
       # coco-knative: need to run user container as root
       securityContext:
         runAsUser: 1000
       containers:
-        - image: ghcr.io/coco-serverless/coco-helloworld-py:unencrypted
+        - image: sc2cr.io/applications/helloworld-py:unencrypted
           ports:
             - containerPort: 8080
           env:

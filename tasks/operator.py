@@ -1,6 +1,6 @@
 from invoke import task
 from os.path import join
-from tasks.util.env import COCO_RELEASE_VERSION
+from tasks.util.env import COCO_RELEASE_VERSION, print_dotted_line
 from tasks.util.kubeadm import (
     run_kubectl_command,
     wait_for_pods_in_ns,
@@ -16,7 +16,7 @@ def install(ctx, debug=False):
     """
     Install the cc-operator on the cluster
     """
-    print(f"Installing CoCo operator v{COCO_RELEASE_VERSION}...", end="")
+    print_dotted_line(f"Installing CoCo operator (v{COCO_RELEASE_VERSION})")
 
     # Install the operator from the confidential-containers/operator
     # release tag
@@ -39,7 +39,7 @@ def install_cc_runtime(ctx, debug=False):
     """
     Install the CoCo runtime through the operator
     """
-    print("Install CoCo runtimes...", end="")
+    print_dotted_line("Install CoCo runtimes")
 
     cc_runtime_url = join(
         OPERATOR_GITHUB_URL,
@@ -72,7 +72,7 @@ def install_cc_runtime(ctx, debug=False):
     run_class_cmd = "get runtimeclass -o jsonpath='{.items..handler}'"
     runtime_classes = run_kubectl_command(run_class_cmd, capture_output=True).split(" ")
     while len(expected_runtime_classes) != len(runtime_classes):
-        if not debug:
+        if debug:
             print(
                 "Not all expected runtime classes are registered ({} != {})".format(
                     len(expected_runtime_classes), len(runtime_classes)
