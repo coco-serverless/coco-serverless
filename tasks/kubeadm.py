@@ -60,7 +60,9 @@ def create(ctx, debug=False):
     expected_node_state = "Ready"
     actual_node_state = get_node_state()
     while expected_node_state != actual_node_state:
-        print("Waiting for node to be ready...")
+        if debug:
+            print("Waiting for node to be ready...")
+
         sleep(3)
         actual_node_state = get_node_state()
 
