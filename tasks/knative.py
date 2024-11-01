@@ -292,12 +292,15 @@ def install(ctx, skip_push=False, debug=False):
     # Patch Knative components
     # -----
 
+    print("foo")
     # Replace the sidecar to use an image we control
     do_replace_sidecar(skip_push=skip_push, quiet=not debug)
 
+    print("bar")
     # Patch the auto-scaler
     do_patch_autoscaler(debug=debug)
 
+    print("baz")
     # Create a k8s secret with the credentials to support pulling images from
     # a local registry with a self-signed certificate
     kube_cmd = (
@@ -309,7 +312,7 @@ def install(ctx, skip_push=False, debug=False):
 
     # Patch the controller deployment to mount the certificate to avoid
     # having to specify it in every service definition
-    configure_self_signed_certs(HOST_CERT_DIR, K8S_SECRET_NAME, debug=debug)
+    do_configure_self_signed_certs(HOST_CERT_DIR, K8S_SECRET_NAME, debug=debug)
 
     print("Success!")
 
