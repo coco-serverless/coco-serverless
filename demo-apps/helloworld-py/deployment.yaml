@@ -3,16 +3,16 @@ kind: Deployment
 metadata:
   name: coco-helloworld-py
   labels:
-    apps.coco-serverless/name: helloworld-py
+    apps.sc2.io/name: helloworld-py
 spec:
   replicas: 1
   selector:
     matchLabels:
-      apps.coco-serverless/name: helloworld-py
+      apps.sc2.io/name: helloworld-py
   template:
     metadata:
       labels:
-        apps.coco-serverless/name: helloworld-py
+        apps.sc2.io/name: helloworld-py
         io.katacontainers.config.pre_attestation.enabled: "false"
     spec:
       runtimeClassName: kata-qemu-snp

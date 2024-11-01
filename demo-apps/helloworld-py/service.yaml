@@ -5,7 +5,7 @@ metadata:
 spec:
   type: NodePort
   selector:
-    apps.coco-serverless/name: helloworld-py
+    apps.sc2.io/name: helloworld-py
   ports:
   - name: http
     port: 8080

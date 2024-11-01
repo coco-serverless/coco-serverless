@@ -69,10 +69,10 @@ def install_istio(debug=False):
     )
     istio_url = join(istio_base_url, "istio.yaml")
     kube_cmd = "apply -l knative.dev/crd-install=true -f {}".format(istio_url)
-    run_kubectl_command(kube_cmd)
+    run_kubectl_command(kube_cmd, capture_output=not debug)
 
-    run_kubectl_command("apply -f {}".format(istio_url))
-    run_kubectl_command("apply -f {}".format(join(istio_base_url, "net-istio.yaml")))
+    run_kubectl_command("apply -f {}".format(istio_url), capture_output=not debug)
+    run_kubectl_command("apply -f {}".format(join(istio_base_url, "net-istio.yaml")), capture_output=not debug)
     wait_for_pods_in_ns(KNATIVE_SERVING_NAMESPACE, 6)
     wait_for_pods_in_ns(ISTIO_NAMESPACE, 6)
 
@@ -159,6 +159,8 @@ def install(ctx, skip_push=False, debug=False):
         debug=debug,
     )
 
+    print("foo")
+
     # -----
     # Install Knative Eventing
     # -----
@@ -194,6 +196,8 @@ def install(ctx, skip_push=False, debug=False):
         expected_num_of_pods=1,
         debug=debug,
     )
+
+    print("bar")
 
     # Install non-core eventing components
     kube_cmd = "apply -f {}".format(
@@ -242,6 +246,8 @@ def install(ctx, skip_push=False, debug=False):
     # Install a networking layer
     # -----
 
+    print("baz")
+
     # Install a networking layer
     if net_layer == "istio":
         net_layer_ns = ISTIO_NAMESPACE
@@ -276,6 +282,8 @@ def install(ctx, skip_push=False, debug=False):
         actual_ip = run_kubectl_command(ip_cmd, capture_output=True)
         actual_ip_len = len(actual_ip.split("."))
 
+    print("bat")
+
     # Deploy a DNS
     kube_cmd = "apply -f {}".format(
         join(KNATIVE_SERVING_BASE_URL, "serving-default-domain.yaml")
@@ -292,15 +300,12 @@ def install(ctx, skip_push=False, debug=False):
     # Patch Knative components
     # -----
 
-    print("foo")
     # Replace the sidecar to use an image we control
     do_replace_sidecar(skip_push=skip_push, quiet=not debug)
 
-    print("bar")
     # Patch the auto-scaler
     do_patch_autoscaler(debug=debug)
 
-    print("baz")
     # Create a k8s secret with the credentials to support pulling images from
     # a local registry with a self-signed certificate
     kube_cmd = (
