@@ -35,7 +35,7 @@ def replace_sidecar(
             out_k8s_file,
             {"knative_sidecar_image_url": KNATIVE_SIDECAR_IMAGE_TAG},
         )
-        run_kubectl_command("apply -f {}".format(out_k8s_file))
+        run_kubectl_command("apply -f {}".format(out_k8s_file), capture_output=quiet)
         return
 
     # Pull the right Knative Serving side-car image tag
@@ -72,18 +72,7 @@ def replace_sidecar(
     template_k8s_file(
         in_k8s_file, out_k8s_file, {"knative_sidecar_image_url": new_image_url_digest}
     )
-    run_kubectl_command("apply -f {}".format(out_k8s_file))
-
-    # Apply fix to container image fetching
-    # FIXME(nydus): do we still need this?
-    #     out = run(
-    #         f"sudo ctr -n k8s.io content fetch -k {new_image_url_digest}",
-    #         shell=True,
-    #         capture_output=True,
-    #     )
-    #     assert out.returncode == 0, "Error fetching k8s content: {}".format(
-    #         out.stderr.decode("utf-8")
-    #     )
+    run_kubectl_command("apply -f {}".format(out_k8s_file), capture_output=quiet)
 
     # Finally, make sure to remove all pulled container images to avoid
     # unintended caching issues with CoCo

@@ -13,7 +13,13 @@ from tasks.registry import (
     start as start_local_registry,
     stop as stop_local_registry,
 )
-from tasks.util.env import COCO_ROOT, KATA_ROOT, KATA_VERSION, print_dotted_line
+from tasks.util.env import (
+    COCO_ROOT,
+    KATA_ROOT,
+    KATA_IMAGE_TAG,
+    KATA_VERSION,
+    print_dotted_line,
+)
 from tasks.util.kata import replace_agent as replace_kata_agent
 
 
@@ -54,6 +60,10 @@ def deploy(ctx, debug=False, clean=False):
     # Apply general patches to the Kata Agent (and initrd), making sure we
     # have the latest patched version
     print_dotted_line(f"Pulling latest Kata image (v{KATA_VERSION})")
+    result = run(f"docker pull {KATA_IMAGE_TAG}", shell=True, capture_output=True)
+    assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
+    if debug:
+        print(result.stdout.decode("utf-8").strip())
     replace_kata_agent(debug=debug)
     print("Success!")
 

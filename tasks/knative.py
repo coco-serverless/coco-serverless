@@ -117,18 +117,12 @@ def install(ctx, skip_push=False, debug=False):
     """
     net_layer = "kourier"
 
-    print("wat")
-
     print_dotted_line(
         f"Installing Knative (v{KNATIVE_VERSION}) with {net_layer} as net layer"
     )
 
-    print("eh")
-
     # Knative requires a functional LoadBalancer, so we use MetaLB
     install_metallb(debug=debug)
-
-    print("foo")
 
     # -----
     # Install Knative Serving
