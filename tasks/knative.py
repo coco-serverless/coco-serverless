@@ -72,7 +72,10 @@ def install_istio(debug=False):
     run_kubectl_command(kube_cmd, capture_output=not debug)
 
     run_kubectl_command("apply -f {}".format(istio_url), capture_output=not debug)
-    run_kubectl_command("apply -f {}".format(join(istio_base_url, "net-istio.yaml")), capture_output=not debug)
+    run_kubectl_command(
+        "apply -f {}".format(join(istio_base_url, "net-istio.yaml")),
+        capture_output=not debug,
+    )
     wait_for_pods_in_ns(KNATIVE_SERVING_NAMESPACE, 6)
     wait_for_pods_in_ns(ISTIO_NAMESPACE, 6)
 
