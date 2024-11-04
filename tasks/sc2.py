@@ -117,9 +117,6 @@ def install_sc2_runtime(debug=False):
         sc2=True,
     )
 
-
-@task  # DELETE ME
-def foo(ctx):  # DELETE ME
     # Replace the kata shim
     replace_kata_shim(
         dst_shim_binary=join(KATA_ROOT, "bin", "containerd-shim-kata-sc2-v2"),
