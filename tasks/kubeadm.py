@@ -5,10 +5,8 @@ from shutil import rmtree
 from subprocess import run
 from tasks.util.env import (
     CRI_RUNTIME_SOCKET,
-    CALICO_VERSION,
     K8S_ADMIN_FILE,
     K8S_CONFIG_DIR,
-    K8S_VERSION,
     KUBEADM_KUBECONFIG_FILE,
     print_dotted_line,
 )
@@ -17,6 +15,7 @@ from tasks.util.kubeadm import (
     run_kubectl_command,
     wait_for_pods_in_ns,
 )
+from tasks.util.versions import CALICO_VERSION, K8S_VERSION
 from time import sleep
 
 

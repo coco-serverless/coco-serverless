@@ -3,10 +3,10 @@ from os.path import join
 from subprocess import run
 from tasks.util.cosign import (
     COSIGN_BINARY,
-    COSIGN_VERSION,
     sign_container_image as do_sign_container_image,
 )
 from tasks.util.env import BIN_DIR
+from tasks.util.versions import COSIGN_VERSION
 
 
 @task

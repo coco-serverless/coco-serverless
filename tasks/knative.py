@@ -12,9 +12,8 @@ from tasks.util.registry import (
     HOST_CERT_PATH,
     K8S_SECRET_NAME,
 )
+from tasks.util.versions import KNATIVE_VERSION
 from time import sleep
-
-KNATIVE_VERSION = "1.15.0"
 
 # Namespaces
 KNATIVE_EVENTING_NAMESPACE = "knative-eventing"

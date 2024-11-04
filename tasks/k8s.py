@@ -3,11 +3,9 @@ from os import makedirs
 from os.path import exists, join
 from shutil import rmtree
 from subprocess import run
-from tasks.util.env import BIN_DIR, CONF_FILES_DIR, K8S_VERSION, print_dotted_line
+from tasks.util.env import BIN_DIR, CONF_FILES_DIR, print_dotted_line
 from tasks.util.network import download_binary, symlink_global_bin
-
-CNI_VERSION = "1.3.0"
-CRICTL_VERSION = "1.28.0"
+from tasks.util.versions import K8S_VERSION, CNI_VERSION, CRICTL_VERSION
 
 
 def install_cni(debug=False, clean=False):

@@ -23,8 +23,8 @@ from tasks.util.registry import (
     REGISTRY_KEY_FILE,
 )
 from tasks.util.toml import update_toml
+from tasks.util.versions import REGISTRY_VERSION
 
-REGISTRY_VERSION = "2.8"
 REGISTRY_IMAGE_TAG = f"registry:{REGISTRY_VERSION}"
 
 
