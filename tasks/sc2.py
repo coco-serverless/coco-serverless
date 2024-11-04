@@ -79,7 +79,7 @@ def install_sc2_runtime(debug=False):
 
     # Install runttime class on kubernetes
     sc2_runtime_file = join(CONF_FILES_DIR, "sc2_runtimeclass.yaml")
-    run_kubectl_command(f"create -f {sc2_runtime_file}")
+    run_kubectl_command(f"create -f {sc2_runtime_file}", capture_output=not debug)
     expected_runtime_classes = [
         "kata",
         "kata-clh",
