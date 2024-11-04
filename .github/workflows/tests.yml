@@ -54,7 +54,7 @@ jobs:
             envsubst < ./demo-apps/helloworld-py/deployment.yaml | ./bin/kubectl delete -f -
 
             # Wait for pod to be deleted
-            envsubst < ./demo-apps/helloworld-py/deployment.yaml | ./bin/kubectl wait --for=delete -l ${{ env.POD_LABEL }} -
+            ./bin/kubectl wait --for=delete -l ${{ env.POD_LABEL }} pod
             # Extra cautionary sleep
             sleep 5
             echo "Test for ${runtime_class} successful!"
@@ -76,7 +76,7 @@ jobs:
 
             # Wait for pod to be deleted
             envsubst < ./demo-apps/helloworld-knative/service.yaml | ./bin/kubectl delete -f -
-            envsubst < ./demo-apps/helloworld-knative/service.yaml | ./bin/kubectl wait --for=delete -l ${{ env.POD_LABEL }} -f -
+            ./bin/kubectl wait --for=delete -l ${{ env.POD_LABEL }} -f pod
 
             # Extra cautionary sleep
             sleep 5
