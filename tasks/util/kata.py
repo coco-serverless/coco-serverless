@@ -210,6 +210,11 @@ def replace_agent(
     # Lastly, update the Kata config to point to the new initrd
     target_runtimes = SC2_RUNTIMES if sc2 else KATA_RUNTIMES
     for runtime in target_runtimes:
+        # QEMU uses an optimized image file (no initrd) so we keep it that way
+        # also, for the time being, the QEMU baseline requires no patches
+        if runtime == "qemu":
+            continue
+
         conf_file_path = join(KATA_CONFIG_DIR, "configuration-{}.toml".format(runtime))
         updated_toml_str = """
         [hypervisor.qemu]
@@ -219,7 +224,7 @@ def replace_agent(
         )
         update_toml(conf_file_path, updated_toml_str)
 
-        if runtime == "qemu" or runtime == "qemu-coco-dev":
+        if runtime == "qemu-coco-dev":
             remove_entry_from_toml(conf_file_path, "hypervisor.qemu.image")
 
 
