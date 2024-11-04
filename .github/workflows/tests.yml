@@ -51,11 +51,11 @@ jobs:
 
             # Get the pod's IP
             service_ip=$(./bin/kubectl get services -o jsonpath='{.items[?(@.metadata.name=="coco-helloworld-py-node-port")].spec.clusterIP}')
-            [ "$(curl -X GET ${service_ip}:8080)" = "Hello World!" ]
+            [ "$(curl --retry 3 -X GET ${service_ip}:8080)" = "Hello World!" ]
             envsubst < ./demo-apps/helloworld-py/deployment.yaml | ./bin/kubectl delete -f -
 
             # Wait for pod to be deleted
-            ./bin/kubectl wait --for=delete -l ${{ env.POD_LABEL }} pod
+            ./bin/kubectl wait --for=delete -l ${{ env.POD_LABEL }} pod --timeout=30s
             # Extra cautionary sleep
             sleep 5
             echo "Test for ${runtime_class} successful!"
@@ -73,11 +73,11 @@ jobs:
 
             # Get the service URL
             service_url=$(./bin/kubectl get ksvc helloworld-knative  --output=custom-columns=URL:.status.url --no-headers)
-            [ "$(curl ${service_url})" = "Hello World!" ]
+            [ "$(curl --retry 3 ${service_url})" = "Hello World!" ]
 
             # Wait for pod to be deleted
             envsubst < ./demo-apps/helloworld-knative/service.yaml | ./bin/kubectl delete -f -
-            ./bin/kubectl wait --for=delete -l ${{ env.POD_LABEL }} pod
+            ./bin/kubectl wait --for=delete -l ${{ env.POD_LABEL }} pod --timeout=30s
 
             # Extra cautionary sleep
             sleep 5
