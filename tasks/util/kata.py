@@ -8,6 +8,7 @@ from tasks.util.env import (
     KATA_RUNTIMES,
     KATA_WORKON_CTR_NAME,
     KATA_IMAGE_TAG,
+    SC2_RUNTIMES,
 )
 from tasks.util.registry import HOST_CERT_PATH
 from tasks.util.toml import read_value_from_toml, remove_entry_from_toml, update_toml
@@ -78,6 +79,7 @@ def copy_from_kata_workon_ctr(ctr_path, host_path, sudo=False, debug=False):
 def replace_agent(
     dst_initrd_path=join(KATA_IMG_DIR, "kata-containers-initrd-confidential-sc2.img"),
     debug=False,
+    sc2=False,
 ):
     """
     Replace the kata-agent with a custom-built one
@@ -200,7 +202,8 @@ def replace_agent(
     )
 
     # Lastly, update the Kata config to point to the new initrd
-    for runtime in KATA_RUNTIMES:
+    target_runtimes = SC2_RUNTIMES if sc2 else KATA_RUNTIMES
+    for runtime in target_runtimes:
         conf_file_path = join(KATA_CONFIG_DIR, "configuration-{}.toml".format(runtime))
         updated_toml_str = """
         [hypervisor.qemu]
