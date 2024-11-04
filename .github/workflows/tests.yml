@@ -51,7 +51,7 @@ jobs:
             # Get the pod's IP
             service_ip=$(./bin/kubectl get services -o jsonpath='{.items[?(@.metadata.name=="coco-helloworld-py-node-port")].spec.clusterIP}')
             [ "$(curl -X GET ${service_ip}:8080)" = "Hello World!" ]
-            envubst < ./demo-apps/helloworld-py/deployment.yaml | ./bin/kubectl delete -f -
+            envsubst < ./demo-apps/helloworld-py/deployment.yaml | ./bin/kubectl delete -f -
 
             # Wait for pod to be deleted
             envsubst < ./demo-apps/helloworld-py/deployment.yaml | ./bin/kubectl wait --for=delete -l ${{ env.POD_LABEL }} -
