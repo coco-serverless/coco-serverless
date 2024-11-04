@@ -10,8 +10,8 @@ from tasks.util.guest_components import (
     stop_coco_keyprovider,
 )
 from tasks.util.kbs import create_kbs_secret
+from tasks.util.versions import SKOPEO_VERSION
 
-SKOPEO_VERSION = "1.13.0"
 SKOPEO_IMAGE = "quay.io/skopeo/stable:v{}".format(SKOPEO_VERSION)
 SKOPEO_ENCRYPTION_KEY = join(K8S_CONFIG_DIR, "image_enc.key")
 AA_CTR_ENCRYPTION_KEY = "/tmp/image_enc.key"

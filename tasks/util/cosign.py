@@ -3,7 +3,6 @@ from subprocess import run
 from tasks.util.env import K8S_CONFIG_DIR
 
 COSIGN_BINARY = "cosign"
-COSIGN_VERSION = "2.2.0"
 
 COSIGN_PRIV_KEY = join(K8S_CONFIG_DIR, "cosign.key")
 COSIGN_PUB_KEY = join(K8S_CONFIG_DIR, "cosign.pub")

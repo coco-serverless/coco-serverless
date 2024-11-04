@@ -1,10 +1,11 @@
 from invoke import task
 from os.path import join
-from tasks.util.env import COCO_RELEASE_VERSION, print_dotted_line
+from tasks.util.env import print_dotted_line
 from tasks.util.kubeadm import (
     run_kubectl_command,
     wait_for_pods_in_ns,
 )
+from tasks.util.versions import COCO_VERSION
 from time import sleep
 
 OPERATOR_GITHUB_URL = "github.com/confidential-containers/operator"
@@ -16,12 +17,12 @@ def install(ctx, debug=False):
     """
     Install the cc-operator on the cluster
     """
-    print_dotted_line(f"Installing CoCo operator (v{COCO_RELEASE_VERSION})")
+    print_dotted_line(f"Installing CoCo operator (v{COCO_VERSION})")
 
     # Install the operator from the confidential-containers/operator
     # release tag
     operator_url = join(
-        OPERATOR_GITHUB_URL, "config", "release?ref=v{}".format(COCO_RELEASE_VERSION)
+        OPERATOR_GITHUB_URL, "config", "release?ref=v{}".format(COCO_VERSION)
     )
     run_kubectl_command("apply -k {}".format(operator_url), capture_output=not debug)
     wait_for_pods_in_ns(
@@ -46,7 +47,7 @@ def install_cc_runtime(ctx, debug=False):
         "config",
         "samples",
         "ccruntime",
-        "default?ref=v{}".format(COCO_RELEASE_VERSION),
+        "default?ref=v{}".format(COCO_VERSION),
     )
     run_kubectl_command("create -k {}".format(cc_runtime_url), capture_output=not debug)
 
@@ -93,7 +94,7 @@ def uninstall(ctx):
     Uninstall the operator
     """
     operator_url = join(
-        OPERATOR_GITHUB_URL, "config", "release?ref=v{}".format(COCO_RELEASE_VERSION)
+        OPERATOR_GITHUB_URL, "config", "release?ref=v{}".format(COCO_VERSION)
     )
     run_kubectl_command("delete -k {}".format(operator_url))
 
@@ -108,6 +109,6 @@ def uninstall_cc_runtime(ctx):
         "config",
         "samples",
         "ccruntime",
-        "default?ref=v{}".format(COCO_RELEASE_VERSION),
+        "default?ref=v{}".format(COCO_VERSION),
     )
     run_kubectl_command("delete -k {}".format(cc_runtime_url))

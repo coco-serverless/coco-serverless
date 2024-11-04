@@ -1,5 +1,6 @@
 from os.path import dirname, realpath, join
 from subprocess import run
+from tasks.util.versions import KATA_VERSION
 
 PROJ_ROOT = dirname(dirname(dirname(realpath(__file__))))
 
@@ -13,8 +14,6 @@ TEMPLATED_FILES_DIR = join(PROJ_ROOT, "templated")
 
 # K8s Config
 
-K8S_VERSION = "1.28.2"
-K9S_VERSION = "0.32.5"
 K8S_CONFIG_DIR = join(PROJ_ROOT, ".config")
 K8S_ADMIN_FILE = join(CONF_FILES_DIR, "kubeadm.conf")
 # TODO: consider copying this file elsewhere
@@ -38,16 +37,13 @@ UK8S_KUBECONFIG_FILE = join(K8S_CONFIG_DIR, "uk8s_kubeconfig")
 
 # Kubeadm config
 
-CALICO_VERSION = "3.28.1"
 KUBEADM_KUBECONFIG_FILE = join(K8S_CONFIG_DIR, "kubeadm_kubeconfig")
 
 # CoCo config
 
-COCO_RELEASE_VERSION = "0.10.0"
 COCO_ROOT = join("/opt", "confidential-containers")
 
 # Kata Version is determined by CoCo version
-KATA_VERSION = "3.9.0"
 KATA_ROOT = join("/opt", "kata")
 
 # Kata config

@@ -3,8 +3,9 @@ from os.path import join
 from os import makedirs
 from shutil import copy, rmtree
 from subprocess import run
-from tasks.util.env import BIN_DIR, K9S_VERSION, print_dotted_line
+from tasks.util.env import BIN_DIR, print_dotted_line
 from tasks.util.network import symlink_global_bin
+from tasks.util.versions import K9S_VERSION
 
 
 @task
