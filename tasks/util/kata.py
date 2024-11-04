@@ -210,7 +210,7 @@ def replace_agent(
         )
         update_toml(conf_file_path, updated_toml_str)
 
-        if runtime == "qemu":
+        if runtime == "qemu" or runtime == "qemu-coco-dev":
             remove_entry_from_toml(conf_file_path, "hypervisor.qemu.image")
 
 
