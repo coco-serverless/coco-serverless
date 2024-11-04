@@ -76,7 +76,7 @@ jobs:
 
             # Wait for pod to be deleted
             envsubst < ./demo-apps/helloworld-knative/service.yaml | ./bin/kubectl delete -f -
-            ./bin/kubectl wait --for=delete -l ${{ env.POD_LABEL }} -f pod
+            ./bin/kubectl wait --for=delete -l ${{ env.POD_LABEL }} pod
 
             # Extra cautionary sleep
             sleep 5
