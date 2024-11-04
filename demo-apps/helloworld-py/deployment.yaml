@@ -1,3 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: coco-helloworld-py-node-port
+spec:
+  type: NodePort
+  selector:
+    apps.sc2.io/name: helloworld-py
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -13,9 +27,8 @@ spec:
     metadata:
       labels:
         apps.sc2.io/name: helloworld-py
-        io.katacontainers.config.pre_attestation.enabled: "false"
     spec:
-      runtimeClassName: kata-qemu-snp
+      runtimeClassName: kata-${SC2_RUNTIME_CLASS}
       containers:
       - name: helloworld-py
         image: sc2cr.io/applications/helloworld-py:unencrypted

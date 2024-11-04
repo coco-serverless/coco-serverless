@@ -40,44 +40,74 @@ jobs:
 
       - name: "Run python hello world"
         run: |
-          ./bin/kubectl apply -f ./demo-apps/helloworld-py
-          # Wait for pod to be ready
-          until [ "$(./bin/kubectl get pods -l ${{ env.POD_LABEL }} -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}')" = "True" ]; do echo "Waiting for pod to be ready..."; sleep 2; done
-          # Get the pod's IP
-          service_ip=$(./bin/kubectl get services -o jsonpath='{.items[?(@.metadata.name=="coco-helloworld-py-node-port")].spec.clusterIP}')
-          [ "$(curl -X GET ${service_ip}:8080)" = "Hello World!" ]
-          ./bin/kubectl delete -f ./demo-apps/helloworld-py
-          # Wait for pod to be deleted
-          kubectl wait --for=delete -l ${{ env.POD_LABEL }} -f ./demo-apps/helloworld-py
-          # Extra cautionary sleep
-          sleep 5
+          for runtime_class in "qemu" "qemu-coco-dev" "qemu-snp"; do
+            echo "Running test for ${runtime_class}..."
+            export SC2_RUNTIME_CLASS=${runtime_class}
+            envsubst < ./demo-apps/helloworld-py/deployment.yaml | ./bin/kubectl apply -f -
+
+            # Wait for pod to be ready
+            until [ "$(./bin/kubectl get pods -l ${{ env.POD_LABEL }} -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}')" = "True" ]; do echo "Waiting for pod to be ready..."; sleep 2; done
+            sleep 1
+
+            # Get the pod's IP
+            service_ip=$(./bin/kubectl get services -o jsonpath='{.items[?(@.metadata.name=="coco-helloworld-py-node-port")].spec.clusterIP}')
+            [ "$(curl --retry 3 -X GET ${service_ip}:8080)" = "Hello World!" ]
+            envsubst < ./demo-apps/helloworld-py/deployment.yaml | ./bin/kubectl delete -f -
+
+            # Wait for pod to be deleted
+            ./bin/kubectl wait --for=delete -l ${{ env.POD_LABEL }} pod --timeout=30s
+            # Extra cautionary sleep
+            sleep 5
+            echo "Test for ${runtime_class} successful!"
+          done
         env:
           POD_LABEL: apps.sc2.io/name=helloworld-py
 
       - name: "Run Knative hello world"
         run: |
-          ./bin/kubectl apply -f ./demo-apps/helloworld-knative
-          sleep 1
-          # Get the service URL
-          service_url=$(./bin/kubectl get ksvc helloworld-knative  --output=custom-columns=URL:.status.url --no-headers)
-          [ "$(curl ${service_url})" = "Hello World!" ]
-          ./bin/kubectl delete -f ./demo-apps/helloworld-knative
-          # Wait for pod to be deleted
-          kubectl wait --for=delete -l ${{ env.POD_LABEL }} -f ./demo-apps/helloworld-knative
+          for runtime_class in "qemu" "qemu-coco-dev" "qemu-snp"; do
+            echo "Running test for ${runtime_class}..."
+            export SC2_RUNTIME_CLASS=${runtime_class}
+            envsubst < ./demo-apps/helloworld-knative/service.yaml | ./bin/kubectl apply -f -
+            sleep 1
+
+            # Get the service URL
+            service_url=$(./bin/kubectl get ksvc helloworld-knative  --output=custom-columns=URL:.status.url --no-headers)
+            [ "$(curl --retry 3 ${service_url})" = "Hello World!" ]
+
+            # Wait for pod to be deleted
+            envsubst < ./demo-apps/helloworld-knative/service.yaml | ./bin/kubectl delete -f -
+            ./bin/kubectl wait --for=delete -l ${{ env.POD_LABEL }} pod --timeout=60s
+
+            # Extra cautionary sleep
+            sleep 5
+            echo "Test for ${runtime_class} successful!"
+          done
         env:
           POD_LABEL: apps.sc2.io/name=helloworld-py
 
       - name: "Run knative chaining demo"
         run: |
           ./bin/inv_wrapper.sh kata.enable-annotation default_memory
-          ./bin/kubectl apply -f ./demo-apps/knative-chaining/chaining.yaml
-          sleep 1
-          # Curl the channel URL
-          ./demo-apps/knative-chaining/curl_cmd.sh
-          # Wait for pod 3 to be scaled down
-          until [ "$(kubectl -n ${{ env.NAMESPACE }} logs -l ${{ env.POD_LABEL_THREE }} | grep 'cloudevent(s3): done!' | wc -l)" = "1" ]; do echo "Waiting for chain to finish..."; sleep 2; done
-          # Finally, clear-up
-          ./bin/kubectl delete -f ./demo-apps/knative-chaining
+          for runtime_class in "qemu" "qemu-coco-dev" "qemu-snp"; do
+            echo "Running test for ${runtime_class}..."
+            export SC2_RUNTIME_CLASS=${runtime_class}
+            envsubst < ./demo-apps/knative-chaining/chaining.yaml | ./bin/kubectl apply -f -
+            sleep 1
+
+            # Curl the channel URL
+            ./demo-apps/knative-chaining/curl_cmd.sh
+
+            # Wait for pod 3 to be scaled down
+            until [ "$(kubectl -n ${{ env.NAMESPACE }} logs -l ${{ env.POD_LABEL_THREE }} | grep 'cloudevent(s3): done!' | wc -l)" = "1" ]; do echo "Waiting for chain to finish..."; sleep 2; done
+
+            # Finally, clear-up
+            envsubst < ./demo-apps/knative-chaining/chaining.yaml | ./bin/kubectl delete -f -
+
+            # Extra cautionary sleep
+            sleep 5
+            echo "Test for ${runtime_class} successful!"
+          done
         env:
           NAMESPACE: chaining-test
           POD_LABEL_ONE: apps.sc2.io/name=knative-chaining-one

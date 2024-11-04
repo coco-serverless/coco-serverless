@@ -64,7 +64,7 @@ metadata:
 spec:
   template:
     spec:
-      runtimeClassName: kata-qemu-snp
+      runtimeClassName: kata-${SC2_RUNTIME_CLASS}
       containers:
         - image: sc2cr.io/applications/knative-chaining:unencrypted
           ports:
@@ -93,7 +93,7 @@ spec:
       parallelism: 1
       template:
         spec:
-          runtimeClassName: kata-qemu-snp
+          runtimeClassName: kata-${SC2_RUNTIME_CLASS}
           restartPolicy: Never
           containers:
             - name: main
@@ -122,7 +122,7 @@ metadata:
 spec:
   template:
     spec:
-      runtimeClassName: kata-qemu-snp
+      runtimeClassName: kata-${SC2_RUNTIME_CLASS}
       containers:
         - image: sc2cr.io/applications/knative-chaining:unencrypted
           ports:
