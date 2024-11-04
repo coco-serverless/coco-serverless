@@ -3,18 +3,25 @@ from os.path import dirname, exists, join
 from subprocess import run
 from tasks.util.docker import is_ctr_running
 from tasks.util.env import (
+    CONTAINERD_CONFIG_FILE,
     KATA_CONFIG_DIR,
     KATA_IMG_DIR,
+    KATA_ROOT,
     KATA_RUNTIMES,
     KATA_WORKON_CTR_NAME,
     KATA_IMAGE_TAG,
+    SC2_RUNTIMES,
 )
 from tasks.util.registry import HOST_CERT_PATH
-from tasks.util.toml import read_value_from_toml, remove_entry_from_toml, update_toml
+from tasks.util.toml import remove_entry_from_toml, update_toml
 
-# This path is hardcoded in the docker image: ./docker/kata.dockerfile
-KATA_SOURCE_DIR = "/go/src/github.com/kata-containers/kata-containers"
+# These paths are hardcoded in the docker image: ./docker/kata.dockerfile
+KATA_SOURCE_DIR = "/go/src/github.com/kata-containers/kata-containers-sc2"
 KATA_AGENT_SOURCE_DIR = join(KATA_SOURCE_DIR, "src", "agent")
+KATA_SHIM_SOURCE_DIR = join(KATA_SOURCE_DIR, "src", "runtime")
+KATA_BASELINE_SOURCE_DIR = "/go/src/github.com/kata-containers/kata-containers-baseline"
+KATA_BASELINE_AGENT_SOURCE_DIR = join(KATA_BASELINE_SOURCE_DIR, "src", "agent")
+KATA_BASELINE_SHIM_SOURCE_DIR = join(KATA_BASELINE_SOURCE_DIR, "src", "runtime")
 
 
 def run_kata_workon_ctr(mount_path=None):
@@ -78,6 +85,7 @@ def copy_from_kata_workon_ctr(ctr_path, host_path, sudo=False, debug=False):
 def replace_agent(
     dst_initrd_path=join(KATA_IMG_DIR, "kata-containers-initrd-confidential-sc2.img"),
     debug=False,
+    sc2=False,
 ):
     """
     Replace the kata-agent with a custom-built one
@@ -117,7 +125,7 @@ def replace_agent(
     # Copy the kata-agent in our docker image into `/usr/bin/kata-agent` as
     # this is the path expected by the kata initrd_builder.sh script
     agent_host_path = join(
-        KATA_AGENT_SOURCE_DIR,
+        KATA_AGENT_SOURCE_DIR if sc2 else KATA_BASELINE_AGENT_SOURCE_DIR,
         "target",
         "x86_64-unknown-linux-musl",
         "release",
@@ -200,7 +208,8 @@ def replace_agent(
     )
 
     # Lastly, update the Kata config to point to the new initrd
-    for runtime in KATA_RUNTIMES:
+    target_runtimes = SC2_RUNTIMES if sc2 else KATA_RUNTIMES
+    for runtime in target_runtimes:
         conf_file_path = join(KATA_CONFIG_DIR, "configuration-{}.toml".format(runtime))
         updated_toml_str = """
         [hypervisor.qemu]
@@ -214,27 +223,33 @@ def replace_agent(
             remove_entry_from_toml(conf_file_path, "hypervisor.qemu.image")
 
 
-def get_default_vm_mem_size(
-    toml_path=join(KATA_CONFIG_DIR, "configuration-qemu-sev.toml")
+def replace_shim(
+    dst_shim_binary=join(KATA_ROOT, "bin", "containerd-shim-kata-sc2-v2"),
+    revert=False,
+    sc2=False,
 ):
     """
-    Get the default memory assigned to each new VM from the Kata config file.
-    This value is expressed in MB. We also take by default, accross baselines,
-    the value used for the qemu-sev runtime class.
-    """
-    mem = int(read_value_from_toml(toml_path, "hypervisor.qemu.default_memory"))
-    assert mem > 0, "Read non-positive default memory size: {}".format(mem)
-    return mem
+    Replace the containerd-kata-shim with a custom one
 
-
-def update_vm_mem_size(toml_path, new_mem_size):
+    To replace the agent, we just need to change the soft-link from the right
+    shim to our re-built one
     """
-    Update the default VM memory size in the Kata config file
-    """
-    updated_toml_str = """
-    [hypervisor.qemu]
-    default_memory = {mem_size}
-    """.format(
-        mem_size=new_mem_size
+    # First, copy the binary from the source tree
+    src_shim_binary = join(
+        KATA_SHIM_SOURCE_DIR if sc2 else KATA_BASELINE_SHIM_SOURCE_DIR,
+        "containerd-shim-kata-v2",
     )
-    update_toml(toml_path, updated_toml_str)
+    dst_shim_binary = join(KATA_ROOT, "bin", "containerd-shim-kata-v2-sc2")
+    copy_from_kata_workon_ctr(src_shim_binary, dst_shim_binary, sudo=True)
+
+    target_runtimes = SC2_RUNTIMES if sc2 else KATA_RUNTIMES
+    for runtime in target_runtimes:
+        updated_toml_str = """
+        [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.kata-{runtime_name}]
+        runtime_type = "io.containerd.kata-${runtime_name}.v2"
+        runtime_path = "{ctrd_path}"
+        """.format(
+            runtime_name=runtime, ctrd_path=dst_shim_binary
+        )
+        update_toml(CONTAINERD_CONFIG_FILE, updated_toml_str)
+    run("sudo service containerd restart", shell=True, check=True)

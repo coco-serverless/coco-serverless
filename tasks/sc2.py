@@ -1,4 +1,5 @@
 from invoke import task
+from os.path import join
 from subprocess import run
 from tasks.demo_apps import push_to_local_registry as push_demo_apps_to_local_registry
 from tasks.k8s import install as k8s_tooling_install
@@ -15,12 +16,103 @@ from tasks.registry import (
 )
 from tasks.util.env import (
     COCO_ROOT,
+    CONF_FILES_DIR,
+    CONTAINERD_CONFIG_FILE,
+    KATA_CONFIG_DIR,
     KATA_ROOT,
     KATA_IMAGE_TAG,
-    KATA_VERSION,
+    KATA_IMG_DIR,
+    SC2_RUNTIMES,
     print_dotted_line,
 )
 from tasks.util.kata import replace_agent as replace_kata_agent
+from tasks.util.kubeadm import run_kubectl_command
+from tasks.util.toml import update_toml
+from tasks.util.versions import COCO_VERSION, KATA_VERSION
+from time import sleep
+
+
+def install_sc2_runtime(debug=False):
+    """
+    This script installs SC2 as a different runtime class
+    """
+    # Copy containerd shim (and patch if needed)
+    src_ctrd_path = f"{KATA_ROOT}/bin/containerd-shim-kata-v2"
+    dst_ctrd_path = f"{KATA_ROOT}/bin/containerd-shim-kata-sc2-v2"
+    run(f"sudo cp {src_ctrd_path} {dst_ctrd_path}", shell=True, check=True)
+
+    # Modify containerd to add a new runtime class
+    for sc2_runtime in SC2_RUNTIMES:
+        # Update containerd to point the SC2 runtime to the right shim
+        updated_toml_str = """
+        [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.kata-{runtime_name}]
+        runtime_type = "io.containerd.kata-${runtime_name}.v2"
+        privileged_without_host_devices = true
+        pod_annotations = [ "io.katacontainers.*",]
+        snapshotter = "nydus"
+        runtime_path = "{ctrd_path}"
+        """.format(
+            runtime_name=sc2_runtime, ctrd_path=dst_ctrd_path
+        )
+        update_toml(CONTAINERD_CONFIG_FILE, updated_toml_str)
+
+    # Copy configuration file from the corresponding source file (and patch
+    # if needed)
+    for sc2_runtime in SC2_RUNTIMES:
+        if "snp" in sc2_runtime:
+            src_conf_path = join(KATA_CONFIG_DIR, "configuration-qemu-snp.toml")
+        elif "tdx" in sc2_runtime:
+            src_conf_path = join(KATA_CONFIG_DIR, "configuration-qemu-tdx.toml")
+        dst_conf_path = join(KATA_CONFIG_DIR, f"configuration-{sc2_runtime}.toml")
+        run(f"sudo cp {src_conf_path} {dst_conf_path}", shell=True, check=True)
+
+        # Update containerd to point the SC2 runtime to the right config
+        updated_toml_str = """
+        [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.kata-{runtime_name}.options]
+        ConfigPath = "{conf_path}"
+        """.format(
+            runtime_name=sc2_runtime, conf_path=dst_conf_path
+        )
+        update_toml(CONTAINERD_CONFIG_FILE, updated_toml_str)
+
+    run("sudo service containerd restart", shell=True, check=True)
+
+    # Install runttime class on kubernetes
+    sc2_runtime_file = join(CONF_FILES_DIR, "sc2_runtimeclass.yaml")
+    run_kubectl_command(f"create -f {sc2_runtime_file}", capture_output=not debug)
+    expected_runtime_classes = [
+        "kata",
+        "kata-clh",
+        "kata-qemu",
+        "kata-qemu-coco-dev",
+        "kata-qemu-tdx",
+        "kata-qemu-sev",
+        "kata-qemu-snp",
+        "kata-qemu-snp-sc2",
+    ]
+    run_class_cmd = "get runtimeclass -o jsonpath='{.items..handler}'"
+    runtime_classes = run_kubectl_command(run_class_cmd, capture_output=True).split(" ")
+    while len(expected_runtime_classes) != len(runtime_classes):
+        if debug:
+            print(
+                "Not all expected runtime classes are registered ({} != {})".format(
+                    len(expected_runtime_classes), len(runtime_classes)
+                )
+            )
+
+        sleep(5)
+        runtime_classes = run_kubectl_command(run_class_cmd, capture_output=True).split(
+            " "
+        )
+
+    # Replace the agent in the initrd
+    replace_kata_agent(
+        dst_initrd_path=join(
+            KATA_IMG_DIR, "kata-containers-initrd-confidential-sc2.img"
+        ),
+        debug=False,
+        sc2=True,
+    )
 
 
 @task(default=True)
@@ -52,8 +144,6 @@ def deploy(ctx, debug=False, clean=False):
     # as we rely on it to host our sidecar image)
     start_local_registry(ctx, debug=debug, clean=clean)
 
-    # TODO: install sc2 runtime
-
     # Install Knative
     knative_install(ctx, debug=debug)
 
@@ -64,10 +154,19 @@ def deploy(ctx, debug=False, clean=False):
     assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
     if debug:
         print(result.stdout.decode("utf-8").strip())
-    replace_kata_agent(debug=debug)
+    replace_kata_agent(
+        dst_initrd_path=join(
+            KATA_IMG_DIR, "kata-containers-initrd-confidential-sc2-baseline.img"
+        ),
+        debug=debug,
+        sc2=False,
+    )
     print("Success!")
 
-    # TODO: apply SC2 patches to things
+    # Install sc2 runtime with patches
+    print_dotted_line(f"Installing SC2 (v{COCO_VERSION})")
+    install_sc2_runtime(debug=debug)
+    print("Success!")
 
     # Push demo apps to local registry for easy testing
     push_demo_apps_to_local_registry(ctx, debug=debug)

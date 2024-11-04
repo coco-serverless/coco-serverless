@@ -31,9 +31,6 @@ CONTAINERD_CONFIG_FILE = join(CONTAINERD_CONFIG_ROOT, "config.toml")
 LOCAL_REGISTRY_URL = "sc2cr.io"
 GHCR_URL = "ghcr.io"
 GITHUB_ORG = "sc2-sys"
-# MicroK8s config
-
-UK8S_KUBECONFIG_FILE = join(K8S_CONFIG_DIR, "uk8s_kubeconfig")
 
 # Kubeadm config
 
@@ -42,6 +39,10 @@ KUBEADM_KUBECONFIG_FILE = join(K8S_CONFIG_DIR, "kubeadm_kubeconfig")
 # CoCo config
 
 COCO_ROOT = join("/opt", "confidential-containers")
+
+# Base software image (note that we tag with a CoCo release version, but we
+# allow it to fall behind as we should not re-build the base image often)
+BASE_IMAGE_TAG = join(GHCR_URL, GITHUB_ORG, "base") + ":0.10.0"
 
 # Kata Version is determined by CoCo version
 KATA_ROOT = join("/opt", "kata")
@@ -52,6 +53,7 @@ KATA_IMG_DIR = join(KATA_ROOT, "share", "kata-containers")
 KATA_WORKON_CTR_NAME = "kata-workon"
 KATA_IMAGE_TAG = join(GHCR_URL, GITHUB_ORG, "kata-containers") + f":{KATA_VERSION}"
 KATA_RUNTIMES = ["qemu", "qemu-coco-dev", "qemu-sev", "qemu-snp"]
+SC2_RUNTIMES = ["qemu-snp-sc2"]
 
 # Apps config
 

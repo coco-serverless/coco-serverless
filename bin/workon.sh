@@ -30,6 +30,7 @@ complete -F _complete_invoke -o default invoke inv
 export KUBECONFIG=${PROJ_ROOT}/.config/kubeadm_kubeconfig
 export PATH=${PROJ_ROOT}/bin:${PATH}
 export PS1="(sc2-deploy) $PS1"
+export SC2_RUNTIME_CLASS=qemu-snp-sc2
 
 popd >> /dev/null
 
