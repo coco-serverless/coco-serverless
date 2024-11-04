@@ -50,12 +50,14 @@ Knative, and install SC2.
 You can now check that everything is running by running a simple hello world:
 
 ```bash
+export SC2_RUNTIME_CLASS=qemu-snp
+
 # Knative demo
-kubectl apply -f ./demo-apps/helloworld-knative
+envsubst ./demo-apps/helloworld-knative/service.yaml < kubectl apply -f -
 curl $(kubectl get ksvc helloworld-knative  --output=custom-columns=URL:.status.url --no-headers)
 
 # Non-Knative demo
-kubectl apply -f ./demo-apps/helloworld-py
+envsubst < ./demo-apps/helloworld-py/deployment.yaml | kubectl apply -f -
 curl $(kubectl get services -o jsonpath='{.items[?(@.metadata.name=="coco-helloworld-py-node-port")].spec.clusterIP}'):8080
 ```
 
