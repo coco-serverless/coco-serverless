@@ -32,8 +32,7 @@ from tasks.util.versions import COCO_VERSION, KATA_VERSION
 from time import sleep
 
 
-@task  # DELETE ME
-def install_sc2_runtime(ctx, debug=False):
+def install_sc2_runtime(debug=False):
     """
     This script installs SC2 as a different runtime class
     """
