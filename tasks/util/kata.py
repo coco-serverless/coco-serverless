@@ -225,8 +225,7 @@ def replace_agent(
 
 def replace_shim(
     dst_shim_binary=join(KATA_ROOT, "bin", "containerd-shim-kata-sc2-v2"),
-    revert=False,
-    sc2=False,
+    sc2=True,
 ):
     """
     Replace the containerd-kata-shim with a custom one

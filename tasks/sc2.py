@@ -25,7 +25,10 @@ from tasks.util.env import (
     SC2_RUNTIMES,
     print_dotted_line,
 )
-from tasks.util.kata import replace_agent as replace_kata_agent
+from tasks.util.kata import (
+    replace_agent as replace_kata_agent,
+    replace_shim as replace_kata_shim,
+)
 from tasks.util.kubeadm import run_kubectl_command
 from tasks.util.toml import update_toml
 from tasks.util.versions import COCO_VERSION, KATA_VERSION
@@ -111,6 +114,12 @@ def install_sc2_runtime(debug=False):
             KATA_IMG_DIR, "kata-containers-initrd-confidential-sc2.img"
         ),
         debug=False,
+        sc2=True,
+    )
+
+    # Replace the kata shim
+    replace_kata_shim(
+        dst_shim_binary=join(KATA_ROOT, "bin", "containerd-shim-kata-sc2-v2"),
         sc2=True,
     )
 
