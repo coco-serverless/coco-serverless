@@ -57,7 +57,7 @@ jobs:
             envsubst < ./demo-apps/helloworld-py/deployment.yaml | ./bin/kubectl wait --for=delete -l ${{ env.POD_LABEL }} -
             # Extra cautionary sleep
             sleep 5
-            echo "Test for ${runtime_class} succesful!"
+            echo "Test for ${runtime_class} successful!"
           done
         env:
           POD_LABEL: apps.sc2.io/name=helloworld-py
@@ -80,7 +80,7 @@ jobs:
 
             # Extra cautionary sleep
             sleep 5
-            echo "Test for ${runtime_class} succesful!"
+            echo "Test for ${runtime_class} successful!"
           done
         env:
           POD_LABEL: apps.sc2.io/name=helloworld-py
@@ -105,7 +105,7 @@ jobs:
 
             # Extra cautionary sleep
             sleep 5
-            echo "Test for ${runtime_class} succesful!"
+            echo "Test for ${runtime_class} successful!"
           done
         env:
           NAMESPACE: chaining-test
