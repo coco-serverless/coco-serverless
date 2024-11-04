@@ -40,6 +40,10 @@ KUBEADM_KUBECONFIG_FILE = join(K8S_CONFIG_DIR, "kubeadm_kubeconfig")
 
 COCO_ROOT = join("/opt", "confidential-containers")
 
+# Base software image (note that we tag with a CoCo release version, but we
+# allow it to fall behind as we should not re-build the base image often)
+BASE_IMAGE_TAG = join(GHCR_URL, GITHUB_ORG, "base") + ":0.10.0"
+
 # Kata Version is determined by CoCo version
 KATA_ROOT = join("/opt", "kata")
 

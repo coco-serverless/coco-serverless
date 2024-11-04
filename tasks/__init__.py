@@ -1,5 +1,6 @@
 from invoke import Collection
 
+from . import base
 from . import coco
 from . import containerd
 from . import cosign
@@ -24,6 +25,7 @@ from . import skopeo
 from tasks.coconut import ns as coconut_ns
 
 ns = Collection(
+    base,
     coco,
     containerd,
     cosign,

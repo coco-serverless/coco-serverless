@@ -40,7 +40,7 @@ jobs:
 
       - name: "Run python hello world"
         run: |
-          for runtime_class in "qemu" "qemu-coco-dev" "qemu-snp"; do
+          for runtime_class in "qemu" "qemu-coco-dev" "qemu-snp" "qemu-snp-sc2"; do
             echo "Running test for ${runtime_class}..."
             export SC2_RUNTIME_CLASS=${runtime_class}
             envsubst < ./demo-apps/helloworld-py/deployment.yaml | ./bin/kubectl apply -f -
@@ -65,7 +65,7 @@ jobs:
 
       - name: "Run Knative hello world"
         run: |
-          for runtime_class in "qemu" "qemu-coco-dev" "qemu-snp"; do
+          for runtime_class in "qemu" "qemu-coco-dev" "qemu-snp" "qemu-snp-sc2"; do
             echo "Running test for ${runtime_class}..."
             export SC2_RUNTIME_CLASS=${runtime_class}
             envsubst < ./demo-apps/helloworld-knative/service.yaml | ./bin/kubectl apply -f -
@@ -89,7 +89,7 @@ jobs:
       - name: "Run knative chaining demo"
         run: |
           ./bin/inv_wrapper.sh kata.enable-annotation default_memory
-          for runtime_class in "qemu" "qemu-coco-dev" "qemu-snp"; do
+          for runtime_class in "qemu" "qemu-coco-dev" "qemu-snp" "qemu-snp-sc2"; do
             echo "Running test for ${runtime_class}..."
             export SC2_RUNTIME_CLASS=${runtime_class}
             envsubst < ./demo-apps/knative-chaining/chaining.yaml | ./bin/kubectl apply -f -

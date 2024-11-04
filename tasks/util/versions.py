@@ -2,6 +2,10 @@
 COCO_VERSION = "0.10.0"
 KATA_VERSION = "3.9.0"
 
+# Base software versions
+GO_VERSION = "1.23.0"
+RUST_VERSION = "1.78.0"
+
 # Kubernetes versions
 K8S_VERSION = "1.28.2"
 CALICO_VERSION = "3.28.1"

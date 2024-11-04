@@ -53,7 +53,7 @@ You can now check that everything is running by running a simple hello world:
 export SC2_RUNTIME_CLASS=qemu-snp
 
 # Knative demo
-envsubst ./demo-apps/helloworld-knative/service.yaml < kubectl apply -f -
+envsubst < ./demo-apps/helloworld-knative/service.yaml | kubectl apply -f -
 curl $(kubectl get ksvc helloworld-knative  --output=custom-columns=URL:.status.url --no-headers)
 
 # Non-Knative demo
