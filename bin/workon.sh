@@ -5,6 +5,10 @@ PROJ_ROOT=${THIS_DIR}/..
 
 pushd ${PROJ_ROOT} >> /dev/null
 
+# ----------------------------------
+# Python tasks config
+# ----------------------------------
+
 export VIRTUAL_ENV_DISABLE_PROMPT=1
 
 if [ ! -d "venv" ]; then
@@ -26,7 +30,18 @@ if [ "$(ps -o comm= -p $$)" = "zsh" ]; then
 fi
 complete -F _complete_invoke -o default invoke inv
 
+# ----------------------------------
+# VM cache config
+# ----------------------------------
+
+VM_CACHE_ROOT=${PROJ_ROOT}/vm-cache
+VM_CACHE_BINARY=${VM_CACHE_ROOT}/target/release/vm-cache
+alias sc2-vm-cache="cargo build -q --release --manifest-path ${VM_CACHE_ROOT}/Cargo.toml && sudo ${VM_CACHE_BINARY}"
+
+# ----------------------------------
 # Useful env. variables
+# ----------------------------------
+
 export KUBECONFIG=${PROJ_ROOT}/.config/kubeadm_kubeconfig
 export PATH=${PROJ_ROOT}/bin:${PATH}
 export PS1="(sc2-deploy) $PS1"

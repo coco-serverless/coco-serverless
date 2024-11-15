@@ -1,0 +1,13 @@
+[package]
+name = "vm-cache"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+colored = "2.0"
+env_logger = "0.10"
+log = "0.4"
+nix = "0.26.2"
+regex = "1.9"
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.7"
