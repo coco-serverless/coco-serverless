@@ -117,10 +117,13 @@ def install_sc2_runtime(debug=False):
         sc2=True,
     )
 
+
+@task
+def foo(ctx):
     # Replace the kata shim
     replace_kata_shim(
         dst_shim_binary=join(KATA_ROOT, "bin", "containerd-shim-kata-sc2-v2"),
-        sc2=True,
+        sc2=False,
     )
 
 

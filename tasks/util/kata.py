@@ -230,6 +230,7 @@ def replace_agent(
 
 def replace_shim(
     dst_shim_binary=join(KATA_ROOT, "bin", "containerd-shim-kata-sc2-v2"),
+    dst_runtime_binary=join(KATA_ROOT, "bin", "kata-runtime-sc2"),
     sc2=True,
 ):
     """
@@ -240,17 +241,29 @@ def replace_shim(
     """
     # First, copy the binary from the source tree
     src_shim_binary = join(
-        KATA_SHIM_SOURCE_DIR if sc2 else KATA_BASELINE_SHIM_SOURCE_DIR,
+        # KATA_SHIM_SOURCE_DIR if sc2 else KATA_BASELINE_SHIM_SOURCE_DIR,
+        # TODO: delete me!
+        KATA_SHIM_SOURCE_DIR,
         "containerd-shim-kata-v2",
     )
-    dst_shim_binary = join(KATA_ROOT, "bin", "containerd-shim-kata-v2-sc2")
     copy_from_kata_workon_ctr(src_shim_binary, dst_shim_binary, sudo=True)
 
+    # Also copy the kata-monitor binary
+    src_runtime_binary = join(
+        # KATA_SHIM_SOURCE_DIR if sc2 else KATA_BASELINE_SHIM_SOURCE_DIR,
+        # TODO: delete me!
+        KATA_SHIM_SOURCE_DIR,
+        "kata-runtime",
+    )
+    copy_from_kata_workon_ctr(src_runtime_binary, dst_runtime_binary, sudo=True)
+
+    # TODO: should remove kata-qemu from KATA_RUNTIMES to keep the baseline
+    # completely unmodified!
     target_runtimes = SC2_RUNTIMES if sc2 else KATA_RUNTIMES
     for runtime in target_runtimes:
         updated_toml_str = """
         [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.kata-{runtime_name}]
-        runtime_type = "io.containerd.kata-${runtime_name}.v2"
+        runtime_type = "io.containerd.kata-{runtime_name}.v2"
         runtime_path = "{ctrd_path}"
         """.format(
             runtime_name=runtime, ctrd_path=dst_shim_binary
