@@ -67,3 +67,15 @@ sudo tail -f /tmp/kata_factory.log
 We add a convenient wrapper to execute the factory with all our tweaks and
 configurations. Note that, due to the limitations of nested virtualization,
 it needs to run as a process, not as a container.
+
+You may run it with:
+
+```bash
+sc2-vm-cache [foreground|background]
+```
+
+if you run it in the background, you may stop it with:
+
+```bash
+sc2-vm-cache stop
+```
