@@ -121,6 +121,7 @@ fn stop_background_process() -> std::io::Result<()> {
 
         info!("stopped background process with PID {pid}");
         std::fs::remove_file(PID_FILE)?;
+        std::fs::remove_file(LOG_FILE)?;
     } else {
         error!("no running process found");
     }

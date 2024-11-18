@@ -63,7 +63,7 @@ KBS_PORT = 44444
 
 # VM Cache config
 
-VM_CACHE_SIZE = 3
+VM_CACHE_SIZE = 10
 
 
 def print_dotted_line(message, dot_length=90):

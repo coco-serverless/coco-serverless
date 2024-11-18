@@ -144,7 +144,7 @@ def install_sc2_runtime(debug=False):
 
     # Build the VM cache server
     result = run(
-        "cargo build -q --release", cwd=vm_cache_dir, shell=True, capture_output=True
+        "cargo build --release", cwd=vm_cache_dir, shell=True, capture_output=True
     )
     assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
     if debug:
@@ -152,7 +152,7 @@ def install_sc2_runtime(debug=False):
 
     # Run the VM cache server in the background
     result = run(
-        "target/release/vm-cache background",
+        "sudo target/release/vm-cache background",
         cwd=vm_cache_dir,
         shell=True,
         capture_output=True,
@@ -233,7 +233,7 @@ def destroy(ctx, debug=False):
     # Stop VM cache server
     vm_cache_dir = join(PROJ_ROOT, "vm-cache")
     result = run(
-        "target/release/vm-cache stop",
+        "sudo target/release/vm-cache stop",
         cwd=vm_cache_dir,
         shell=True,
         capture_output=True,
