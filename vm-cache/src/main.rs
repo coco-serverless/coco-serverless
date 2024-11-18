@@ -1,13 +1,12 @@
 use colored::*;
 use env_logger::Builder;
-use log::{LevelFilter, debug, error, info, trace, warn};
-use nix::sys::signal::{Signal, kill};
+use log::{debug, error, info, trace, warn, LevelFilter};
+use nix::sys::signal::{kill, Signal};
 use nix::unistd::Pid;
 use regex::Regex;
 use serde::Deserialize;
 use std::{
-    env,
-    fs,
+    env, fs,
     fs::File,
     io::{BufRead, BufReader, Seek, SeekFrom, Write},
     process::{Child, Command, Stdio},
@@ -146,7 +145,8 @@ fn parse_log_line(line: &str) -> Option<(String, String)> {
 }
 
 fn tail_log_file(in_background: bool) {
-    let expected_cache_size: u32 = read_vm_cache_number().expect("sc2(vm-cache): error reading cache size");
+    let expected_cache_size: u32 =
+        read_vm_cache_number().expect("sc2(vm-cache): error reading cache size");
     info!("expecting {expected_cache_size} VMs in the cache");
 
     // Open log file
