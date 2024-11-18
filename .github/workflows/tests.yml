@@ -27,12 +27,6 @@ jobs:
       - name: "Python formatting check"
         run: ./bin/inv_wrapper.sh format-code --check
       # Rust formatting checks
-      - name: "Set up Rust"
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          profile: minimal
-          override: true
       - name: "Run cargo fmt check"
         run: cargo fmt --all -- --check
         working-directory: ./vm-cache
