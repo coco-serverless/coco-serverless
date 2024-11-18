@@ -22,7 +22,9 @@ from tasks.util.env import (
     KATA_ROOT,
     KATA_IMAGE_TAG,
     KATA_IMG_DIR,
+    PROJ_ROOT,
     SC2_RUNTIMES,
+    VM_CACHE_SIZE,
     print_dotted_line,
 )
 from tasks.util.kata import (
@@ -68,6 +70,19 @@ def install_sc2_runtime(debug=False):
             src_conf_path = join(KATA_CONFIG_DIR, "configuration-qemu-tdx.toml")
         dst_conf_path = join(KATA_CONFIG_DIR, f"configuration-{sc2_runtime}.toml")
         run(f"sudo cp {src_conf_path} {dst_conf_path}", shell=True, check=True)
+
+        # Patch config file to enable VM cache
+        updated_toml_str = """
+        [factory]
+        vm_cache_number = {vm_cache_number}
+
+        [hypervisor.qemu]
+        hot_plug_vfio = "root-port"
+        pcie_root_port = 2
+        """.format(
+            vm_cache_number=VM_CACHE_SIZE
+        )
+        update_toml(dst_conf_path, updated_toml_str)
 
         # Update containerd to point the SC2 runtime to the right config
         updated_toml_str = """
@@ -117,14 +132,34 @@ def install_sc2_runtime(debug=False):
         sc2=True,
     )
 
-
-@task
-def foo(ctx):
     # Replace the kata shim
     replace_kata_shim(
         dst_shim_binary=join(KATA_ROOT, "bin", "containerd-shim-kata-sc2-v2"),
-        sc2=False,
+        sc2=True,
     )
+
+    # ---------- VM Cache ---------
+
+    vm_cache_dir = join(PROJ_ROOT, "vm-cache")
+
+    # Build the VM cache server
+    result = run(
+        "cargo build -q --release", cwd=vm_cache_dir, shell=True, capture_output=True
+    )
+    assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
+    if debug:
+        print(result.stdout.decode("utf-8").strip())
+
+    # Run the VM cache server in the background
+    result = run(
+        "target/release/vm-cache background",
+        cwd=vm_cache_dir,
+        shell=True,
+        capture_output=True,
+    )
+    assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
+    if debug:
+        print(result.stdout.decode("utf-8").strip())
 
 
 @task(default=True)
@@ -194,3 +229,15 @@ def destroy(ctx, debug=False):
 
     # Stop docker registry
     stop_local_registry(ctx, debug=debug)
+
+    # Stop VM cache server
+    vm_cache_dir = join(PROJ_ROOT, "vm-cache")
+    result = run(
+        "target/release/vm-cache stop",
+        cwd=vm_cache_dir,
+        shell=True,
+        capture_output=True,
+    )
+    assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
+    if debug:
+        print(result.stdout.decode("utf-8").strip())

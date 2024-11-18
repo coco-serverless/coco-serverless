@@ -6,7 +6,6 @@ PROJ_ROOT = dirname(dirname(dirname(realpath(__file__))))
 
 BIN_DIR = join(PROJ_ROOT, "bin")
 GLOBAL_BIN_DIR = "/usr/local/bin"
-# See csegarragonz/coco-serverless#3
 GLOBAL_INSTALL_DIR = "/opt"
 COMPONENTS_DIR = join(PROJ_ROOT, "components")
 CONF_FILES_DIR = join(PROJ_ROOT, "conf-files")
@@ -16,7 +15,6 @@ TEMPLATED_FILES_DIR = join(PROJ_ROOT, "templated")
 
 K8S_CONFIG_DIR = join(PROJ_ROOT, ".config")
 K8S_ADMIN_FILE = join(CONF_FILES_DIR, "kubeadm.conf")
-# TODO: consider copying this file elsewhere
 K8S_CONFIG_FILE = "/etc/kubernetes/admin.conf"
 # This value is hardcoded in ./.config/kubeadm.conf
 CRI_RUNTIME_SOCKET = "unix:///run/containerd/containerd.sock"
@@ -52,7 +50,7 @@ KATA_CONFIG_DIR = join(KATA_ROOT, "share", "defaults", "kata-containers")
 KATA_IMG_DIR = join(KATA_ROOT, "share", "kata-containers")
 KATA_WORKON_CTR_NAME = "kata-workon"
 KATA_IMAGE_TAG = join(GHCR_URL, GITHUB_ORG, "kata-containers") + f":{KATA_VERSION}"
-KATA_RUNTIMES = ["qemu", "qemu-coco-dev", "qemu-sev", "qemu-snp"]
+KATA_RUNTIMES = ["qemu-coco-dev", "qemu-snp"]
 SC2_RUNTIMES = ["qemu-snp-sc2"]
 
 # Apps config
@@ -62,6 +60,10 @@ APPS_SOURCE_DIR = join(PROJ_ROOT, "demo-apps")
 # KBS Config
 
 KBS_PORT = 44444
+
+# VM Cache config
+
+VM_CACHE_SIZE = 3
 
 
 def print_dotted_line(message, dot_length=90):

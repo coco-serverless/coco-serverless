@@ -241,24 +241,18 @@ def replace_shim(
     """
     # First, copy the binary from the source tree
     src_shim_binary = join(
-        # KATA_SHIM_SOURCE_DIR if sc2 else KATA_BASELINE_SHIM_SOURCE_DIR,
-        # TODO: delete me!
-        KATA_SHIM_SOURCE_DIR,
+        KATA_SHIM_SOURCE_DIR if sc2 else KATA_BASELINE_SHIM_SOURCE_DIR,
         "containerd-shim-kata-v2",
     )
     copy_from_kata_workon_ctr(src_shim_binary, dst_shim_binary, sudo=True)
 
-    # Also copy the kata-monitor binary
+    # Also copy the kata-runtime binary
     src_runtime_binary = join(
-        # KATA_SHIM_SOURCE_DIR if sc2 else KATA_BASELINE_SHIM_SOURCE_DIR,
-        # TODO: delete me!
-        KATA_SHIM_SOURCE_DIR,
+        KATA_SHIM_SOURCE_DIR if sc2 else KATA_BASELINE_SHIM_SOURCE_DIR,
         "kata-runtime",
     )
     copy_from_kata_workon_ctr(src_runtime_binary, dst_runtime_binary, sudo=True)
 
-    # TODO: should remove kata-qemu from KATA_RUNTIMES to keep the baseline
-    # completely unmodified!
     target_runtimes = SC2_RUNTIMES if sc2 else KATA_RUNTIMES
     for runtime in target_runtimes:
         updated_toml_str = """
