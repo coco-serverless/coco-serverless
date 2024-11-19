@@ -47,6 +47,8 @@ def install_sc2_runtime(debug=False):
     run(f"sudo cp {src_ctrd_path} {dst_ctrd_path}", shell=True, check=True)
 
     # Modify containerd to add a new runtime class
+    if debug:
+        print("Patching containerd...")
     for sc2_runtime in SC2_RUNTIMES:
         # Update containerd to point the SC2 runtime to the right shim
         updated_toml_str = """
@@ -63,6 +65,8 @@ def install_sc2_runtime(debug=False):
 
     # Copy configuration file from the corresponding source file (and patch
     # if needed)
+    if debug:
+        print("Patching configuration files...")
     for sc2_runtime in SC2_RUNTIMES:
         if "snp" in sc2_runtime:
             src_conf_path = join(KATA_CONFIG_DIR, "configuration-qemu-snp.toml")
@@ -96,6 +100,8 @@ def install_sc2_runtime(debug=False):
     run("sudo service containerd restart", shell=True, check=True)
 
     # Install runttime class on kubernetes
+    if debug:
+        print("Installing SC2 runtime class...")
     sc2_runtime_file = join(CONF_FILES_DIR, "sc2_runtimeclass.yaml")
     run_kubectl_command(f"create -f {sc2_runtime_file}", capture_output=not debug)
     expected_runtime_classes = [
@@ -124,6 +130,8 @@ def install_sc2_runtime(debug=False):
         )
 
     # Replace the agent in the initrd
+    if debug:
+        print("Replacing kata agent...")
     replace_kata_agent(
         dst_initrd_path=join(
             KATA_IMG_DIR, "kata-containers-initrd-confidential-sc2.img"
@@ -133,6 +141,8 @@ def install_sc2_runtime(debug=False):
     )
 
     # Replace the kata shim
+    if debug:
+        print("Replacing kata shim...")
     replace_kata_shim(
         dst_shim_binary=join(KATA_ROOT, "bin", "containerd-shim-kata-sc2-v2"),
         sc2=True,
@@ -143,6 +153,8 @@ def install_sc2_runtime(debug=False):
     vm_cache_dir = join(PROJ_ROOT, "vm-cache")
 
     # Build the VM cache server
+    if debug:
+        print("Building VM cache wrapper...")
     result = run(
         "cargo build --release", cwd=vm_cache_dir, shell=True, capture_output=True
     )
@@ -151,6 +163,8 @@ def install_sc2_runtime(debug=False):
         print(result.stdout.decode("utf-8").strip())
 
     # Run the VM cache server in the background
+    if debug:
+        print("Running VM cache wrapper in background mode...")
     result = run(
         "sudo target/release/vm-cache background",
         cwd=vm_cache_dir,
