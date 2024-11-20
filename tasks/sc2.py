@@ -165,15 +165,11 @@ def install_sc2_runtime(debug=False):
     # Run the VM cache server in the background
     if debug:
         print("Running VM cache wrapper in background mode...")
-    result = run(
-        "sudo target/release/vm-cache background",
+    run(
+        "sudo target/release/vm-cache background > /dev/null 2>&1",
         cwd=vm_cache_dir,
         shell=True,
-        capture_output=True,
     )
-    assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
-    if debug:
-        print(result.stdout.decode("utf-8").strip())
 
 
 @task(default=True)
