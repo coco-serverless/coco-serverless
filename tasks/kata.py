@@ -3,12 +3,15 @@ from os.path import abspath, join
 from subprocess import run
 from tasks.util.env import (
     KATA_CONFIG_DIR,
+    KATA_IMAGE_TAG,
+    KATA_ROOT,
     KATA_RUNTIMES,
     KATA_WORKON_CTR_NAME,
-    KATA_IMAGE_TAG,
     PROJ_ROOT,
+    SC2_RUNTIMES,
 )
 from tasks.util.kata import (
+    replace_shim as replace_kata_shim,
     run_kata_workon_ctr,
     stop_kata_workon_ctr,
 )
@@ -114,3 +117,19 @@ def enable_annotation(ctx, annotation, runtime="qemu-snp-sc2"):
         ann=",".join([f'"{a}"' for a in enabled_annotations])
     )
     update_toml(conf_file_path, updated_toml_str)
+
+
+@task
+def replace_shim(ctx, runtime="qemu-snp-sc2"):
+    replace_kata_shim(
+        dst_shim_binary=join(
+            KATA_ROOT,
+            "bin",
+            (
+                "containerd-shim-kata-sc2-v2"
+                if runtime in SC2_RUNTIMES
+                else "containerd-shim-kata-v2"
+            ),
+        ),
+        sc2=runtime in SC2_RUNTIMES,
+    )
