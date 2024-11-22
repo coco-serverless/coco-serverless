@@ -93,14 +93,21 @@ jobs:
         env:
           POD_LABEL: apps.sc2.io/name=helloworld-py
 
+      - name: "Enable default-memory annotation"
+        run: |
+          for runtime_class in "qemu" "qemu-coco-dev" "qemu-snp" "qemu-snp-sc2"; do
+            ./bin/inv_wrapper.sh kata.enable-annotation default_memory --runtime ${runtime_class}
+          done
+
+          # Aftre changing the annotation of the qemu-snp-sc2 runtime class we
+          # need to restart the VM cache
+          sudo ./vm-cache/target/release/vm-cache stop
+          sudo ./vm-cache/target/release/vm-cache background
+
       - name: "Run knative chaining demo"
         run: |
           for runtime_class in "qemu" "qemu-coco-dev" "qemu-snp" "qemu-snp-sc2"; do
             echo "Running test for ${runtime_class}..."
-            # We want to skip changing the config file for SC2 once the cache
-            # is already running. Otherwise the config will mismatch and no VMs
-            # will be served
-            [ "${runtime_class}" != "qemu-snp-sc2" ] && ./bin/inv_wrapper.sh kata.enable-annotation default_memory --runtime ${runtime_class}
             export SC2_RUNTIME_CLASS=${runtime_class}
             envsubst < ./demo-apps/knative-chaining/chaining.yaml | ./bin/kubectl apply -f -
             sleep 1
