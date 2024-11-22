@@ -97,7 +97,10 @@ jobs:
         run: |
           for runtime_class in "qemu" "qemu-coco-dev" "qemu-snp" "qemu-snp-sc2"; do
             echo "Running test for ${runtime_class}..."
-            ./bin/inv_wrapper.sh kata.enable-annotation default_memory --runtime ${runtime_class}
+            # We want to skip changing the config file for SC2 once the cache
+            # is already running. Otherwise the config will mismatch and no VMs
+            # will be served
+            [ "${runtime_class}" != "qemu-snp-sc2" ] && ./bin/inv_wrapper.sh kata.enable-annotation default_memory --runtime ${runtime_class}
             export SC2_RUNTIME_CLASS=${runtime_class}
             envsubst < ./demo-apps/knative-chaining/chaining.yaml | ./bin/kubectl apply -f -
             sleep 1
