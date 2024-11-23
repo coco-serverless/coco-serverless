@@ -3,13 +3,15 @@ from os.path import abspath, join
 from subprocess import run
 from tasks.util.env import (
     KATA_CONFIG_DIR,
+    KATA_IMAGE_TAG,
+    KATA_ROOT,
     KATA_RUNTIMES,
     KATA_WORKON_CTR_NAME,
-    KATA_IMAGE_TAG,
-    SC2_RUNTIMES,
     PROJ_ROOT,
+    SC2_RUNTIMES,
 )
 from tasks.util.kata import (
+    replace_shim as replace_kata_shim,
     run_kata_workon_ctr,
     stop_kata_workon_ctr,
 )
@@ -98,21 +100,36 @@ def set_log_level(ctx, log_level):
 
 
 @task
-def enable_annotation(ctx, annotation):
-    for runtime in KATA_RUNTIMES + SC2_RUNTIMES:
-        conf_file_path = join(KATA_CONFIG_DIR, "configuration-{}.toml".format(runtime))
-        enabled_annotations = read_value_from_toml(
-            conf_file_path, "hypervisor.qemu.enable_annotations"
-        )
+def enable_annotation(ctx, annotation, runtime="qemu-snp-sc2"):
+    conf_file_path = join(KATA_CONFIG_DIR, "configuration-{}.toml".format(runtime))
+    enabled_annotations = read_value_from_toml(
+        conf_file_path, "hypervisor.qemu.enable_annotations"
+    )
 
-        if annotation in enabled_annotations:
-            continue
+    if annotation in enabled_annotations:
+        return
 
-        enabled_annotations.append(annotation)
-        updated_toml_str = """
-        [hypervisor.qemu]
-        enable_annotations = [ {ann} ]
-        """.format(
-            ann=",".join([f'"{a}"' for a in enabled_annotations])
-        )
-        update_toml(conf_file_path, updated_toml_str)
+    enabled_annotations.append(annotation)
+    updated_toml_str = """
+    [hypervisor.qemu]
+    enable_annotations = [ {ann} ]
+    """.format(
+        ann=",".join([f'"{a}"' for a in enabled_annotations])
+    )
+    update_toml(conf_file_path, updated_toml_str)
+
+
+@task
+def replace_shim(ctx, runtime="qemu-snp-sc2"):
+    replace_kata_shim(
+        dst_shim_binary=join(
+            KATA_ROOT,
+            "bin",
+            (
+                "containerd-shim-kata-sc2-v2"
+                if runtime in SC2_RUNTIMES
+                else "containerd-shim-kata-v2"
+            ),
+        ),
+        sc2=runtime in SC2_RUNTIMES,
+    )

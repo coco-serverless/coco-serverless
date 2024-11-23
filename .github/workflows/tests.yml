@@ -24,8 +24,15 @@ jobs:
       - name: "Checkout code"
         uses: actions/checkout@v4
       # Formatting checks
-      - name: "Code formatting check"
+      - name: "Python formatting check"
         run: ./bin/inv_wrapper.sh format-code --check
+      # Rust formatting checks
+      - name: "Run cargo fmt check"
+        run: cargo fmt --all -- --check
+        working-directory: ./vm-cache
+      - name: "Run cargo clippy"
+        run: cargo clippy -- -D warnings
+        working-directory: ./vm-cache
 
   setup-cluster:
     if: github.event.pull_request.draft == false
@@ -86,9 +93,19 @@ jobs:
         env:
           POD_LABEL: apps.sc2.io/name=helloworld-py
 
+      - name: "Enable default-memory annotation"
+        run: |
+          for runtime_class in "qemu" "qemu-coco-dev" "qemu-snp" "qemu-snp-sc2"; do
+            ./bin/inv_wrapper.sh kata.enable-annotation default_memory --runtime ${runtime_class}
+          done
+
+          # Aftre changing the annotation of the qemu-snp-sc2 runtime class we
+          # need to restart the VM cache
+          sudo ./vm-cache/target/release/vm-cache stop
+          sudo ./vm-cache/target/release/vm-cache background
+
       - name: "Run knative chaining demo"
         run: |
-          ./bin/inv_wrapper.sh kata.enable-annotation default_memory
           for runtime_class in "qemu" "qemu-coco-dev" "qemu-snp" "qemu-snp-sc2"; do
             echo "Running test for ${runtime_class}..."
             export SC2_RUNTIME_CLASS=${runtime_class}

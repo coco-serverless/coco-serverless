@@ -22,7 +22,9 @@ from tasks.util.env import (
     KATA_ROOT,
     KATA_IMAGE_TAG,
     KATA_IMG_DIR,
+    PROJ_ROOT,
     SC2_RUNTIMES,
+    VM_CACHE_SIZE,
     print_dotted_line,
 )
 from tasks.util.kata import (
@@ -45,6 +47,8 @@ def install_sc2_runtime(debug=False):
     run(f"sudo cp {src_ctrd_path} {dst_ctrd_path}", shell=True, check=True)
 
     # Modify containerd to add a new runtime class
+    if debug:
+        print("Patching containerd...")
     for sc2_runtime in SC2_RUNTIMES:
         # Update containerd to point the SC2 runtime to the right shim
         updated_toml_str = """
@@ -61,6 +65,8 @@ def install_sc2_runtime(debug=False):
 
     # Copy configuration file from the corresponding source file (and patch
     # if needed)
+    if debug:
+        print("Patching configuration files...")
     for sc2_runtime in SC2_RUNTIMES:
         if "snp" in sc2_runtime:
             src_conf_path = join(KATA_CONFIG_DIR, "configuration-qemu-snp.toml")
@@ -68,6 +74,23 @@ def install_sc2_runtime(debug=False):
             src_conf_path = join(KATA_CONFIG_DIR, "configuration-qemu-tdx.toml")
         dst_conf_path = join(KATA_CONFIG_DIR, f"configuration-{sc2_runtime}.toml")
         run(f"sudo cp {src_conf_path} {dst_conf_path}", shell=True, check=True)
+
+        # Patch config file to enable VM cache
+        # FIXME: we need to update the default_memory to be able to run the
+        # Knative chaining test. This will change when memory hot-plugging
+        # is supported
+        updated_toml_str = """
+        [factory]
+        vm_cache_number = {vm_cache_number}
+
+        [hypervisor.qemu]
+        hot_plug_vfio = "root-port"
+        pcie_root_port = 2
+        default_memory = 6144
+        """.format(
+            vm_cache_number=VM_CACHE_SIZE
+        )
+        update_toml(dst_conf_path, updated_toml_str)
 
         # Update containerd to point the SC2 runtime to the right config
         updated_toml_str = """
@@ -81,6 +104,8 @@ def install_sc2_runtime(debug=False):
     run("sudo service containerd restart", shell=True, check=True)
 
     # Install runttime class on kubernetes
+    if debug:
+        print("Installing SC2 runtime class...")
     sc2_runtime_file = join(CONF_FILES_DIR, "sc2_runtimeclass.yaml")
     run_kubectl_command(f"create -f {sc2_runtime_file}", capture_output=not debug)
     expected_runtime_classes = [
@@ -109,6 +134,8 @@ def install_sc2_runtime(debug=False):
         )
 
     # Replace the agent in the initrd
+    if debug:
+        print("Replacing kata agent...")
     replace_kata_agent(
         dst_initrd_path=join(
             KATA_IMG_DIR, "kata-containers-initrd-confidential-sc2.img"
@@ -118,9 +145,34 @@ def install_sc2_runtime(debug=False):
     )
 
     # Replace the kata shim
+    if debug:
+        print("Replacing kata shim...")
     replace_kata_shim(
         dst_shim_binary=join(KATA_ROOT, "bin", "containerd-shim-kata-sc2-v2"),
         sc2=True,
+    )
+
+    # ---------- VM Cache ---------
+
+    vm_cache_dir = join(PROJ_ROOT, "vm-cache")
+
+    # Build the VM cache server
+    if debug:
+        print("Building VM cache wrapper...")
+    result = run(
+        "cargo build --release", cwd=vm_cache_dir, shell=True, capture_output=True
+    )
+    assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
+    if debug:
+        print(result.stdout.decode("utf-8").strip())
+
+    # Run the VM cache server in the background
+    if debug:
+        print("Running VM cache wrapper in background mode...")
+    run(
+        "sudo target/release/vm-cache background > /dev/null 2>&1",
+        cwd=vm_cache_dir,
+        shell=True,
     )
 
 
@@ -191,3 +243,15 @@ def destroy(ctx, debug=False):
 
     # Stop docker registry
     stop_local_registry(ctx, debug=debug)
+
+    # Stop VM cache server
+    vm_cache_dir = join(PROJ_ROOT, "vm-cache")
+    result = run(
+        "sudo target/release/vm-cache stop",
+        cwd=vm_cache_dir,
+        shell=True,
+        capture_output=True,
+    )
+    assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
+    if debug:
+        print(result.stdout.decode("utf-8").strip())
