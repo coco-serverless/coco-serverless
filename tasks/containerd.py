@@ -3,8 +3,14 @@ from os import makedirs
 from os.path import join
 from subprocess import CalledProcessError, run
 from tasks.util.docker import is_ctr_running
-from tasks.util.env import CONF_FILES_DIR, CONTAINERD_CONFIG_FILE, PROJ_ROOT
+from tasks.util.env import (
+    CONF_FILES_DIR,
+    CONTAINERD_CONFIG_FILE,
+    PROJ_ROOT,
+    print_dotted_line,
+)
 from tasks.util.toml import update_toml
+from tasks.util.versions import CONTAINERD_VERSION
 
 CONTAINERD_CTR_NAME = "containerd-workon"
 CONTAINERD_IMAGE_TAG = "containerd-build"
@@ -17,15 +23,24 @@ def restart_containerd():
     run("sudo service containerd restart", shell=True, check=True)
 
 
+def do_build(debug=False):
+    docker_cmd = "docker build -t {} --build-arg CONTAINERD_VERSION={} -f {} .".format(
+        CONTAINERD_IMAGE_TAG,
+        CONTAINERD_VERSION,
+        join(PROJ_ROOT, "docker", "containerd.dockerfile"),
+    )
+    result = run(docker_cmd, shell=True, capture_output=True, cwd=PROJ_ROOT)
+    assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
+    if debug:
+        print(result.stdout.decode("utf-8").strip())
+
+
 @task
 def build(ctx):
     """
     Build the containerd fork for CoCo
     """
-    docker_cmd = "docker build -t {} -f {} .".format(
-        CONTAINERD_IMAGE_TAG, join(PROJ_ROOT, "docker", "containerd.dockerfile")
-    )
-    run(docker_cmd, shell=True, check=True, cwd=PROJ_ROOT)
+    do_build(debug=True)
 
 
 @task
@@ -172,19 +187,28 @@ def set_log_level(ctx, log_level):
 
 
 @task
-def install(ctx, clean=False):
+def install(ctx, debug=False, clean=False):
     """
-    Install the built containerd
+    Install (and build) containerd from source
     """
+    print_dotted_line(f"Installing containerd (v{CONTAINERD_VERSION})")
+    do_build(debug=debug)
+
     tmp_ctr_name = "tmp_containerd_build"
     docker_cmd = "docker run -td --name {} {} bash".format(
         tmp_ctr_name, CONTAINERD_IMAGE_TAG
     )
-    run(docker_cmd, shell=True, check=True)
+    result = run(docker_cmd, capture_output=True, shell=True)
+    assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
+    if debug:
+        print(result.stdout.decode("utf-8").strip())
 
     def cleanup():
         docker_cmd = "docker rm -f {}".format(tmp_ctr_name)
-        run(docker_cmd, shell=True, check=True)
+        result = run(docker_cmd, shell=True, capture_output=True)
+        assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
+        if debug:
+            print(result.stdout.decode("utf-8").strip())
 
     binary_names = [
         "containerd",
@@ -196,13 +220,20 @@ def install(ctx, clean=False):
     host_base_path = "/usr/bin"
     for binary in binary_names:
         if clean:
-            run(f"sudo rm -f {join(host_base_path, binary)}", shell=True, check=True)
+            run(
+                "sudo rm -f {}".format(join(host_base_path, binary)),
+                shell=True,
+                check=True,
+            )
 
         docker_cmd = "sudo docker cp {}:{}/{} {}/{}".format(
             tmp_ctr_name, ctr_base_path, binary, host_base_path, binary
         )
         try:
-            run(docker_cmd, shell=True, check=True)
+            result = run(docker_cmd, shell=True, capture_output=True)
+            assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
+            if debug:
+                print(result.stdout.decode("utf-8").strip())
         except CalledProcessError as e:
             cleanup()
             raise e
@@ -229,3 +260,4 @@ def install(ctx, clean=False):
 
     # Restart containerd service
     restart_containerd()
+    print("Success!")

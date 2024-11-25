@@ -102,13 +102,25 @@ def install_k8s(debug=False, clean=False):
         binary_path = download_binary(url, binary, debug=debug)
         symlink_global_bin(binary_path, binary, debug=debug)
 
+    # Also install some APT dependencies
+    result = run("sudo apt install -y conntrack socat", shell=True, capture_output=True)
+    assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
+    if debug:
+        print(result.stdout.decode("utf-8").strip())
 
-def configure_kubelet_service(clean=False):
+    # Run modprobe, kubeadm does not do it for non-docker deployments
+    result = run("sudo modprobe br_netfilter", shell=True, capture_output=True)
+    assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
+    if debug:
+        print(result.stdout.decode("utf-8").strip())
+
+
+def configure_kubelet_service(debug=False, clean=False):
     """
     Configure the kubelet service
     """
     kubelet_service_dir = "/etc/systemd/system/kubelet.service.d"
-    makedirs(kubelet_service_dir, exist_ok=True)
+    run(f"sudo mkdir -p {kubelet_service_dir}", shell=True, check=True)
 
     # Copy conf file into place
     conf_file = join(CONF_FILES_DIR, "kubelet_service.conf")
@@ -123,6 +135,14 @@ def configure_kubelet_service(clean=False):
         shell=True,
         check=True,
     )
+
+    # Enable the service
+    result = run(
+        "sudo systemctl enable kubelet.service", shell=True, capture_output=True
+    )
+    assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
+    if debug:
+        print(result.stdout.decode("utf-8").strip())
 
 
 @task
@@ -143,4 +163,4 @@ def install(ctx, debug=False, clean=False):
     print("Success!")
 
     # Start kubelet service
-    configure_kubelet_service(clean=clean)
+    configure_kubelet_service(debug=debug, clean=clean)

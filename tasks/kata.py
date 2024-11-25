@@ -16,7 +16,7 @@ from tasks.util.kata import (
     stop_kata_workon_ctr,
 )
 from tasks.util.toml import read_value_from_toml, update_toml
-from tasks.util.versions import GO_VERSION, RUST_VERSION
+from tasks.util.versions import RUST_VERSION
 
 
 @task
@@ -25,7 +25,6 @@ def build(ctx, nocache=False, push=False):
     Build the Kata Containers workon docker image
     """
     build_args = {
-        "GO_VERSION": GO_VERSION,
         "RUST_VERSION": RUST_VERSION,
     }
     build_args_str = [
