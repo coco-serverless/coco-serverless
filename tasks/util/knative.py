@@ -76,7 +76,7 @@ def replace_sidecar(
 
     # FIXME: to prevent an issue with nydus, we need to manually fetch the
     # contents of the image
-    run(f"sudo ctr -n k8s.io content fetch {new_image_url}", shell=True, check=True)
+    run(f"sudo ctr -n k8s.io content fetch -k {new_image_url}", shell=True, check=True)
 
     # Finally, make sure to remove all pulled container images to avoid
     # unintended caching issues with CoCo
