@@ -11,9 +11,10 @@ RUN apt update \
     && apt install -y \
         clang \
         curl \
+        git \
         libclang-dev \
         libdevmapper-dev \
-        git
+        wget
 
 # Clone the dotfiles repo
 RUN rm -rf ~/git/csegarragonz/dotfiles \
@@ -36,3 +37,11 @@ RUN curl -fLo ~/.local/share/nvim/site/autoload/plug.vim --create-dirs \
 RUN ln -sf ~/git/csegarragonz/dotfiles/bash/.bashrc ~/.bashrc \
     && ln -sf ~/git/csegarragonz/dotfiles/bash/.bash_profile ~/.bash_profile \
     && ln -sf ~/git/csegarragonz/dotfiles/bash/.bash_aliases ~/.bash_aliases
+
+# Install go
+ARG GO_VERSION
+RUN mkdir -p /tmp/go \
+    && cd /tmp/go \
+    && wget https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz \
+    && rm -rf /usr/local/go \
+    && tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz

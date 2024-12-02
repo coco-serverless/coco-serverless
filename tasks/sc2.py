@@ -182,6 +182,7 @@ def deploy(ctx, debug=False, clean=False):
     """
     Deploy an SC2-enabled bare-metal Kubernetes cluster
     """
+    # TODO: must indicate if it is an SNP or a TDX install
     if clean:
         for nuked_dir in [COCO_ROOT, KATA_ROOT]:
             if debug:

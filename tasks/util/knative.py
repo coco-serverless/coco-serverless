@@ -74,6 +74,10 @@ def replace_sidecar(
     )
     run_kubectl_command("apply -f {}".format(out_k8s_file), capture_output=quiet)
 
+    # FIXME: to prevent an issue with nydus, we need to manually fetch the
+    # contents of the image
+    run(f"sudo ctr -n k8s.io content fetch {new_image_url}", shell=True, check=True)
+
     # Finally, make sure to remove all pulled container images to avoid
     # unintended caching issues with CoCo
     docker_cmd = "docker rmi {}".format(KNATIVE_SIDECAR_IMAGE_TAG)
