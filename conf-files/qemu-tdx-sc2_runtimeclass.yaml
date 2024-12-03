@@ -1,0 +1,5 @@
+apiVersion: node.k8s.io/v1
+handler: kata-qemu-tdx-sc2
+kind: RuntimeClass
+metadata:
+  name: kata-qemu-tdx-sc2
