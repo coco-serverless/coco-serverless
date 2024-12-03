@@ -77,6 +77,9 @@ def install_sc2_runtime(debug=False):
         run(f"sudo cp {src_conf_path} {dst_conf_path}", shell=True, check=True)
 
         # Patch config file to enable VM cache
+        # FIXME: we need to update the default_memory to be able to run the
+        # Knative chaining test. This will change when memory hot-plugging
+        # is supported
         updated_toml_str = """
         [factory]
         vm_cache_number = {vm_cache_number}
@@ -84,6 +87,7 @@ def install_sc2_runtime(debug=False):
         [hypervisor.qemu]
         hot_plug_vfio = "root-port"
         pcie_root_port = 2
+        default_memory = 6144
         """.format(
             vm_cache_number=VM_CACHE_SIZE
         )
