@@ -1,6 +1,7 @@
 from invoke import task
 from os.path import join
 from subprocess import run
+from tasks.containerd import install as containerd_install
 from tasks.demo_apps import push_to_local_registry as push_demo_apps_to_local_registry
 from tasks.k8s import install as k8s_tooling_install
 from tasks.k9s import install as k9s_install
@@ -181,6 +182,7 @@ def deploy(ctx, debug=False, clean=False):
     """
     Deploy an SC2-enabled bare-metal Kubernetes cluster
     """
+    # TODO: must indicate if it is an SNP or a TDX install
     if clean:
         for nuked_dir in [COCO_ROOT, KATA_ROOT]:
             if debug:
@@ -189,6 +191,9 @@ def deploy(ctx, debug=False, clean=False):
 
     # Disable swap
     run("sudo swapoff -a", shell=True, check=True)
+
+    # Build and install containerd
+    containerd_install(ctx, debug=debug, clean=clean)
 
     # Install k8s tooling (including k9s)
     k8s_tooling_install(ctx, debug=debug, clean=clean)

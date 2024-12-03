@@ -1,31 +1,4 @@
-FROM csegarragonz/dotfiles:0.2.0 as dotfiles
-FROM golang
-
-# ---------------------------
-# Work. Env. Set-Up (do this first to benefit from caching)
-# ---------------------------
-
-# Clone the dotfiles repo
-RUN rm -rf ~/dotfiles \
-    && mkdir -p ~/dotfiles \
-    && git clone https://github.com/csegarragonz/dotfiles ~/dotfiles
-
-# Configure Neovim
-COPY --from=dotfiles /neovim/build/bin/nvim /usr/bin/nvim
-COPY --from=dotfiles /usr/local/share/nvim /usr/local/share/nvim
-RUN curl -fLo ~/.local/share/nvim/site/autoload/plug.vim --create-dirs \
-        https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim \
-    && mkdir -p ~/.config/nvim/ \
-    && ln -sf ~/dotfiles/nvim/init.vim ~/.config/nvim/init.vim \
-    && ln -sf ~/dotfiles/nvim/after ~/.config/nvim/ \
-    && ln -sf ~/dotfiles/nvim/syntax ~/.config/nvim/ \
-    && nvim +PlugInstall +qa \
-    && nvim +PlugUpdate +qa
-
-# Configure Bash
-RUN ln -sf ~/dotfiles/bash/.bashrc ~/.bashrc \
-    && ln -sf ~/dotfiles/bash/.bash_profile ~/.bash_profile \
-    && ln -sf ~/dotfiles/bash/.bash_aliases ~/.bash_aliases
+FROM ghcr.io/sc2-sys/base:0.10.0
 
 # ---------------------------
 # containerd source set-up
@@ -36,11 +9,17 @@ RUN apt update \
     && apt upgrade -y \
     && apt install -y \
         libbtrfs-dev \
-        gopls
+        gopls \
+        make
+
+ENV GOPATH=/go
+ENV PATH=${PATH}:/usr/local/go/bin
 
 # Clone and build containerd
+ARG CONTAINERD_VERSION
 RUN git clone \
-        -b v1.7.19 \
+        # -b v1.7.19 \
+        -b v${CONTAINERD_VERSION} \
         https://github.com/containerd/containerd.git \
         /go/src/github.com/containerd/containerd \
     && cd /go/src/github.com/containerd/containerd \

@@ -16,14 +16,6 @@ RUN apt install -y \
 # Install rust
 RUN curl --proto '=https' --tlsv1.3 https://sh.rustup.rs -sSf | sh -s -- -y
 
-# Install go
-ARG GO_VERSION
-RUN mkdir -p /tmp/go \
-    && cd /tmp/go \
-    && wget https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz \
-    && rm -rf /usr/local/go \
-    && tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz
-
 ENV GOPATH=/go
 ENV PATH=${PATH}:/usr/local/go/bin:/root/.cargo/bin
 
