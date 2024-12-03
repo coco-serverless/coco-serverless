@@ -15,10 +15,8 @@ use std::{
 };
 
 const BINARY_NAME: &str = "sc2-vm-cache";
-const CONFIG_PATH: &str =
-    "/opt/kata/share/defaults/kata-containers/configuration-qemu-snp-sc2.toml";
-const KATA_COMMAND: &str = "/opt/kata/bin/kata-runtime-sc2";
 const LOG_FILE: &str = "/tmp/sc2_kata_factory.log";
+const KATA_COMMAND: &str = "/opt/kata/bin/kata-runtime-sc2";
 const PAUSED_VM_STRING: &str = "pause vm";
 const PID_FILE: &str = "/tmp/sc2_kata_factory.pid";
 
@@ -32,13 +30,24 @@ struct Factory {
     vm_cache_number: u32,
 }
 
+fn get_config_path() -> String {
+    match env::var("SC2_RUNTIME_CLASS") {
+        Ok(value) => format!("/opt/kata/share/defaults/kata-containers/configuration-{value}.toml"),
+        Err(e) => {
+            error!("failed to get runtime class from env. variable: {e}");
+            panic!("failed to read SC2_RUNTIME_CLASS");
+        },
+    }
+}
+
 /// Function to read the `vm_cache_number` from the TOML configuration file
 fn read_vm_cache_number() -> Option<u32> {
     // Read the file contents
-    let contents = match fs::read_to_string(CONFIG_PATH) {
+    let config_path = get_config_path();
+    let contents = match fs::read_to_string(&config_path) {
         Ok(contents) => contents,
         Err(e) => {
-            error!("failed to read config file {CONFIG_PATH}: {e}");
+            error!("failed to read config file {config_path}: {e}");
             return None;
         }
     };
@@ -79,7 +88,7 @@ fn run_kata_runtime() -> std::io::Result<Child> {
     Command::new(KATA_COMMAND)
         .args([
             "--config",
-            CONFIG_PATH,
+            &get_config_path(),
             "--log",
             LOG_FILE,
             "factory",
