@@ -15,10 +15,8 @@ use std::{
 };
 
 const BINARY_NAME: &str = "sc2-vm-cache";
-const LOG_FILE: &str = "/tmp/sc2_kata_factory.log";
 const KATA_COMMAND: &str = "/opt/kata/bin/kata-runtime-sc2";
 const PAUSED_VM_STRING: &str = "pause vm";
-const PID_FILE: &str = "/tmp/sc2_kata_factory.pid";
 
 #[derive(Deserialize, Debug)]
 struct FactoryConfig {
@@ -30,13 +28,30 @@ struct Factory {
     vm_cache_number: u32,
 }
 
+fn expand_home(path: &str) -> String {
+    if path.starts_with('~') {
+        if let Ok(home) = std::env::var("HOME") {
+            return path.replacen('~', &home, 1);
+        }
+    }
+    path.to_string()
+}
+
+fn get_log_file() -> String {
+    expand_home("~/.config/sc2/kata_factory.log")
+}
+
+fn get_pid_file() -> String {
+    expand_home("~/.config/sc2/kata_factory.pid")
+}
+
 fn get_config_path() -> String {
     match env::var("SC2_RUNTIME_CLASS") {
         Ok(value) => format!("/opt/kata/share/defaults/kata-containers/configuration-{value}.toml"),
         Err(e) => {
             error!("failed to get runtime class from env. variable: {e}");
             panic!("failed to read SC2_RUNTIME_CLASS");
-        },
+        }
     }
 }
 
@@ -90,7 +105,7 @@ fn run_kata_runtime() -> std::io::Result<Child> {
             "--config",
             &get_config_path(),
             "--log",
-            LOG_FILE,
+            &get_log_file(),
             "factory",
             "init",
         ])
@@ -100,14 +115,14 @@ fn run_kata_runtime() -> std::io::Result<Child> {
 }
 
 fn save_pid(pid: u32) -> std::io::Result<()> {
-    let mut file = File::create(PID_FILE)?;
+    let mut file = File::create(get_pid_file())?;
     writeln!(file, "{}", pid)?;
 
     Ok(())
 }
 
 fn read_pid() -> std::io::Result<u32> {
-    let content = std::fs::read_to_string(PID_FILE)?;
+    let content = std::fs::read_to_string(get_pid_file())?;
     content.trim().parse::<u32>().map_err(|e| {
         error!("failed to parse PID: {e}");
         std::io::Error::new(
@@ -128,8 +143,8 @@ fn stop_background_process() -> std::io::Result<()> {
         })?;
 
         info!("stopped background process with PID {pid}");
-        std::fs::remove_file(PID_FILE)?;
-        std::fs::remove_file(LOG_FILE)?;
+        std::fs::remove_file(get_pid_file())?;
+        std::fs::remove_file(get_log_file())?;
     } else {
         error!("no running process found");
     }
@@ -159,11 +174,12 @@ fn tail_log_file(in_background: bool) {
     info!("expecting {expected_cache_size} VMs in the cache");
 
     // Open log file
+    let log_file = get_log_file();
     let file = loop {
-        match File::open(LOG_FILE) {
+        match File::open(&log_file) {
             Ok(file) => break file,
             Err(e) => {
-                warn!("failed to open log file {LOG_FILE}: {e}");
+                warn!("failed to open log file {log_file}: {e}");
                 thread::sleep(Duration::from_secs(1));
             }
         }
@@ -235,7 +251,7 @@ fn run_foreground() -> std::io::Result<()> {
 
     // Wait for the process to finish
     let _ = child.wait()?;
-    std::fs::remove_file(LOG_FILE)?;
+    std::fs::remove_file(get_log_file())?;
 
     Ok(())
 }
