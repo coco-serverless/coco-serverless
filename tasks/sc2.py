@@ -75,7 +75,7 @@ def install_sc2_runtime(debug=False):
     for sc2_runtime in SC2_RUNTIMES:
         if "snp" in sc2_runtime:
             src_conf_path = join(KATA_CONFIG_DIR, "configuration-qemu-snp.toml")
-        elif "tdx" in sc2_runtime:
+        elif "qemu-tdx" in sc2_runtime:
             src_conf_path = join(KATA_CONFIG_DIR, "configuration-qemu-tdx.toml")
         dst_conf_path = join(KATA_CONFIG_DIR, f"configuration-{sc2_runtime}.toml")
         run(f"sudo cp {src_conf_path} {dst_conf_path}", shell=True, check=True)
@@ -188,7 +188,12 @@ def deploy(ctx, debug=False, clean=False):
     """
     Deploy an SC2-enabled bare-metal Kubernetes cluster
     """
-    # TODO: must indicate if it is an SNP or a TDX install
+    # Fail-fast if deployment exists
+    if exists(SC2_DEPLOYMENT_FILE):
+        print(f"ERROR: SC2 already deployed (file {SC2_DEPLOYMENT_FILE} exists)")
+        print("ERROR: only remove deployment file if you know what you are doing!")
+        raise RuntimeError("SC2 already deployed!")
+
     if clean:
         # Remove all directories that we populate and modify
         for nuked_dir in [COCO_ROOT, KATA_ROOT, HOST_CERT_DIR]:
