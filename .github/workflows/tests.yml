@@ -43,6 +43,7 @@ jobs:
             runtime_classes: "qemu qemu-coco-dev qemu-snp qemu-snp-sc2"
           - tee: tdx
             runtime_classes: "qemu qemu-coco-dev qemu-tdx qemu-tdx-sc2"
+        fail-fast: false
 
     runs-on: [self-hosted, "${{ matrix.tee }}"]
     env:
@@ -55,7 +56,7 @@ jobs:
 
       - name: "Run python hello world"
         run: |
-          for runtime_class in "${{ matrix.runtime_classes }}"; do
+          for runtime_class in ${{ matrix.runtime_classes }}; do
             echo "Running test for ${runtime_class}..."
             export SC2_RUNTIME_CLASS=${runtime_class}
             envsubst < ./demo-apps/helloworld-py/deployment.yaml | ./bin/kubectl apply -f -
@@ -80,7 +81,7 @@ jobs:
 
       - name: "Run Knative hello world"
         run: |
-          for runtime_class in "${{ matrix.runtime_classes }}"; do
+          for runtime_class in ${{ matrix.runtime_classes }}; do
             echo "Running test for ${runtime_class}..."
             export SC2_RUNTIME_CLASS=${runtime_class}
             envsubst < ./demo-apps/helloworld-knative/service.yaml | ./bin/kubectl apply -f -
@@ -103,7 +104,7 @@ jobs:
 
       - name: "Enable default-memory annotation"
         run: |
-          for runtime_class in "${{ matrix.runtime_classes }}"; do
+          for runtime_class in ${{ matrix.runtime_classes }}; do
             ./bin/inv_wrapper.sh kata.enable-annotation default_memory --runtime ${runtime_class}
           done
 
@@ -114,7 +115,7 @@ jobs:
 
       - name: "Run knative chaining demo"
         run: |
-          for runtime_class in "${{ matrix.runtime_classes }}"; do
+          for runtime_class in ${{ matrix.runtime_classes }}; do
             echo "Running test for ${runtime_class}..."
             export SC2_RUNTIME_CLASS=${runtime_class}
             envsubst < ./demo-apps/knative-chaining/chaining.yaml | ./bin/kubectl apply -f -
