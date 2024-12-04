@@ -36,7 +36,7 @@ complete -F _complete_invoke -o default invoke inv
 
 VM_CACHE_ROOT=${PROJ_ROOT}/vm-cache
 VM_CACHE_BINARY=${VM_CACHE_ROOT}/target/release/vm-cache
-alias sc2-vm-cache="cargo build -q --release --manifest-path ${VM_CACHE_ROOT}/Cargo.toml && sudo ${VM_CACHE_BINARY}"
+alias sc2-vm-cache="cargo build -q --release --manifest-path ${VM_CACHE_ROOT}/Cargo.toml && sudo -E ${VM_CACHE_BINARY}"
 
 # ----------------------------------
 # Useful env. variables

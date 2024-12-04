@@ -15,10 +15,8 @@ use std::{
 };
 
 const BINARY_NAME: &str = "sc2-vm-cache";
-const LOG_FILE: &str = "/tmp/sc2_kata_factory.log";
 const KATA_COMMAND: &str = "/opt/kata/bin/kata-runtime-sc2";
 const PAUSED_VM_STRING: &str = "pause vm";
-const PID_FILE: &str = "/tmp/sc2_kata_factory.pid";
 
 #[derive(Deserialize, Debug)]
 struct FactoryConfig {
@@ -30,13 +28,30 @@ struct Factory {
     vm_cache_number: u32,
 }
 
+fn expand_home(path: &str) -> String {
+    if path.starts_with('~') {
+        if let Ok(home) = std::env::var("HOME") {
+            return path.replacen('~', &home, 1);
+        }
+    }
+    path.to_string()
+}
+
+fn get_log_file() -> String {
+    expand_home("~/.config/sc2/kata_factory.log")
+}
+
+fn get_pid_file() -> String {
+    expand_home("~/.config/sc2/kata_factory.pid")
+}
+
 fn get_config_path() -> String {
     match env::var("SC2_RUNTIME_CLASS") {
         Ok(value) => format!("/opt/kata/share/defaults/kata-containers/configuration-{value}.toml"),
         Err(e) => {
             error!("failed to get runtime class from env. variable: {e}");
             panic!("failed to read SC2_RUNTIME_CLASS");
-        },
+        }
     }
 }
 
@@ -90,7 +105,7 @@ fn run_kata_runtime() -> std::io::Result<Child> {
             "--config",
             &get_config_path(),
             "--log",
-            LOG_FILE,
+            &get_log_file(),
             "factory",
             "init",
         ])
@@ -100,14 +115,14 @@ fn run_kata_runtime() -> std::io::Result<Child> {
 }
 
 fn save_pid(pid: u32) -> std::io::Result<()> {
-    let mut file = File::create(PID_FILE)?;
+    let mut file = File::create(get_pid_file())?;
     writeln!(file, "{}", pid)?;
 
     Ok(())
 }
 
 fn read_pid() -> std::io::Result<u32> {
-    let content = std::fs::read_to_string(PID_FILE)?;
+    let content = std::fs::read_to_string(get_pid_file())?;
     content.trim().parse::<u32>().map_err(|e| {
         error!("failed to parse PID: {e}");
         std::io::Error::new(
@@ -128,8 +143,8 @@ fn stop_background_process() -> std::io::Result<()> {
         })?;
 
         info!("stopped background process with PID {pid}");
-        std::fs::remove_file(PID_FILE)?;
-        std::fs::remove_file(LOG_FILE)?;
+        std::fs::remove_file(get_pid_file())?;
+        std::fs::remove_file(get_log_file())?;
     } else {
         error!("no running process found");
     }
@@ -159,11 +174,12 @@ fn tail_log_file(in_background: bool) {
     info!("expecting {expected_cache_size} VMs in the cache");
 
     // Open log file
+    let log_file = get_log_file();
     let file = loop {
-        match File::open(LOG_FILE) {
+        match File::open(&log_file) {
             Ok(file) => break file,
             Err(e) => {
-                warn!("failed to open log file {LOG_FILE}: {e}");
+                warn!("failed to open log file {log_file}: {e}");
                 thread::sleep(Duration::from_secs(1));
             }
         }
@@ -235,7 +251,7 @@ fn run_foreground() -> std::io::Result<()> {
 
     // Wait for the process to finish
     let _ = child.wait()?;
-    std::fs::remove_file(LOG_FILE)?;
+    std::fs::remove_file(get_log_file())?;
 
     Ok(())
 }
@@ -255,6 +271,60 @@ fn run_background() -> std::io::Result<()> {
     Ok(())
 }
 
+/// Function to prune all qemu processes that may be dangling after a failed
+/// cache stop
+fn prune_qemu_processes() -> std::io::Result<()> {
+    // List all QEMU commands using SC2
+    let output = Command::new("sh")
+        .arg("-c")
+        .arg("ps -ef | grep qemu | grep sc2 | grep -v 'grep' || true")
+        .output()?;
+
+    if !output.status.success() {
+        error!("failed to execute ps command");
+        panic!("failed to execute ps command");
+    }
+
+    // Extract PID from output
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    let pids: Vec<u32> = stdout
+        .lines()
+        .filter_map(|line| {
+            let fields: Vec<&str> = line.split_whitespace().collect();
+            fields.get(1).and_then(|pid| pid.parse::<u32>().ok())
+        })
+        .collect();
+
+    if pids.is_empty() {
+        info!("no matching processes found");
+        return Ok(());
+    }
+
+    // Kill dangling processes
+    for pid in pids {
+        info!("killing PID: {}", pid);
+        let status = Command::new("kill").arg("-9").arg(pid.to_string()).status();
+
+        match status {
+            Ok(status) if status.success() => debug!("successfully killed PID {}", pid),
+            _ => error!("failed to kill PID {}", pid),
+        }
+    }
+
+    // Lastly, when pruning also remove the kata cache socket
+    let status = Command::new("rm")
+        .arg("-f")
+        .arg("/var/run/kata-containers/cache.sock")
+        .status();
+
+    match status {
+        Ok(_) => info!("removed kata cache socket"),
+        _ => error!("error removing kata cache socket"),
+    }
+
+    Ok(())
+}
+
 fn main() {
     init_logger();
     let args: Vec<String> = env::args().collect();
@@ -267,6 +337,7 @@ fn main() {
     let result = match args[1].as_str() {
         "foreground" => run_foreground(),
         "background" => run_background(),
+        "prune" => prune_qemu_processes(),
         "stop" => stop_background_process(),
         _ => {
             error!("invalid mode: {}", args[1]);

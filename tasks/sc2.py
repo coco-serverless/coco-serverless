@@ -264,9 +264,6 @@ def destroy(ctx, debug=False):
     # Destroy k8s cluster
     k8s_destroy(ctx, debug=debug)
 
-    # Stop docker registry
-    stop_local_registry(ctx, debug=debug)
-
     # Stop VM cache server
     vm_cache_dir = join(PROJ_ROOT, "vm-cache")
     result = run(
@@ -284,3 +281,6 @@ def destroy(ctx, debug=False):
     assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
     if debug:
         print(result.stdout.decode("utf-8").strip())
+
+    # Stop docker registry
+    stop_local_registry(ctx, debug=debug)
