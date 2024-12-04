@@ -42,13 +42,13 @@ jobs:
   integration-tests:
     if: github.event.pull_request.draft == false
     strategy:
+      fail-fast: false
       matrix:
         include:
           - tee: snp
             runtime_classes: "qemu qemu-coco-dev qemu-snp qemu-snp-sc2"
           - tee: tdx
             runtime_classes: "qemu qemu-coco-dev qemu-tdx qemu-tdx-sc2"
-        fail-fast: false
 
     runs-on: [self-hosted, "${{ matrix.tee }}"]
     env:
