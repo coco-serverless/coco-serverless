@@ -7,5 +7,4 @@ matplotlib>=3.8.0
 pandas>=2.1.1
 psutil>=5.9.6
 pymysql>=1.1.0
-python-language-server[all]
 sev-snp-measure>=0.0.7
