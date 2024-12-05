@@ -183,13 +183,16 @@ server = "https://{registry_url}"
     """.format(
         registry_url=LOCAL_REGISTRY_URL, containerd_cert_path=containerd_cert_path
     )
-    run(
-        "sudo sh -c \"echo '{}' > {}\"".format(
-            containerd_certs_file, join(containerd_certs_dir, "hosts.toml")
-        ),
-        shell=True,
-        check=True,
+
+    cmd = """
+sudo sh -c 'cat <<EOF > {destination_file}
+{file_contents}
+EOF'
+""".format(
+        destination_file=join(containerd_certs_dir, "hosts.toml"),
+        file_contents=containerd_certs_file.strip(),
     )
+    run(cmd, shell=True, check=True)
 
     # Copy the certificate to the corresponding containerd directory
     run(f"sudo cp {HOST_CERT_PATH} {containerd_cert_path}", shell=True, check=True)
