@@ -111,6 +111,9 @@ jobs:
         run: |
           for runtime_class in ${{ matrix.runtime_classes }}; do
             ./bin/inv_wrapper.sh kata.enable-annotation default_memory --runtime ${runtime_class}
+            # Here we benefit that the last variable is the one we want to use
+            # for vm-cache
+            export SC2_RUNTIME_CLASS=${runtime_class}
           done
 
           # Aftre changing the annotation of the qemu-snp-sc2 runtime class we
