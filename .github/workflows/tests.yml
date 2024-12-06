@@ -17,9 +17,9 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
-  code-format:
+  checks:
     if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v4
@@ -27,12 +27,17 @@ jobs:
       - name: "Python formatting check"
         run: ./bin/inv_wrapper.sh format-code --check
       # Rust formatting checks
-      - name: "Run cargo fmt check"
-        run: cargo fmt --all -- --check
-        working-directory: ./vm-cache
-      - name: "Run cargo clippy"
-        run: cargo clippy -- -D warnings
-        working-directory: ./vm-cache
+      - name: "Run cargo lints"
+        run: |
+          for dir in "./vm-cache/" "./tools/check-kata-hashes"; do
+            pushd ${dir} >> /dev/null
+            cargo fmt --all -- --check
+            cargo clippy -- -D warnings
+            popd >> /dev/null
+          done
+      - name: "Check Kata hashes match"
+        run: cargo run --release
+        working-directory: ./tools/check-kata-hashes
 
   setup-cluster:
     if: github.event.pull_request.draft == false
