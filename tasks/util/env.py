@@ -1,4 +1,4 @@
-from os.path import dirname, realpath, join
+from os.path import dirname, expanduser, realpath, join
 from subprocess import run
 from tasks.util.versions import KATA_VERSION
 
@@ -45,15 +45,21 @@ BASE_IMAGE_TAG = join(GHCR_URL, GITHUB_ORG, "base") + ":0.10.0"
 # Kata Version is determined by CoCo version
 KATA_ROOT = join("/opt", "kata")
 
-# Kata config
+# ---------- Kata config ----------
+
 KATA_CONFIG_DIR = join(KATA_ROOT, "share", "defaults", "kata-containers")
 KATA_IMG_DIR = join(KATA_ROOT, "share", "kata-containers")
 KATA_WORKON_CTR_NAME = "kata-workon"
 KATA_IMAGE_TAG = join(GHCR_URL, GITHUB_ORG, "kata-containers") + f":{KATA_VERSION}"
-KATA_RUNTIMES = ["qemu-coco-dev", "qemu-snp"]
-SC2_RUNTIMES = ["qemu-snp-sc2"]
+KATA_RUNTIMES = ["qemu-coco-dev", "qemu-snp", "qemu-tdx"]
 
-# Apps config
+# ---------- SC2 config ----------
+
+SC2_CONFIG_DIR = join(expanduser("~"), ".config", "sc2")
+SC2_DEPLOYMENT_FILE = join(SC2_CONFIG_DIR, "DEPLOYED")
+SC2_RUNTIMES = ["qemu-snp-sc2", "qemu-tdx-sc2"]
+
+# ---------- Apps config ----------
 
 APPS_SOURCE_DIR = join(PROJ_ROOT, "demo-apps")
 

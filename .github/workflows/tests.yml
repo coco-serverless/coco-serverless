@@ -19,7 +19,7 @@ concurrency:
 jobs:
   code-format:
     if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v4
@@ -27,16 +27,27 @@ jobs:
       - name: "Python formatting check"
         run: ./bin/inv_wrapper.sh format-code --check
       # Rust formatting checks
-      - name: "Run cargo fmt check"
-        run: cargo fmt --all -- --check
-        working-directory: ./vm-cache
-      - name: "Run cargo clippy"
-        run: cargo clippy -- -D warnings
-        working-directory: ./vm-cache
+      - name: "Run cargo lints"
+        run: |
+          for dir in "./vm-cache/" "./tee-detect"; do
+            pushd ${dir} >> /dev/null
+            cargo fmt --all -- --check
+            cargo clippy -- -D warnings
+            popd >> /dev/null
+          done
 
-  setup-cluster:
+  integration-tests:
     if: github.event.pull_request.draft == false
-    runs-on: self-hosted
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - tee: snp
+            runtime_classes: "qemu qemu-coco-dev qemu-snp qemu-snp-sc2"
+          - tee: tdx
+            runtime_classes: "qemu qemu-coco-dev qemu-tdx qemu-tdx-sc2"
+
+    runs-on: [self-hosted, "${{ matrix.tee }}"]
     env:
       KUBECONFIG: .config/kubeadm_kubeconfig
     steps:
@@ -47,7 +58,7 @@ jobs:
 
       - name: "Run python hello world"
         run: |
-          for runtime_class in "qemu" "qemu-coco-dev" "qemu-snp" "qemu-snp-sc2"; do
+          for runtime_class in ${{ matrix.runtime_classes }}; do
             echo "Running test for ${runtime_class}..."
             export SC2_RUNTIME_CLASS=${runtime_class}
             envsubst < ./demo-apps/helloworld-py/deployment.yaml | ./bin/kubectl apply -f -
@@ -72,7 +83,7 @@ jobs:
 
       - name: "Run Knative hello world"
         run: |
-          for runtime_class in "qemu" "qemu-coco-dev" "qemu-snp" "qemu-snp-sc2"; do
+          for runtime_class in ${{ matrix.runtime_classes }}; do
             echo "Running test for ${runtime_class}..."
             export SC2_RUNTIME_CLASS=${runtime_class}
             envsubst < ./demo-apps/helloworld-knative/service.yaml | ./bin/kubectl apply -f -
@@ -95,8 +106,11 @@ jobs:
 
       - name: "Enable default-memory annotation"
         run: |
-          for runtime_class in "qemu" "qemu-coco-dev" "qemu-snp" "qemu-snp-sc2"; do
+          for runtime_class in ${{ matrix.runtime_classes }}; do
             ./bin/inv_wrapper.sh kata.enable-annotation default_memory --runtime ${runtime_class}
+            # Here we benefit that the last variable is the one we want to use
+            # for vm-cache
+            export SC2_RUNTIME_CLASS=${runtime_class}
           done
 
           # Aftre changing the annotation of the qemu-snp-sc2 runtime class we
@@ -106,7 +120,7 @@ jobs:
 
       - name: "Run knative chaining demo"
         run: |
-          for runtime_class in "qemu" "qemu-coco-dev" "qemu-snp" "qemu-snp-sc2"; do
+          for runtime_class in ${{ matrix.runtime_classes }}; do
             echo "Running test for ${runtime_class}..."
             export SC2_RUNTIME_CLASS=${runtime_class}
             envsubst < ./demo-apps/knative-chaining/chaining.yaml | ./bin/kubectl apply -f -
