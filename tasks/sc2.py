@@ -33,6 +33,7 @@ from tasks.util.kata import (
     replace_shim as replace_kata_shim,
 )
 from tasks.util.kubeadm import run_kubectl_command
+from tasks.util.registry import HOST_CERT_DIR
 from tasks.util.toml import update_toml
 from tasks.util.versions import COCO_VERSION, KATA_VERSION
 from time import sleep
@@ -184,10 +185,23 @@ def deploy(ctx, debug=False, clean=False):
     """
     # TODO: must indicate if it is an SNP or a TDX install
     if clean:
-        for nuked_dir in [COCO_ROOT, KATA_ROOT]:
+        # Remove all directories that we populate and modify
+        for nuked_dir in [COCO_ROOT, KATA_ROOT, HOST_CERT_DIR]:
             if debug:
                 print(f"WARNING: nuking {nuked_dir}")
             run(f"sudo rm -rf {nuked_dir}", shell=True, check=True)
+
+        # Purge VM cache for a very-clean start
+        vm_cache_dir = join(PROJ_ROOT, "vm-cache")
+        result = run(
+            "sudo target/release/vm-cache purge",
+            cwd=vm_cache_dir,
+            shell=True,
+            capture_output=True,
+        )
+        assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
+        if debug:
+            print(result.stdout.decode("utf-8").strip())
 
     # Disable swap
     run("sudo swapoff -a", shell=True, check=True)
@@ -243,13 +257,8 @@ def destroy(ctx, debug=False):
     """
     Destroy an SC2 cluster
     """
-    # Destroy k8s cluster
-    k8s_destroy(ctx, debug=debug)
-
-    # Stop docker registry
-    stop_local_registry(ctx, debug=debug)
-
-    # Stop VM cache server
+    # Stop VM cache server (must happen before k8s_destroy to make sure all
+    # our config files are there)
     vm_cache_dir = join(PROJ_ROOT, "vm-cache")
     result = run(
         "sudo target/release/vm-cache stop",
@@ -260,3 +269,10 @@ def destroy(ctx, debug=False):
     assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
     if debug:
         print(result.stdout.decode("utf-8").strip())
+
+    # Stop docker registry (must happen before k8s_destroy, as we need to
+    # delete secrets from the cluster)
+    stop_local_registry(ctx, debug=debug)
+
+    # Destroy k8s cluster
+    k8s_destroy(ctx, debug=debug)
