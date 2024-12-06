@@ -45,8 +45,8 @@ elif "${TEE_DETECT_BINARY}" tdx; then
     TEE=tdx
     export SC2_RUNTIME_CLASS=qemu-tdx-sc2
 else
-    echo "sc2-deploy: error: neither SNP nor TDX is enabled"
-    exit 1
+    TEE=none
+    echo "sc2-deploy: WARN: neither SNP nor TDX is enabled"
 fi
 
 # ----------------------------------
