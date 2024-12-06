@@ -27,12 +27,14 @@ jobs:
       - name: "Python formatting check"
         run: ./bin/inv_wrapper.sh format-code --check
       # Rust formatting checks
-      - name: "Run cargo fmt check"
-        run: cargo fmt --all -- --check
-        working-directory: ./vm-cache
-      - name: "Run cargo clippy"
-        run: cargo clippy -- -D warnings
-        working-directory: ./vm-cache
+      - name: "Run cargo lints"
+        run: |
+          for dir in "./vm-cache/" "./tee-detect"; do
+            pushd ${dir} >> /dev/null
+            cargo fmt --all -- --check
+            cargo clippy -- -D warnings
+            popd >> /dev/null
+          done
 
   integration-tests:
     if: github.event.pull_request.draft == false
