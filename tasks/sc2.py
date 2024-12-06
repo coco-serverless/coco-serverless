@@ -194,7 +194,7 @@ def deploy(ctx, debug=False, clean=False):
         # Purge VM cache for a very-clean start
         vm_cache_dir = join(PROJ_ROOT, "vm-cache")
         result = run(
-            "sudo target/release/vm-cache purge",
+            "sudo target/release/vm-cache prune",
             cwd=vm_cache_dir,
             shell=True,
             capture_output=True,
