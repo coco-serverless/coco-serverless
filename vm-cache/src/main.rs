@@ -246,6 +246,60 @@ fn run_background() -> std::io::Result<()> {
     Ok(())
 }
 
+/// Function to prune all qemu processes that may be dangling after a failed
+/// cache stop
+fn prune_qemu_processes() -> std::io::Result<()> {
+    // List all QEMU commands using SC2
+    let output = Command::new("sh")
+        .arg("-c")
+        .arg("ps -ef | grep qemu | grep sc2 | grep -v 'grep' || true")
+        .output()?;
+
+    if !output.status.success() {
+        error!("failed to execute ps command");
+        panic!("failed to execute ps command");
+    }
+
+    // Extract PID from output
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    let pids: Vec<u32> = stdout
+        .lines()
+        .filter_map(|line| {
+            let fields: Vec<&str> = line.split_whitespace().collect();
+            fields.get(1).and_then(|pid| pid.parse::<u32>().ok())
+        })
+        .collect();
+
+    if pids.is_empty() {
+        info!("no matching processes found");
+        return Ok(());
+    }
+
+    // Kill dangling processes
+    for pid in pids {
+        info!("killing PID: {}", pid);
+        let status = Command::new("kill").arg("-9").arg(pid.to_string()).status();
+
+        match status {
+            Ok(status) if status.success() => debug!("successfully killed PID {}", pid),
+            _ => error!("failed to kill PID {}", pid),
+        }
+    }
+
+    // Lastly, when pruning also remove the kata cache socket
+    let status = Command::new("rm")
+        .arg("-f")
+        .arg("/var/run/kata-containers/cache.sock")
+        .status();
+
+    match status {
+        Ok(_) => info!("removed kata cache socket"),
+        _ => error!("error removing kata cache socket"),
+    }
+
+    Ok(())
+}
+
 fn main() {
     init_logger();
     let args: Vec<String> = env::args().collect();
@@ -258,10 +312,11 @@ fn main() {
     let result = match args[1].as_str() {
         "foreground" => run_foreground(),
         "background" => run_background(),
+        "prune" => prune_qemu_processes(),
         "stop" => stop_background_process(),
         _ => {
             error!("invalid mode: {}", args[1]);
-            error!("usage: {BINARY_NAME} <foreground|background|stop>");
+            error!("usage: {BINARY_NAME} <foreground|background|prune|stop>");
 
             std::process::exit(1);
         }
