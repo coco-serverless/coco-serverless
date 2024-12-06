@@ -1,6 +1,8 @@
-use std::fs;
-use std::io::{self, BufRead};
-use std::process::{exit, Command};
+use std::{
+    fs,
+    io::{self, BufRead},
+    process::{exit, Command, Stdio},
+};
 
 const SCRIPT_NAME: &str = "sc2-deploy(check-kata-hash)";
 
@@ -97,6 +99,20 @@ fn main() {
     );
     let branches = ["sc2-main", "sc2-baseline"];
     let mut all_match = true;
+
+    // Pull docker image first
+    let output = Command::new("docker")
+        .arg("pull")
+        .arg(container.clone())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .unwrap();
+
+    if !output.success() {
+        eprintln!("{SCRIPT_NAME}: failed to fetch container image");
+        exit(1);
+    }
 
     for branch in &branches {
         let upstream_hash = match get_upstream_hash(repo, branch) {
