@@ -118,8 +118,8 @@ jobs:
 
           # Aftre changing the annotation of the qemu-snp-sc2 runtime class we
           # need to restart the VM cache
-          sudo ./vm-cache/target/release/vm-cache stop
-          sudo ./vm-cache/target/release/vm-cache background
+          sudo -E ./vm-cache/target/release/vm-cache stop
+          sudo -E ./vm-cache/target/release/vm-cache background
 
       - name: "Run knative chaining demo"
         run: |
