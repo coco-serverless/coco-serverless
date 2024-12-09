@@ -34,7 +34,7 @@ complete -F _complete_invoke -o default invoke inv
 # TEE detection
 # ----------------------------------
 
-TEE_DETECT_ROOT=${PROJ_ROOT}/tee-detect
+TEE_DETECT_ROOT=${PROJ_ROOT}/tools/tee-detect
 TEE_DETECT_BINARY=${TEE_DETECT_ROOT}/target/release/tee-detect
 cargo build -q --release --manifest-path ${TEE_DETECT_ROOT}/Cargo.toml
 
