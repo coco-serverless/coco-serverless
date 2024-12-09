@@ -17,10 +17,10 @@ is deployed on a Kubernetes cluster on top of [Knative](
 https://knative.dev/docs/), and builds on the [Confidential Containers](
 https://github.com/confidential-containers) project.
 
-SC2 currently only supports AMD SEV-SNP as underlying TEE, and requires
-deployment on a bare-metal host. Before moving forward, make sure you have
-SEV-SNP enabled in your server, and check [`snphost ok`](
-https://github.com/virtee/snphost.git) is happy.
+SC2 currently supports AMD SEV-SNP and Intel TDX as underlying TEE, and requires
+deployment on a bare-metal host. Before moving forward, make sure you have a
+correct installation. For SEV-SNP you may use [`snphost ok`](
+https://github.com/virtee/snphost.git).
 
 Lastly, make sure you are using the exact host kernel:
 
@@ -33,6 +33,7 @@ Lastly, make sure you are using the exact host kernel:
 To get started with SC2, clone this repository and run:
 
 ```bash
+# This shell script will auto-detect the installed TEE (TDX or SNP)
 source ./bin/workon.sh
 
 # The following will call `sudo` under the hood
@@ -50,7 +51,8 @@ Knative, and install SC2.
 You can now check that everything is running by running a simple hello world:
 
 ```bash
-export SC2_RUNTIME_CLASS=qemu-snp
+# Use qemu-tdx-sc2 for TDX
+export SC2_RUNTIME_CLASS=qemu-snp-sc2
 
 # Knative demo
 envsubst < ./demo-apps/helloworld-knative/service.yaml | kubectl apply -f -
@@ -69,7 +71,7 @@ After you are done using SC2, you may completely remove the cluster by
 running:
 
 ```bash
-inv sc2.destroy
+inv sc2.destroy [--debug]
 ```
 
 ## Further Reading
