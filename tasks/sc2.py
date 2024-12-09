@@ -1,5 +1,6 @@
 from invoke import task
-from os.path import join
+from os import makedirs
+from os.path import exists, join
 from subprocess import run
 from tasks.containerd import install as containerd_install
 from tasks.demo_apps import push_to_local_registry as push_demo_apps_to_local_registry
@@ -24,6 +25,8 @@ from tasks.util.env import (
     KATA_IMAGE_TAG,
     KATA_IMG_DIR,
     PROJ_ROOT,
+    SC2_CONFIG_DIR,
+    SC2_DEPLOYMENT_FILE,
     SC2_RUNTIMES,
     VM_CACHE_SIZE,
     print_dotted_line,
@@ -72,7 +75,7 @@ def install_sc2_runtime(debug=False):
     for sc2_runtime in SC2_RUNTIMES:
         if "snp" in sc2_runtime:
             src_conf_path = join(KATA_CONFIG_DIR, "configuration-qemu-snp.toml")
-        elif "tdx" in sc2_runtime:
+        elif "qemu-tdx" in sc2_runtime:
             src_conf_path = join(KATA_CONFIG_DIR, "configuration-qemu-tdx.toml")
         dst_conf_path = join(KATA_CONFIG_DIR, f"configuration-{sc2_runtime}.toml")
         run(f"sudo cp {src_conf_path} {dst_conf_path}", shell=True, check=True)
@@ -108,17 +111,19 @@ def install_sc2_runtime(debug=False):
     # Install runttime class on kubernetes
     if debug:
         print("Installing SC2 runtime class...")
-    sc2_runtime_file = join(CONF_FILES_DIR, "sc2_runtimeclass.yaml")
-    run_kubectl_command(f"create -f {sc2_runtime_file}", capture_output=not debug)
+    for sc2_runtime in SC2_RUNTIMES:
+        sc2_runtime_file = join(CONF_FILES_DIR, f"{sc2_runtime}_runtimeclass.yaml")
+        run_kubectl_command(f"create -f {sc2_runtime_file}", capture_output=not debug)
     expected_runtime_classes = [
         "kata",
         "kata-clh",
         "kata-qemu",
         "kata-qemu-coco-dev",
-        "kata-qemu-tdx",
         "kata-qemu-sev",
         "kata-qemu-snp",
         "kata-qemu-snp-sc2",
+        "kata-qemu-tdx",
+        "kata-qemu-tdx-sc2",
     ]
     run_class_cmd = "get runtimeclass -o jsonpath='{.items..handler}'"
     runtime_classes = run_kubectl_command(run_class_cmd, capture_output=True).split(" ")
@@ -172,7 +177,7 @@ def install_sc2_runtime(debug=False):
     if debug:
         print("Running VM cache wrapper in background mode...")
     run(
-        "sudo target/release/vm-cache background > /dev/null 2>&1",
+        "sudo -E target/release/vm-cache background > /dev/null 2>&1",
         cwd=vm_cache_dir,
         shell=True,
     )
@@ -183,7 +188,12 @@ def deploy(ctx, debug=False, clean=False):
     """
     Deploy an SC2-enabled bare-metal Kubernetes cluster
     """
-    # TODO: must indicate if it is an SNP or a TDX install
+    # Fail-fast if deployment exists
+    if exists(SC2_DEPLOYMENT_FILE):
+        print(f"ERROR: SC2 already deployed (file {SC2_DEPLOYMENT_FILE} exists)")
+        print("ERROR: only remove deployment file if you know what you are doing!")
+        raise RuntimeError("SC2 already deployed!")
+
     if clean:
         # Remove all directories that we populate and modify
         for nuked_dir in [COCO_ROOT, KATA_ROOT, HOST_CERT_DIR]:
@@ -220,7 +230,7 @@ def deploy(ctx, debug=False, clean=False):
     operator_install(ctx, debug=debug)
     operator_install_cc_runtime(ctx, debug=debug)
 
-    # Start a local docker registry (must happen before the local registry,
+    # Start a local docker registry (must happen before knative installation,
     # as we rely on it to host our sidecar image)
     start_local_registry(ctx, debug=debug, clean=clean)
 
@@ -251,6 +261,14 @@ def deploy(ctx, debug=False, clean=False):
     # Push demo apps to local registry for easy testing
     push_demo_apps_to_local_registry(ctx, debug=debug)
 
+    # Finally, create a deployment file (right now, it is empty)
+    if not exists(SC2_CONFIG_DIR):
+        makedirs(SC2_CONFIG_DIR)
+    result = run(f"touch {SC2_DEPLOYMENT_FILE}", shell=True, capture_output=True)
+    assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
+    if debug:
+        print(result.stdout.decode("utf-8").strip())
+
 
 @task
 def destroy(ctx, debug=False):
@@ -276,3 +294,9 @@ def destroy(ctx, debug=False):
 
     # Destroy k8s cluster
     k8s_destroy(ctx, debug=debug)
+
+    # Remove deployment file
+    result = run(f"rm -f {SC2_DEPLOYMENT_FILE}", shell=True, capture_output=True)
+    assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
+    if debug:
+        print(result.stdout.decode("utf-8").strip())
