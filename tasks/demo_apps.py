@@ -8,6 +8,7 @@ from tasks.util.env import (
     LOCAL_REGISTRY_URL,
     print_dotted_line,
 )
+from tasks.util.nydus import nydusify
 
 APP_LIST = {
     "helloworld-py": join(APPS_SOURCE_DIR, "helloworld-py"),
@@ -15,15 +16,23 @@ APP_LIST = {
 }
 
 
-def get_docker_tag_for_app(app_name):
+def get_docker_tag_for_app(app_name, nydus=False):
     docker_tag = join(GHCR_URL, GITHUB_ORG, "applications", app_name)
     docker_tag += ":unencrypted"
+
+    if nydus:
+        docker_tag += "-nydus"
+
     return docker_tag
 
 
-def get_local_registry_tag_for_app(app_name):
+def get_local_registry_tag_for_app(app_name, nydus=False):
     docker_tag = join(LOCAL_REGISTRY_URL, "applications", app_name)
     docker_tag += ":unencrypted"
+
+    if nydus:
+        docker_tag += "-nydus"
+
     return docker_tag
 
 
@@ -58,6 +67,9 @@ def build(ctx, app=None, nocache=False):
         docker_cmd = "docker push {}".format(get_docker_tag_for_app(app_name))
         run(docker_cmd, shell=True, check=True)
 
+        # Now, convert it to a nydus image, and push again
+        nydusify(get_docker_tag_for_app(app_name), get_docker_tag_for_app(app_name, nydus=True))
+
 
 @task
 def push_to_local_registry(ctx, debug=False):
@@ -67,28 +79,35 @@ def push_to_local_registry(ctx, debug=False):
     print_dotted_line("Pushing {} demo apps to local regsitry".format(len(APP_LIST)))
 
     for app_name in APP_LIST:
-        docker_tag = get_docker_tag_for_app(app_name)
-        local_registry_tag = get_local_registry_tag_for_app(app_name)
+        docker_tags = [
+            get_docker_tag_for_app(app_name),
+            get_docker_tag_for_app(app_name, nydus=True),
+        ]
+        local_registry_tags = [
+            get_local_registry_tag_for_app(app_name),
+            get_local_registry_tag_for_app(app_name, nydus=True),
+        ]
 
-        result = run(f"docker pull {docker_tag}", shell=True, capture_output=True)
-        assert result.returncode == 0, result.stderr.decode("utf-8").strip()
-        if debug:
-            print(result.stdout.decode("utf-8").strip())
+        for docker_tag, local_registry_tag in zip(docker_tags, local_registry_tags):
+            result = run(f"docker pull {docker_tag}", shell=True, capture_output=True)
+            assert result.returncode == 0, result.stderr.decode("utf-8").strip()
+            if debug:
+                print(result.stdout.decode("utf-8").strip())
 
-        result = run(
-            f"docker tag {docker_tag} {local_registry_tag}",
-            shell=True,
-            capture_output=True,
-        )
-        assert result.returncode == 0, result.stderr.decode("utf-8").strip()
-        if debug:
-            print(result.stdout.decode("utf-8").strip())
+            result = run(
+                f"docker tag {docker_tag} {local_registry_tag}",
+                shell=True,
+                capture_output=True,
+            )
+            assert result.returncode == 0, result.stderr.decode("utf-8").strip()
+            if debug:
+                print(result.stdout.decode("utf-8").strip())
 
-        result = run(
-            f"docker push {local_registry_tag}", shell=True, capture_output=True
-        )
-        assert result.returncode == 0, result.stderr.decode("utf-8").strip()
-        if debug:
-            print(result.stdout.decode("utf-8").strip())
+            result = run(
+                f"docker push {local_registry_tag}", shell=True, capture_output=True
+            )
+            assert result.returncode == 0, result.stderr.decode("utf-8").strip()
+            if debug:
+                print(result.stdout.decode("utf-8").strip())
 
     print("Success!")
