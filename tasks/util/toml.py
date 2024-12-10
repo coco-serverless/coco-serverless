@@ -114,7 +114,6 @@ def read_value_from_toml(toml_file_path, toml_path):
 
 def do_remove_entry_from_toml(toml_dict, toml_path):
     toml_levels = split_dot_preserve_quotes(toml_path)
-    print("levels", toml_levels)
     dict_key = toml_levels[0]
 
     if dict_key not in toml_dict:
