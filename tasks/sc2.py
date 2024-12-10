@@ -40,6 +40,8 @@ from tasks.util.registry import HOST_CERT_DIR
 from tasks.util.toml import update_toml
 from tasks.util.versions import COCO_VERSION, KATA_VERSION
 from time import sleep
+# TODO: delete me
+from tasks.util.toml import read_value_from_toml
 
 
 def install_sc2_runtime(debug=False):
@@ -257,6 +259,18 @@ def deploy(ctx, debug=False, clean=False):
     print_dotted_line(f"Installing SC2 (v{COCO_VERSION})")
     install_sc2_runtime(debug=debug)
     print("Success!")
+
+    # TODO: delete me
+    CONTAINERD_CONFIG_ROOT = "/etc/containerd"
+    containerd_base_certs_dir = join(CONTAINERD_CONFIG_ROOT, "certs.d")
+    config_path_value = read_value_from_toml(
+        CONTAINERD_CONFIG_FILE,
+        'plugins."io.containerd.grpc.v1.cri".registry.config_path',
+    )
+    if config_path_value != containerd_base_certs_dir:
+        raise RuntimeError("Error populating contaienrd config path!")
+    elif debug:
+        print(f"Containerd registry config path: {config_path_value}")
 
     # Push demo apps to local registry for easy testing
     push_demo_apps_to_local_registry(ctx, debug=debug)

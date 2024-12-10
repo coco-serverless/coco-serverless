@@ -24,6 +24,7 @@ from tasks.util.registry import (
 )
 from tasks.util.toml import read_value_from_toml, update_toml
 from tasks.util.versions import REGISTRY_VERSION
+from time import sleep
 
 REGISTRY_IMAGE_TAG = f"registry:{REGISTRY_VERSION}"
 
@@ -168,11 +169,12 @@ def start(ctx, debug=False, clean=False):
     )
     update_toml(CONTAINERD_CONFIG_FILE, updated_toml_str)
 
+    # TODO: delete me
     config_path_value = read_value_from_toml(
         CONTAINERD_CONFIG_FILE,
         'plugins."io.containerd.grpc.v1.cri".registry.config_path',
     )
-    if config_path_value == "":
+    if config_path_value != containerd_base_certs_dir:
         raise RuntimeError("Error populating contaienrd config path!")
     elif debug:
         print(f"Containerd registry config path: {config_path_value}")
@@ -206,6 +208,8 @@ EOF'
     # Copy the certificate to the corresponding containerd directory
     run(f"sudo cp {HOST_CERT_PATH} {containerd_cert_path}", shell=True, check=True)
 
+    sleep(3)
+
     # Restart containerd to pick up the changes
     run("sudo service containerd restart", shell=True, check=True)
 
@@ -231,6 +235,16 @@ EOF'
     # be able to upload the side-car image there. To this extent, we defer
     # the configuration of Knative to the Knative install script.
     # ----------
+
+    # TODO: delete me
+    config_path_value = read_value_from_toml(
+        CONTAINERD_CONFIG_FILE,
+        'plugins."io.containerd.grpc.v1.cri".registry.config_path',
+    )
+    if config_path_value != containerd_base_certs_dir:
+        raise RuntimeError("Error populating contaienrd config path!")
+    elif debug:
+        print(f"Containerd registry config path: {config_path_value}")
 
     print("Success!")
 
