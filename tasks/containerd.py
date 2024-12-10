@@ -17,7 +17,9 @@ from tasks.util.toml import update_toml
 from tasks.util.versions import CONTAINERD_VERSION
 
 CONTAINERD_CTR_NAME = "containerd-workon"
-CONTAINERD_IMAGE_TAG = join(GHCR_URL, GITHUB_ORG, "containerd") + f":{CONTAINERD_VERSION}"
+CONTAINERD_IMAGE_TAG = (
+    join(GHCR_URL, GITHUB_ORG, "containerd") + f":{CONTAINERD_VERSION}"
+)
 
 
 def do_build(debug=False):

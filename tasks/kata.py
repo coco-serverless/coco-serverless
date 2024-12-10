@@ -125,8 +125,7 @@ def enable_annotation(ctx, annotation, runtime="qemu-snp-sc2"):
 def replace_agent(ctx, debug=False, runtime="qemu-snp-sc2"):
     replace_kata_agent(
         dst_initrd_path=join(
-            KATA_IMG_DIR,
-            "kata-containers-initrd-confidential-sc2.img"
+            KATA_IMG_DIR, "kata-containers-initrd-confidential-sc2.img"
         ),
         debug=debug,
         sc2=runtime in SC2_RUNTIMES,
