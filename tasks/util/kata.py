@@ -35,11 +35,7 @@ def run_kata_workon_ctr(mount_path=None):
     docker_cmd = [
         "docker run",
         "-d -t",
-        (
-            f"-v {mount_path}:{KATA_SOURCE_DIR}"
-            if mount_path
-            else ""
-        ),
+        (f"-v {mount_path}:{KATA_SOURCE_DIR}" if mount_path else ""),
         "--name {}".format(KATA_WORKON_CTR_NAME),
         KATA_IMAGE_TAG,
         "bash",

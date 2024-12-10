@@ -111,12 +111,14 @@ def push_to_local_registry(ctx, debug=False):
 
         # For nydus, we directly use `nydusify copy` as we cannot `docker pull`
         # a nydus image
-        result = run("{} copy --source {} --target {} --target-insecure".format(
-            NYDUSIFY_PATH,
-            get_docker_tag_for_app(app_name, nydus=True),
-            get_local_registry_tag_for_app(app_name, nydus=True)),
+        result = run(
+            "{} copy --source {} --target {} --target-insecure".format(
+                NYDUSIFY_PATH,
+                get_docker_tag_for_app(app_name, nydus=True),
+                get_local_registry_tag_for_app(app_name, nydus=True),
+            ),
             shell=True,
-            capture_output=True
+            capture_output=True,
         )
         assert result.returncode == 0, result.stderr.decode("utf-8").strip()
 
