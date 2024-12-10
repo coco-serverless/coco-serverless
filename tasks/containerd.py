@@ -1,5 +1,5 @@
 from invoke import task
-from os import makedirs
+from os import makedirs, stat
 from os.path import join
 from subprocess import CalledProcessError, run
 from tasks.util.docker import is_ctr_running
@@ -260,4 +260,9 @@ def install(ctx, debug=False, clean=False):
 
     # Restart containerd service
     restart_containerd()
+
+    # Sanity check
+    if stat(CONTAINERD_CONFIG_FILE).st_size == 0:
+        raise RuntimeError("containerd config file is empty!")
+
     print("Success!")
