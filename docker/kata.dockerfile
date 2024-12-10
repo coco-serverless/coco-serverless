@@ -13,12 +13,6 @@ RUN apt install -y \
         musl-tools \
         wget
 
-# Install rust
-RUN curl --proto '=https' --tlsv1.3 https://sh.rustup.rs -sSf | sh -s -- -y
-
-ENV GOPATH=/go
-ENV PATH=${PATH}:/usr/local/go/bin:/root/.cargo/bin
-
 # ---------------------------
 # Build Kata
 #
@@ -65,9 +59,5 @@ RUN mkdir -p ${CODE_DIR} \
     && rustup component add rust-analyzer \
     && rustup target add x86_64-unknown-linux-musl \
     && make
-
-# Configure environment variables
-RUN echo "export PATH=${PATH}:/usr/local/go/bin:/root/.cargo/bin" >> ~/.bashrc
-RUN echo "export GOPATH=/go" >> ~/.bashrc
 
 WORKDIR ${CODE_DIR}

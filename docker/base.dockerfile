@@ -45,3 +45,13 @@ RUN mkdir -p /tmp/go \
     && wget https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz \
     && rm -rf /usr/local/go \
     && tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz
+
+# Install rust
+RUN curl --proto '=https' --tlsv1.3 https://sh.rustup.rs -sSf | sh -s -- -y
+
+ENV GOPATH=/go
+ENV PATH=${PATH}:/usr/local/go/bin:/root/.cargo/bin
+
+# Configure environment variables
+RUN echo "export PATH=${PATH}:/usr/local/go/bin:/root/.cargo/bin" >> ~/.bashrc
+RUN echo "export GOPATH=/go" >> ~/.bashrc
