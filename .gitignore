@@ -5,6 +5,7 @@ kubeadm
 kubectl
 kubelet
 k9s
+nydusify
 qemu-system-x86_64-igvm
 ovmf-svsm.fd
 svsm.bin

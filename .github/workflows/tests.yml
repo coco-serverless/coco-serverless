@@ -35,6 +35,7 @@ jobs:
             cargo clippy -- -D warnings
             popd >> /dev/null
           done
+      # TODO: check nydus hashes too!
       - name: "Check Kata hashes match"
         run: cargo run --release
         working-directory: ./tools/check-kata-hashes
