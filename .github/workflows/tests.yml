@@ -29,16 +29,15 @@ jobs:
       # Rust formatting checks
       - name: "Run cargo lints"
         run: |
-          for dir in "./vm-cache/" "./tools/check-kata-hashes" "./tools/tee-detect" "./tools/purge-containerd" "./tools/purge-k8s"; do
+          for dir in "./vm-cache/" "./tools/check-fork-hashes" "./tools/tee-detect" "./tools/purge-containerd" "./tools/purge-k8s"; do
             pushd ${dir} >> /dev/null
             cargo fmt --all -- --check
             cargo clippy -- -D warnings
             popd >> /dev/null
           done
-      # TODO: check nydus hashes too!
-      - name: "Check Kata hashes match"
+      - name: "Check forked dependencies hashes match"
         run: cargo run --release
-        working-directory: ./tools/check-kata-hashes
+        working-directory: ./tools/check-hashes
 
   integration-tests:
     if: github.event.pull_request.draft == false

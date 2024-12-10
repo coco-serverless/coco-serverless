@@ -5,6 +5,7 @@ from tasks.util.containerd import restart_containerd
 from tasks.util.env import (
     KATA_CONFIG_DIR,
     KATA_IMAGE_TAG,
+    KATA_IMG_DIR,
     KATA_ROOT,
     KATA_RUNTIMES,
     KATA_WORKON_CTR_NAME,
@@ -12,6 +13,7 @@ from tasks.util.env import (
     SC2_RUNTIMES,
 )
 from tasks.util.kata import (
+    replace_agent as replace_kata_agent,
     replace_shim as replace_kata_shim,
     run_kata_workon_ctr,
     stop_kata_workon_ctr,
@@ -117,6 +119,18 @@ def enable_annotation(ctx, annotation, runtime="qemu-snp-sc2"):
         ann=",".join([f'"{a}"' for a in enabled_annotations])
     )
     update_toml(conf_file_path, updated_toml_str)
+
+
+@task
+def replace_agent(ctx, debug=False, runtime="qemu-snp-sc2"):
+    replace_kata_agent(
+        dst_initrd_path=join(
+            KATA_IMG_DIR,
+            "kata-containers-initrd-confidential-sc2.img"
+        ),
+        debug=debug,
+        sc2=runtime in SC2_RUNTIMES,
+    )
 
 
 @task

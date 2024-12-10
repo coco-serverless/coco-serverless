@@ -8,7 +8,7 @@ from tasks.util.env import (
     LOCAL_REGISTRY_URL,
     print_dotted_line,
 )
-from tasks.util.nydus import nydusify
+from tasks.util.nydus import NYDUSIFY_PATH, nydusify
 
 APP_LIST = {
     "helloworld-py": join(APPS_SOURCE_DIR, "helloworld-py"),
@@ -68,7 +68,10 @@ def build(ctx, app=None, nocache=False):
         run(docker_cmd, shell=True, check=True)
 
         # Now, convert it to a nydus image, and push again
-        nydusify(get_docker_tag_for_app(app_name), get_docker_tag_for_app(app_name, nydus=True))
+        nydusify(
+            get_docker_tag_for_app(app_name),
+            get_docker_tag_for_app(app_name, nydus=True),
+        )
 
 
 @task
@@ -79,35 +82,42 @@ def push_to_local_registry(ctx, debug=False):
     print_dotted_line("Pushing {} demo apps to local regsitry".format(len(APP_LIST)))
 
     for app_name in APP_LIST:
-        docker_tags = [
-            get_docker_tag_for_app(app_name),
+        docker_tag = get_docker_tag_for_app(app_name)
+        local_registry_tag = get_local_registry_tag_for_app(app_name)
+
+        if debug:
+            print(f"Pushing {docker_tag} to {local_registry_tag}...")
+
+        result = run(f"docker pull {docker_tag}", shell=True, capture_output=True)
+        assert result.returncode == 0, result.stderr.decode("utf-8").strip()
+        if debug:
+            print(result.stdout.decode("utf-8").strip())
+
+        result = run(
+            f"docker tag {docker_tag} {local_registry_tag}",
+            shell=True,
+            capture_output=True,
+        )
+        assert result.returncode == 0, result.stderr.decode("utf-8").strip()
+        if debug:
+            print(result.stdout.decode("utf-8").strip())
+
+        result = run(
+            f"docker push {local_registry_tag}", shell=True, capture_output=True
+        )
+        assert result.returncode == 0, result.stderr.decode("utf-8").strip()
+        if debug:
+            print(result.stdout.decode("utf-8").strip())
+
+        # For nydus, we directly use `nydusify copy` as we cannot `docker pull`
+        # a nydus image
+        result = run("{} copy --source {} --target {} --target-insecure".format(
+            NYDUSIFY_PATH,
             get_docker_tag_for_app(app_name, nydus=True),
-        ]
-        local_registry_tags = [
-            get_local_registry_tag_for_app(app_name),
-            get_local_registry_tag_for_app(app_name, nydus=True),
-        ]
-
-        for docker_tag, local_registry_tag in zip(docker_tags, local_registry_tags):
-            result = run(f"docker pull {docker_tag}", shell=True, capture_output=True)
-            assert result.returncode == 0, result.stderr.decode("utf-8").strip()
-            if debug:
-                print(result.stdout.decode("utf-8").strip())
-
-            result = run(
-                f"docker tag {docker_tag} {local_registry_tag}",
-                shell=True,
-                capture_output=True,
-            )
-            assert result.returncode == 0, result.stderr.decode("utf-8").strip()
-            if debug:
-                print(result.stdout.decode("utf-8").strip())
-
-            result = run(
-                f"docker push {local_registry_tag}", shell=True, capture_output=True
-            )
-            assert result.returncode == 0, result.stderr.decode("utf-8").strip()
-            if debug:
-                print(result.stdout.decode("utf-8").strip())
+            get_local_registry_tag_for_app(app_name, nydus=True)),
+            shell=True,
+            capture_output=True
+        )
+        assert result.returncode == 0, result.stderr.decode("utf-8").strip()
 
     print("Success!")

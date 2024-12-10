@@ -36,7 +36,7 @@ def run_kata_workon_ctr(mount_path=None):
         "docker run",
         "-d -t",
         (
-            f"-v {mount_path}:/go/src/github.com/kata-containers/kata-containers"
+            f"-v {mount_path}:{KATA_SOURCE_DIR}"
             if mount_path
             else ""
         ),
@@ -66,6 +66,9 @@ def stop_kata_workon_ctr():
 # TODO: differentiate between a hot-replace and a regular replace
 def copy_from_kata_workon_ctr(ctr_path, host_path, sudo=False, debug=False):
     ctr_started = run_kata_workon_ctr()
+
+    if not ctr_started and debug:
+        print("Copying agent from running container...")
 
     docker_cmd = "docker cp {}:{} {}".format(
         KATA_WORKON_CTR_NAME,
