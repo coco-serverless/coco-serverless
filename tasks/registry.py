@@ -168,14 +168,14 @@ def start(ctx, debug=False, clean=False):
     )
     update_toml(CONTAINERD_CONFIG_FILE, updated_toml_str)
 
-    if (
-        read_value_from_toml(
-            CONTAINERD_CONFIG_FILE,
-            'plugins."io.containerd.grpc.v1.cri".registry.config_path',
-        )
-        == ""
-    ):
+    config_path_value = read_value_from_toml(
+        CONTAINERD_CONFIG_FILE,
+        'plugins."io.containerd.grpc.v1.cri".registry.config_path',
+    )
+    if config_path_value == "":
         raise RuntimeError("Error populating contaienrd config path!")
+    elif debug:
+        print(f"Containerd registry config path: {config_path_value}")
 
     # Add the correspnding configuration to containerd
     containerd_certs_dir = join(containerd_base_certs_dir, LOCAL_REGISTRY_URL)
