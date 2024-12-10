@@ -2,7 +2,8 @@ from invoke import task
 from os.path import join
 from subprocess import run
 from tasks.util.env import GHCR_URL, GITHUB_ORG, PROJ_ROOT
-from tasks.util.nydus import NYDUSIFY_PATH
+from tasks.util.nydus import NYDUS_CONFIG_FILE, NYDUSIFY_PATH
+from tasks.util.toml import update_toml
 from tasks.util.versions import NYDUS_VERSION, NYDUS_SNAPSHOTTER_VERSION
 
 NYDUS_CTR_NAME = "nydus-workon"
@@ -11,6 +12,13 @@ NYDUS_IMAGE_TAG = join(GHCR_URL, GITHUB_ORG, "nydus") + f":{NYDUS_VERSION}"
 NYDUS_SNAPSHOTTER_IMAGE_TAG = (
     join(GHCR_URL, GITHUB_ORG, "nydus-snapshotter") + f":{NYDUS_SNAPSHOTTER_VERSION}"
 )
+
+# You can see all options to configure the  nydus-snapshotter here:
+# https://github.com/containerd/nydus-snapshotter/blob/main/misc/snapshotter/config.toml
+
+
+def restart_nydus():
+    run("sudo service nydus-snapshotter restart", shell=True, check=True)
 
 
 @task
@@ -109,7 +117,7 @@ def do_install_nydus_snapshotter(debug=False, clean=False):
         run("sudo rm -rf /var/lib/containerd-nydus", shell=True, check=True)
 
     # Restart the nydus service
-    run("sudo service nydus-snapshotter restart", shell=True, check=True)
+    restart_nydus()
 
 
 @task
@@ -119,3 +127,25 @@ def install(ctx, debug=False, clean=False):
     """
     do_install_nydus(debug=debug)
     do_install_nydus_snapshotter(debug=debug, clean=clean)
+
+
+@task
+def set_log_level(ctx, log_level):
+    allowed_log_levels = ["info", "debug"]
+    if log_level not in allowed_log_levels:
+        print(
+            "Unsupported log level '{}'. Must be one in: {}".format(
+                log_level, allowed_log_levels
+            )
+        )
+        return
+
+    updated_toml_str = """
+    [log]
+    level = "{log_level}"
+    """.format(
+        log_level=log_level
+    )
+    update_toml(NYDUS_CONFIG_FILE, updated_toml_str)
+
+    restart_nydus()
