@@ -255,7 +255,7 @@ def deploy(ctx, debug=False, clean=False):
 
     # Install sc2 runtime with patches
     print_dotted_line(f"Installing SC2 (v{COCO_VERSION})")
-    install_sc2_runtime(debug=debug)
+    # install_sc2_runtime(debug=debug)
     print("Success!")
 
     # Push demo apps to local registry for easy testing

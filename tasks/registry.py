@@ -22,7 +22,7 @@ from tasks.util.registry import (
     REGISTRY_CTR_NAME,
     REGISTRY_KEY_FILE,
 )
-from tasks.util.toml import update_toml
+from tasks.util.toml import read_value_from_toml, update_toml
 from tasks.util.versions import REGISTRY_VERSION
 
 REGISTRY_IMAGE_TAG = f"registry:{REGISTRY_VERSION}"
@@ -167,6 +167,15 @@ def start(ctx, debug=False, clean=False):
         containerd_base_certs_dir=containerd_base_certs_dir
     )
     update_toml(CONTAINERD_CONFIG_FILE, updated_toml_str)
+
+    if (
+        read_value_from_toml(
+            CONTAINERD_CONFIG_FILE,
+            'plugins."io.containerd.grpc.v1.cri".registry.config_path',
+        )
+        == ""
+    ):
+        raise RuntimeError("Error populating contaienrd config path!")
 
     # Add the correspnding configuration to containerd
     containerd_certs_dir = join(containerd_base_certs_dir, LOCAL_REGISTRY_URL)
