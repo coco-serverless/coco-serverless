@@ -184,6 +184,16 @@ def start(ctx, debug=False, clean=False):
     if not exists(containerd_certs_dir):
         run("sudo mkdir -p {}".format(containerd_certs_dir), shell=True, check=True)
 
+    # TODO: delete me
+    config_path_value = read_value_from_toml(
+        CONTAINERD_CONFIG_FILE,
+        'plugins."io.containerd.grpc.v1.cri".registry.config_path',
+    )
+    if config_path_value != containerd_base_certs_dir:
+        raise RuntimeError("Error populating contaienrd config path!")
+    elif debug:
+        print(f"Containerd registry config path: {config_path_value}")
+
     containerd_cert_path = join(containerd_certs_dir, "sc2_registry.crt")
     containerd_certs_file = """
 server = "https://{registry_url}"
@@ -205,10 +215,28 @@ EOF'
     )
     run(cmd, shell=True, check=True)
 
+    # TODO: delete me
+    config_path_value = read_value_from_toml(
+        CONTAINERD_CONFIG_FILE,
+        'plugins."io.containerd.grpc.v1.cri".registry.config_path',
+    )
+    if config_path_value != containerd_base_certs_dir:
+        raise RuntimeError("Error populating contaienrd config path!")
+    elif debug:
+        print(f"Containerd registry config path: {config_path_value}")
+
     # Copy the certificate to the corresponding containerd directory
     run(f"sudo cp {HOST_CERT_PATH} {containerd_cert_path}", shell=True, check=True)
 
-    sleep(3)
+    # TODO: delete me
+    config_path_value = read_value_from_toml(
+        CONTAINERD_CONFIG_FILE,
+        'plugins."io.containerd.grpc.v1.cri".registry.config_path',
+    )
+    if config_path_value != containerd_base_certs_dir:
+        raise RuntimeError("Error populating contaienrd config path!")
+    elif debug:
+        print(f"Containerd registry config path: {config_path_value}")
 
     # Restart containerd to pick up the changes
     run("sudo service containerd restart", shell=True, check=True)
