@@ -1,3 +1,4 @@
+from re import findall
 from os import remove
 from os.path import basename, join
 from subprocess import run
@@ -32,6 +33,7 @@ def merge_dicts_recursively(dict_a, dict_b):
                 # If dict_a[k] is not a dict, it means we have reached a leaf
                 # of A, shared with B. In this case we always copy the subtree
                 # from B (irrespective of whether it is a subtree or not)
+                print(f"Overwritting key: {k}, with value:", dict_b[k])
                 dict_a[k] = dict_b[k]
             else:
                 # This situation should be unreachable
@@ -39,6 +41,7 @@ def merge_dicts_recursively(dict_a, dict_b):
         else:
             # If the key is not in the to-be merged dict, we want to copy all
             # the sub-tree
+            print(f"Adding new key: {k}, with value:", dict_b[k])
             dict_a[k] = dict_b[k]
 
 
@@ -64,10 +67,38 @@ def update_toml(toml_path, updates_toml, requires_root=True):
             toml_dump(conf_file, fh)
 
         # sudo-copy the TOML file in place
+        run("sudo cp {} /tmp/{}-{}".format(tmp_conf, basename(toml_path), basename(toml_path)), shell=True, check=True)
+        print("sudo cp {} {}".format(tmp_conf, toml_path))
         run("sudo cp {} {}".format(tmp_conf, toml_path), shell=True, check=True)
     else:
         with open(toml_path, "w") as fh:
             toml_dump(conf_file, fh)
+
+
+def split_dot_preserve_quotes(input_string):
+    """
+    Helper method to split a TOML key by levels (i.e. dots) when some of the
+    keys may container literal strings, between quotes, with dots in them.
+    For example, the following is a valid TOML key:
+    'plugins."io.containerd.grpc.v1.cri".registry'
+    with only three levels.
+    """
+    pattern = r'"([^"]+)"|([^\.]+)'
+    matches = findall(pattern, input_string)
+
+    segments = []
+    for quoted, unquoted in matches:
+        if quoted:
+            segments.append(quoted)
+        elif unquoted:
+            segments.append(unquoted)
+
+    return segments
+
+
+def join_dot_preserve_quote(toml_levels):
+    toml_path = [f'"{level}"' if "." in level else level for level in toml_levels]
+    return ".".join(toml_path)
 
 
 def read_value_from_toml(toml_file_path, toml_path):
@@ -75,7 +106,7 @@ def read_value_from_toml(toml_file_path, toml_path):
     Return the value in a TOML specified by a "." delimited TOML path
     """
     toml_file = toml_load(toml_file_path)
-    for toml_level in toml_path.split("."):
+    for toml_level in split_dot_preserve_quotes(toml_path):
         toml_file = toml_file[toml_level]
 
     if isinstance(toml_file, dict):
@@ -86,7 +117,7 @@ def read_value_from_toml(toml_file_path, toml_path):
 
 
 def do_remove_entry_from_toml(toml_dict, toml_path):
-    toml_levels = toml_path.split(".")
+    toml_levels = split_dot_preserve_quotes(toml_path)
     dict_key = toml_levels[0]
 
     if dict_key not in toml_dict:
@@ -98,7 +129,7 @@ def do_remove_entry_from_toml(toml_dict, toml_path):
 
     toml_dict[dict_key] = do_remove_entry_from_toml(
         toml_dict[dict_key],
-        ".".join(toml_levels[1:]),
+        join_dot_preserve_quote(toml_levels[1:]),
     )
 
     return toml_dict
@@ -114,7 +145,7 @@ def remove_entry_from_toml(toml_file_path, toml_path):
     toml_file = do_remove_entry_from_toml(toml_file, toml_path)
 
     # Dump to temporary file and sudo-copy
-    tmp_toml_file_path = join("/tmp", toml_path)
+    tmp_toml_file_path = join("/tmp", basename(toml_file_path))
     with open(tmp_toml_file_path, "w") as fh:
         toml_dump(toml_file, fh)
 

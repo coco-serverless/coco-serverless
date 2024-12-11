@@ -29,7 +29,7 @@ jobs:
       # Rust formatting checks
       - name: "Run cargo lints"
         run: |
-          for dir in "./vm-cache/" "./tools/check-kata-hashes" "./tools/tee-detect"; do
+          for dir in "./vm-cache/" "./tools/check-kata-hashes" "./tools/tee-detect" "./tools/purge-containerd"; do
             pushd ${dir} >> /dev/null
             cargo fmt --all -- --check
             cargo clippy -- -D warnings
@@ -57,7 +57,7 @@ jobs:
       - name: "Checkout code"
         uses: actions/checkout@v4
       - name: "Install SC2"
-        run: ./bin/inv_wrapper.sh sc2.deploy --clean
+        run: ./bin/inv_wrapper.sh sc2.deploy --clean --debug
 
       - name: "Run python hello world"
         run: |
