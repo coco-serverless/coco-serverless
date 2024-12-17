@@ -237,7 +237,7 @@ def deploy(ctx, debug=False, clean=False):
 
     # Start a local docker registry (must happen before knative installation,
     # as we rely on it to host our sidecar image)
-    start_local_registry(ctx, debug=debug, clean=clean)
+    start_local_registry(debug=debug, clean=clean)
 
     # Install Knative
     knative_install(ctx, debug=debug)
@@ -309,7 +309,7 @@ def destroy(ctx, debug=False):
 
     # Stop docker registry (must happen before k8s_destroy, as we need to
     # delete secrets from the cluster)
-    stop_local_registry(ctx, debug=debug)
+    stop_local_registry(debug=debug)
 
     # Destroy k8s cluster
     k8s_destroy(ctx, debug=debug)
