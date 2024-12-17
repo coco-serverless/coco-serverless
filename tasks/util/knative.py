@@ -61,7 +61,10 @@ def replace_sidecar(
                 break
             except AssertionError:
                 sleep(3)
-                continue
+
+            # Error if we have not managed to break
+            if i == num_retries - 1:
+                raise RuntimeError("Error pushing image to registry")
 
     # Get the digest for the recently pulled image, and use it to update
     # Knative's deployment configmap
