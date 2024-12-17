@@ -1,11 +1,12 @@
 from invoke import task
 from os import makedirs, stat
-from os.path import join
+from os.path import exists, join
 from subprocess import CalledProcessError, run
 from tasks.util.docker import is_ctr_running
 from tasks.util.env import (
     CONF_FILES_DIR,
     CONTAINERD_CONFIG_FILE,
+    CONTAINERD_CONFIG_ROOT,
     PROJ_ROOT,
     print_dotted_line,
 )
@@ -254,6 +255,9 @@ def install(ctx, debug=False, clean=False):
     run(cp_cmd, shell=True, check=True)
 
     # Populate the default config gile
+    if not exists(CONTAINERD_CONFIG_ROOT):
+        run("sudo mkdir -p {CONTAINERD_CONFIG_ROOT}", shell=True, check=True)
+
     config_cmd = "containerd config default > {}".format(CONTAINERD_CONFIG_FILE)
     config_cmd = "sudo bash -c '{}'".format(config_cmd)
     run(config_cmd, shell=True, check=True)

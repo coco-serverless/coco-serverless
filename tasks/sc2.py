@@ -20,6 +20,7 @@ from tasks.util.env import (
     COCO_ROOT,
     CONF_FILES_DIR,
     CONTAINERD_CONFIG_FILE,
+    CONTAINERD_CONFIG_ROOT,
     KATA_CONFIG_DIR,
     KATA_ROOT,
     KATA_IMAGE_TAG,
@@ -198,7 +199,7 @@ def deploy(ctx, debug=False, clean=False):
 
     if clean:
         # Remove all directories that we populate and modify
-        for nuked_dir in [COCO_ROOT, KATA_ROOT, HOST_CERT_DIR]:
+        for nuked_dir in [COCO_ROOT, CONTAINERD_CONFIG_ROOT, HOST_CERT_DIR, KATA_ROOT]:
             if debug:
                 print(f"WARNING: nuking {nuked_dir}")
             run(f"sudo rm -rf {nuked_dir}", shell=True, check=True)
@@ -261,7 +262,6 @@ def deploy(ctx, debug=False, clean=False):
     print("Success!")
 
     # TODO: delete me
-    CONTAINERD_CONFIG_ROOT = "/etc/containerd"
     containerd_base_certs_dir = join(CONTAINERD_CONFIG_ROOT, "certs.d")
     config_path_value = read_value_from_toml(
         CONTAINERD_CONFIG_FILE,
