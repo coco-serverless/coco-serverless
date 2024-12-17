@@ -63,7 +63,7 @@ def install_sc2_runtime(debug=False):
         # Update containerd to point the SC2 runtime to the right shim
         updated_toml_str = """
         [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.kata-{runtime_name}]
-        runtime_type = "io.containerd.kata-${runtime_name}.v2"
+        runtime_type = "io.containerd.kata-{runtime_name}.v2"
         privileged_without_host_devices = true
         pod_annotations = [ "io.katacontainers.*",]
         snapshotter = "nydus"
