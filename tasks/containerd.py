@@ -1,7 +1,8 @@
 from invoke import task
 from os import makedirs, stat
-from os.path import exists, join
+from os.path import join
 from subprocess import CalledProcessError, run
+from tasks.util.containerd import restart_containerd
 from tasks.util.docker import is_ctr_running
 from tasks.util.env import (
     CONF_FILES_DIR,
@@ -15,13 +16,6 @@ from tasks.util.versions import CONTAINERD_VERSION
 
 CONTAINERD_CTR_NAME = "containerd-workon"
 CONTAINERD_IMAGE_TAG = "containerd-build"
-
-
-def restart_containerd():
-    """
-    Utility function to gracefully restart the containerd service
-    """
-    run("sudo service containerd restart", shell=True, check=True)
 
 
 def do_build(debug=False):

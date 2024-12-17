@@ -12,10 +12,7 @@ from tasks.operator import (
     install as operator_install,
     install_cc_runtime as operator_install_cc_runtime,
 )
-from tasks.registry import (
-    start as start_local_registry,
-    stop as stop_local_registry,
-)
+from tasks.util.containerd import restart_containerd
 from tasks.util.env import (
     COCO_ROOT,
     CONF_FILES_DIR,
@@ -37,10 +34,15 @@ from tasks.util.kata import (
     replace_shim as replace_kata_shim,
 )
 from tasks.util.kubeadm import run_kubectl_command
-from tasks.util.registry import HOST_CERT_DIR
+from tasks.util.registry import (
+    HOST_CERT_DIR,
+    start as start_local_registry,
+    stop as stop_local_registry,
+)
 from tasks.util.toml import update_toml
 from tasks.util.versions import COCO_VERSION, KATA_VERSION
 from time import sleep
+
 # TODO: delete me
 from tasks.util.toml import read_value_from_toml
 
@@ -109,7 +111,7 @@ def install_sc2_runtime(debug=False):
         )
         update_toml(CONTAINERD_CONFIG_FILE, updated_toml_str)
 
-    run("sudo service containerd restart", shell=True, check=True)
+    # run("sudo service containerd restart", shell=True, check=True)
 
     # Install runttime class on kubernetes
     if debug:
@@ -271,6 +273,9 @@ def deploy(ctx, debug=False, clean=False):
         raise RuntimeError("Error populating contaienrd config path!")
     elif debug:
         print(f"Containerd registry config path: {config_path_value}")
+
+    # Once we are done with installing components, restart containerd
+    restart_containerd()
 
     # Push demo apps to local registry for easy testing
     push_demo_apps_to_local_registry(ctx, debug=debug)

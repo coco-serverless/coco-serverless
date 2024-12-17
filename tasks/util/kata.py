@@ -263,4 +263,3 @@ def replace_shim(
             runtime_name=runtime, ctrd_path=dst_shim_binary
         )
         update_toml(CONTAINERD_CONFIG_FILE, updated_toml_str)
-    run("sudo service containerd restart", shell=True, check=True)
