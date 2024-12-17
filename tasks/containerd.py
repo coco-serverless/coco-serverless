@@ -255,9 +255,7 @@ def install(ctx, debug=False, clean=False):
     run(cp_cmd, shell=True, check=True)
 
     # Populate the default config gile
-    if not exists(CONTAINERD_CONFIG_ROOT):
-        run("sudo mkdir -p {CONTAINERD_CONFIG_ROOT}", shell=True, check=True)
-
+    run("sudo mkdir -p {CONTAINERD_CONFIG_ROOT}", shell=True, check=True)
     config_cmd = "containerd config default > {}".format(CONTAINERD_CONFIG_FILE)
     config_cmd = "sudo bash -c '{}'".format(config_cmd)
     run(config_cmd, shell=True, check=True)
