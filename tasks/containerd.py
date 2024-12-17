@@ -187,8 +187,19 @@ def install(ctx, debug=False, clean=False):
     Install (and build) containerd from source
     """
     print_dotted_line(f"Installing containerd (v{CONTAINERD_VERSION})")
-    do_build(debug=debug)
 
+    # Stop containerd service if running
+    out = (
+        run("sudo systemctl is-active containerd", shell=True, capture_output=True)
+        .stdout.decode("utf-8")
+        .strip()
+    )
+    if out == "active":
+        if debug:
+            print("Stopping containerd service...")
+            run("sudo service containerd stop", shell=True, check=True)
+
+    do_build(debug=debug)
     tmp_ctr_name = "tmp_containerd_build"
     docker_cmd = "docker run -td --name {} {} bash".format(
         tmp_ctr_name, CONTAINERD_IMAGE_TAG
@@ -254,8 +265,8 @@ def install(ctx, debug=False, clean=False):
     config_cmd = "sudo bash -c '{}'".format(config_cmd)
     run(config_cmd, shell=True, check=True)
 
-    # Restart containerd service
-    restart_containerd(debug=debug)
+    # Start containerd service
+    run("sudo service containerd start", shell=True, check=True)
 
     # Sanity check
     if stat(CONTAINERD_CONFIG_FILE).st_size == 0:
