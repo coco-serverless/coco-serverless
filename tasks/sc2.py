@@ -275,7 +275,7 @@ def deploy(ctx, debug=False, clean=False):
         print(f"Containerd registry config path: {config_path_value}")
 
     # Once we are done with installing components, restart containerd
-    restart_containerd()
+    restart_containerd(debug=debug)
 
     # Push demo apps to local registry for easy testing
     push_demo_apps_to_local_registry(ctx, debug=debug)

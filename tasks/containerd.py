@@ -255,7 +255,7 @@ def install(ctx, debug=False, clean=False):
     run(config_cmd, shell=True, check=True)
 
     # Restart containerd service
-    restart_containerd()
+    restart_containerd(debug=debug)
 
     # Sanity check
     if stat(CONTAINERD_CONFIG_FILE).st_size == 0:
