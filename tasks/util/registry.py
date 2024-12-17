@@ -162,9 +162,6 @@ def start(debug=False, clean=False):
     )
     update_toml(CONTAINERD_CONFIG_FILE, updated_toml_str)
 
-    # Restart containerd to pick up the changes
-    # run("sudo service containerd restart", shell=True, check=True)
-
     # TODO: delete me
     config_path_value = read_value_from_toml(
         CONTAINERD_CONFIG_FILE,
@@ -177,7 +174,7 @@ def start(debug=False, clean=False):
 
     # Add the correspnding configuration to containerd
     containerd_certs_dir = join(containerd_base_certs_dir, LOCAL_REGISTRY_URL)
-    run("sudo mkdir -p {}".format(containerd_certs_dir), shell=True, check=True)
+    run(f"sudo mkdir -p {containerd_certs_dir}", shell=True, check=True)
 
     # TODO: delete me
     config_path_value = read_value_from_toml(

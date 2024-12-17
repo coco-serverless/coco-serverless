@@ -218,6 +218,18 @@ def deploy(ctx, debug=False, clean=False):
         if debug:
             print(result.stdout.decode("utf-8").strip())
 
+        # Purge containerd for a very-clean start
+        purge_containerd_dir = join(PROJ_ROOT, "tools", "purge-containerd")
+        result = run(
+            "cargo build --release && sudo target/release/purge-containerd",
+            cwd=purge_containerd_dir,
+            shell=True,
+            capture_output=True,
+        )
+        assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
+        if debug:
+            print(result.stdout.decode("utf-8").strip())
+
     # Disable swap
     run("sudo swapoff -a", shell=True, check=True)
 

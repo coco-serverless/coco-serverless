@@ -9,13 +9,21 @@ def restart_containerd(debug=False):
     """
     run("sudo service containerd restart", shell=True, check=True)
 
-    out = run("sudo systemctl is-active containerd", shell=True, capture_output=True).stdout.decode("utf-8").strip()
+    out = (
+        run("sudo systemctl is-active containerd", shell=True, capture_output=True)
+        .stdout.decode("utf-8")
+        .strip()
+    )
     while out != "active":
         if debug:
             print(f"Waiting for containerd to be active: {out}...")
         sleep(2)
 
-        out = run("sudo systemctl is-active containerd", shell=True, capture_output=True).stdout.decode("utf-8").strip()
+        out = (
+            run("sudo systemctl is-active containerd", shell=True, capture_output=True)
+            .stdout.decode("utf-8")
+            .strip()
+        )
 
 
 def get_journalctl_containerd_logs(timeout_mins=1):
