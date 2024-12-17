@@ -248,14 +248,14 @@ def install(ctx, debug=False, clean=False):
     # Configure the CNI (see containerd/scripts/setup/install-cni)
     cni_conf_file = "10-containerd-net.conflist"
     cni_dir = "/etc/cni/net.d"
-    run("sudo mkdir -p {}".format(cni_dir), shell=True, check=True)
+    run(f"sudo mkdir -p {cni_dir}", shell=True, check=True)
     cp_cmd = "sudo cp {} {}".format(
         join(CONF_FILES_DIR, cni_conf_file), join(cni_dir, cni_conf_file)
     )
     run(cp_cmd, shell=True, check=True)
 
     # Populate the default config gile
-    run("sudo mkdir -p {CONTAINERD_CONFIG_ROOT}", shell=True, check=True)
+    run(f"sudo mkdir -p {CONTAINERD_CONFIG_ROOT}", shell=True, check=True)
     config_cmd = "containerd config default > {}".format(CONTAINERD_CONFIG_FILE)
     config_cmd = "sudo bash -c '{}'".format(config_cmd)
     run(config_cmd, shell=True, check=True)

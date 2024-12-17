@@ -146,8 +146,7 @@ def start(ctx, debug=False, clean=False):
 
     # Configure docker to be able to push to this registry
     docker_certs_dir = join("/etc/docker/certs.d", LOCAL_REGISTRY_URL)
-    if not exists(docker_certs_dir):
-        run("sudo mkdir -p {}".format(docker_certs_dir), shell=True, check=True)
+    run("sudo mkdir -p {}".format(docker_certs_dir), shell=True, check=True)
 
     docker_ca_cert_file = join(docker_certs_dir, "ca.crt")
     cp_cmd = "sudo cp {} {}".format(HOST_CERT_PATH, docker_ca_cert_file)
@@ -184,8 +183,7 @@ def start(ctx, debug=False, clean=False):
 
     # Add the correspnding configuration to containerd
     containerd_certs_dir = join(containerd_base_certs_dir, LOCAL_REGISTRY_URL)
-    if not exists(containerd_certs_dir):
-        run("sudo mkdir -p {}".format(containerd_certs_dir), shell=True, check=True)
+    run("sudo mkdir -p {}".format(containerd_certs_dir), shell=True, check=True)
 
     # TODO: delete me
     config_path_value = read_value_from_toml(
