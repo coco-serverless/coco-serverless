@@ -169,6 +169,9 @@ def start(ctx, debug=False, clean=False):
     )
     update_toml(CONTAINERD_CONFIG_FILE, updated_toml_str)
 
+    # Restart containerd to pick up the changes
+    run("sudo service containerd restart", shell=True, check=True)
+
     # TODO: delete me
     config_path_value = read_value_from_toml(
         CONTAINERD_CONFIG_FILE,
