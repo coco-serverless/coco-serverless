@@ -1,7 +1,7 @@
 from invoke import task
-from os import makedirs, stat
+from os import stat
 from os.path import join
-from subprocess import CalledProcessError, run
+from subprocess import run
 from tasks.util.containerd import is_containerd_active, restart_containerd
 from tasks.util.docker import copy_from_ctr_image, is_ctr_running
 from tasks.util.env import (
@@ -105,7 +105,9 @@ def install(ctx, debug=False, clean=False):
 
     host_binaries = [join(host_base_path, binary) for binary in binary_names]
     ctr_binaries = [join(ctr_base_path, binary) for binary in binary_names]
-    copy_from_ctr_image(CONTAINERD_IMAGE_TAG, ctr_binaries, host_binaries, requires_sudo=True)
+    copy_from_ctr_image(
+        CONTAINERD_IMAGE_TAG, ctr_binaries, host_binaries, requires_sudo=True
+    )
 
     # Clean-up all runtime files for a clean start
     if clean:

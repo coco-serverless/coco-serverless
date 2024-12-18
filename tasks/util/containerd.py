@@ -2,6 +2,7 @@ from json import loads as json_loads
 from subprocess import run
 from time import sleep
 
+
 def is_containerd_active():
     out = (
         run("sudo systemctl is-active containerd", shell=True, capture_output=True)

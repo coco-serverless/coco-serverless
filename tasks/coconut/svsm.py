@@ -1,7 +1,7 @@
 from invoke import task
 from os.path import join
 from tasks.util.env import BIN_DIR, PROJ_ROOT
-from tasks.util.docker import build_image_and_run, copy_from_container, stop_container
+from tasks.util.docker import build_image_and_run, copy_from_ctr_image, stop_container
 
 # refer to
 # https://github.com/coconut-svsm/svsm/blob/main/Documentation/docs/installation/INSTALL.md
@@ -27,9 +27,10 @@ def build(ctx):
         "coconut-qemu.igvm",
         "../target/x86_64-unknown-none/debug/svsm",
     ]
+    # FIXME: sure it is the right tag?
     for file_name in files_to_copy:
-        copy_from_container(
-            tmp_ctr_name, join(ctr_path, file_name), join(host_path, file_name)
+        copy_from_ctr_image(
+            QEMU_IMAGE_TAG, join(ctr_path, file_name), join(host_path, file_name)
         )
 
     stop_container(tmp_ctr_name)
