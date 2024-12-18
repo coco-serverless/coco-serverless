@@ -14,6 +14,7 @@ def restart_containerd(debug=False):
         .stdout.decode("utf-8")
         .strip()
     )
+    print(f"DEBUG: containerd status: {out}")
     while out != "active":
         if debug:
             print(f"Waiting for containerd to be active: {out}...")
@@ -24,6 +25,7 @@ def restart_containerd(debug=False):
             .stdout.decode("utf-8")
             .strip()
         )
+        print(f"DEBUG: containerd status: {out}")
 
 
 def get_journalctl_containerd_logs(timeout_mins=1):
