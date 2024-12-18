@@ -2,8 +2,8 @@ from invoke import task
 from os import makedirs, stat
 from os.path import join
 from subprocess import CalledProcessError, run
-from tasks.util.containerd import restart_containerd
-from tasks.util.docker import is_ctr_running
+from tasks.util.containerd import is_containerd_active, restart_containerd
+from tasks.util.docker import copy_from_ctr_image, is_ctr_running
 from tasks.util.env import (
     CONF_FILES_DIR,
     CONTAINERD_CONFIG_FILE,
@@ -57,105 +57,6 @@ def cli(ctx):
     run("docker exec -it {} bash".format(CONTAINERD_CTR_NAME), shell=True, check=True)
 
 
-def configure_devmapper_snapshotter():
-    """
-    Configure the devmapper snapshotter in containerd's config file
-
-    This method was included at the begining, when we thought that we needed
-    the devmapper snapshotter to get containerd to work. In the end it turned
-    out that we did not, but we keep this method here for completeness.
-    """
-    data_dir = "/var/lib/containerd/devmapper"
-    pool_name = "containerd-pool"
-
-    # --------------------------
-    # Thin Pool device configuration
-    # --------------------------
-
-    # First, remove the device if it already exists
-    try:
-        run("sudo dmsetup remove --force {}".format(pool_name), shell=True, check=True)
-    except CalledProcessError:
-        print("Ignoring errors when removing device if it doesn't exist...")
-
-    # Create data and metadata files
-    makedirs(data_dir, exist_ok=True)
-    data_file = join(data_dir, "data")
-    meta_file = join(data_dir, "meta")
-    run("sudo touch {}".format(data_file), shell=True, check=True)
-    run("sudo truncate -s 100G {}".format(data_file), shell=True, check=True)
-    run("sudo touch {}".format(meta_file), shell=True, check=True)
-    run("sudo truncate -s 10G {}".format(meta_file), shell=True, check=True)
-
-    # Allocate loop devices
-    data_dev = (
-        run(
-            "sudo losetup --find --show {}".format(data_file),
-            shell=True,
-            capture_output=True,
-        )
-        .stdout.decode("utf-8")
-        .strip()
-    )
-    meta_dev = (
-        run(
-            "sudo losetup --find --show {}".format(meta_file),
-            shell=True,
-            capture_output=True,
-        )
-        .stdout.decode("utf-8")
-        .strip()
-    )
-
-    # Define thin-pool parameters:
-    # https://www.kernel.org/doc/Documentation/device-mapper/thin-provisioning.txt
-    sector_size = 512
-    data_size = int(
-        run(
-            "sudo blockdev --getsize64 -q {}".format(data_dev),
-            shell=True,
-            capture_output=True,
-        )
-        .stdout.decode("utf-8")
-        .strip()
-    )
-    data_block_size = 128
-    low_water_mark = 32768
-
-    # Create a thin-pool device
-    dmsetup_cmd = [
-        "sudo dmsetup",
-        "create {}".format(pool_name),
-        "--table",
-        "'0 {} thin-pool {} {} {} {}'".format(
-            int(data_size / sector_size),
-            meta_dev,
-            data_dev,
-            data_block_size,
-            low_water_mark,
-        ),
-    ]
-    dmsetup_cmd = " ".join(dmsetup_cmd)
-    run(dmsetup_cmd, shell=True, check=True)
-
-    # --------------------------
-    # Update containerd's config file to use the devmapper snapshotter
-    # --------------------------
-
-    # Note: we currently don't use the devmapper snapshot, so this just
-    # _configures_ it (but doesn't select it as snapshotter)
-    updated_toml_str = """
-    [plugins."io.containerd.snapshotter.v1.devmapper"]
-    root_path = "{root_path}"
-    pool_name = "{pool_name}"
-    base_image_size = "8192MB"
-    discard_blocks = true
-    """.format(
-        root_path=data_dir, pool_name=pool_name
-    )
-    update_toml(CONTAINERD_CONFIG_FILE, updated_toml_str)
-
-
 @task
 def set_log_level(ctx, log_level):
     """
@@ -188,22 +89,10 @@ def install(ctx, debug=False, clean=False):
     """
     print_dotted_line(f"Installing containerd (v{CONTAINERD_VERSION})")
 
-    do_build(debug=debug)
-    tmp_ctr_name = "tmp_containerd_build"
-    docker_cmd = "docker run -td --name {} {} bash".format(
-        tmp_ctr_name, CONTAINERD_IMAGE_TAG
-    )
-    result = run(docker_cmd, capture_output=True, shell=True)
-    assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
-    if debug:
-        print(result.stdout.decode("utf-8").strip())
+    if is_containerd_active():
+        run("sudo service containerd stop", shell=True, check=True)
 
-    def cleanup():
-        docker_cmd = "docker rm -f {}".format(tmp_ctr_name)
-        result = run(docker_cmd, shell=True, capture_output=True)
-        assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
-        if debug:
-            print(result.stdout.decode("utf-8").strip())
+    do_build(debug=debug)
 
     binary_names = [
         "containerd",
@@ -213,27 +102,10 @@ def install(ctx, debug=False, clean=False):
     ]
     ctr_base_path = "/go/src/github.com/containerd/containerd/bin"
     host_base_path = "/usr/bin"
-    for binary in binary_names:
-        if clean:
-            run(
-                "sudo rm -f {}".format(join(host_base_path, binary)),
-                shell=True,
-                check=True,
-            )
 
-        docker_cmd = "sudo docker cp {}:{}/{} {}/{}".format(
-            tmp_ctr_name, ctr_base_path, binary, host_base_path, binary
-        )
-        try:
-            result = run(docker_cmd, shell=True, capture_output=True)
-            assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
-            if debug:
-                print(result.stdout.decode("utf-8").strip())
-        except CalledProcessError as e:
-            cleanup()
-            raise e
-
-    cleanup()
+    host_binaries = [join(host_base_path, binary) for binary in binary_names]
+    ctr_binaries = [join(ctr_base_path, binary) for binary in binary_names]
+    copy_from_ctr_image(CONTAINERD_IMAGE_TAG, ctr_binaries, host_binaries, requires_sudo=True)
 
     # Clean-up all runtime files for a clean start
     if clean:
@@ -255,15 +127,7 @@ def install(ctx, debug=False, clean=False):
     run(config_cmd, shell=True, check=True)
 
     # Restart containerd service
-    out = (
-        run("sudo systemctl is-active containerd", shell=True, capture_output=True)
-        .stdout.decode("utf-8")
-        .strip()
-    )
-    if out == "active":
-        restart_containerd()
-    else:
-        run("sudo service containerd start", shell=True, check=True)
+    run("sudo service containerd start", shell=True, check=True)
 
     # Sanity check
     if stat(CONTAINERD_CONFIG_FILE).st_size == 0:

@@ -2,6 +2,15 @@ from json import loads as json_loads
 from subprocess import run
 from time import sleep
 
+def is_containerd_active():
+    out = (
+        run("sudo systemctl is-active containerd", shell=True, capture_output=True)
+        .stdout.decode("utf-8")
+        .strip()
+    )
+    print(f"DEBUG: containerd status: {out}")
+    return out == "active"
+
 
 def restart_containerd(debug=False):
     """
@@ -9,23 +18,11 @@ def restart_containerd(debug=False):
     """
     run("sudo service containerd restart", shell=True, check=True)
 
-    out = (
-        run("sudo systemctl is-active containerd", shell=True, capture_output=True)
-        .stdout.decode("utf-8")
-        .strip()
-    )
-    print(f"DEBUG: containerd status: {out}")
-    while out != "active":
+    while not is_containerd_active():
         if debug:
-            print(f"Waiting for containerd to be active: {out}...")
-        sleep(2)
+            print("Waiting for containerd to be active...")
 
-        out = (
-            run("sudo systemctl is-active containerd", shell=True, capture_output=True)
-            .stdout.decode("utf-8")
-            .strip()
-        )
-        print(f"DEBUG: containerd status: {out}")
+        sleep(2)
 
 
 def get_journalctl_containerd_logs(timeout_mins=1):
