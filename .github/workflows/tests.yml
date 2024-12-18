@@ -147,6 +147,6 @@ jobs:
           POD_LABEL_ONE: apps.sc2.io/name=knative-chaining-one
           POD_LABEL_THREE: apps.sc2.io/name=knative-chaining-three
 
-            #       - name: "Clean-up"
-            #         if: always()
-            #         run: ./bin/inv_wrapper.sh sc2.destroy
+      - name: "Clean-up"
+        if: always()
+        run: ./bin/inv_wrapper.sh sc2.destroy
