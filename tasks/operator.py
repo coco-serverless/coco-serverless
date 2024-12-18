@@ -1,10 +1,11 @@
 from invoke import task
 from os.path import join
-from tasks.util.env import print_dotted_line
+from tasks.util.env import CONTAINERD_CONFIG_FILE, KATA_CONFIG_DIR, print_dotted_line
 from tasks.util.kubeadm import (
     run_kubectl_command,
     wait_for_pods_in_ns,
 )
+from tasks.util.toml import read_value_from_toml
 from tasks.util.versions import COCO_VERSION
 from time import sleep
 
@@ -84,6 +85,31 @@ def install_cc_runtime(ctx, debug=False):
         runtime_classes = run_kubectl_command(run_class_cmd, capture_output=True).split(
             " "
         )
+
+    # We must also wait until we are done configuring the nydus snapshotter
+    sleep(10)
+    for runtime in expected_runtime_classes[1:]:
+        runtime_no_kata = runtime[5:]
+        expected_config_path = (
+            f"{KATA_CONFIG_DIR}//configuration-{runtime_no_kata}.toml"
+        )
+        toml_path = (
+            f'plugins."io.containerd.grpc.v1.cri".containerd.runtimes'
+            f".{runtime}.options.ConfigPath"
+        )
+
+        while expected_config_path != read_value_from_toml(
+            CONTAINERD_CONFIG_FILE, toml_path, tolerate_missing=True
+        ):
+            if debug:
+                print(
+                    (
+                        f"Waiting for operator to populate containerd "
+                        f"entry for runtime: {runtime}..."
+                    )
+                )
+
+            sleep(2)
 
     print("Success!")
 

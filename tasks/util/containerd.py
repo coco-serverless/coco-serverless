@@ -1,6 +1,26 @@
 from json import loads as json_loads
+from os.path import exists
+from socket import AF_UNIX, SOCK_STREAM, error as socket_error, socket
 from subprocess import run
-from time import sleep
+from time import sleep, time
+
+
+def wait_for_socket():
+    timeout = 10
+    interval = 1
+    socket_path = "/run/containerd/containerd.sock"
+
+    start_time = time()
+    while time() - start_time < timeout:
+        if exists(socket_path):
+            try:
+                with socket(AF_UNIX, SOCK_STREAM) as s:
+                    s.connect(socket_path)
+                return True
+            except socket_error:
+                pass
+        time.sleep(interval)
+    return False
 
 
 def is_containerd_active():
@@ -19,11 +39,16 @@ def restart_containerd(debug=False):
     """
     run("sudo service containerd restart", shell=True, check=True)
 
+    # First wait for systemd to report containerd as active
     while not is_containerd_active():
         if debug:
             print("Waiting for containerd to be active...")
 
         sleep(2)
+
+    # Then make sure we can dial the socket
+    if not wait_for_socket():
+        raise RuntimeError("Error dialing containerd socket!")
 
 
 def get_journalctl_containerd_logs(timeout_mins=1):

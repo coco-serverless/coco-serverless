@@ -99,12 +99,19 @@ def join_dot_preserve_quote(toml_levels):
     return ".".join(toml_path)
 
 
-def read_value_from_toml(toml_file_path, toml_path):
+def read_value_from_toml(toml_file_path, toml_path, tolerate_missing=False):
     """
     Return the value in a TOML specified by a "." delimited TOML path
     """
     toml_file = toml_load(toml_file_path)
     for toml_level in split_dot_preserve_quotes(toml_path):
+        if toml_level not in toml_file:
+            if tolerate_missing:
+                return ""
+
+            raise RuntimeError(
+                f"{toml_level} is not an entry in TOML file {toml_file_path}"
+            )
         toml_file = toml_file[toml_level]
 
     if isinstance(toml_file, dict):

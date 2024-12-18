@@ -1,6 +1,6 @@
 from os import makedirs
 from os.path import exists, join
-from subprocess import run
+from subprocess import CalledProcessError, run
 from tasks.util.docker import is_ctr_running
 from tasks.util.env import (
     CONF_FILES_DIR,
@@ -273,7 +273,10 @@ def stop(debug=False):
     # For Knative, we only need to delete the secret, as the other bit is a
     # patch to the controller deployment that can be applied again
     kube_cmd = "-n knative-serving delete secret {}".format(K8S_SECRET_NAME)
-    run_kubectl_command(kube_cmd, capture_output=not debug)
+    try:
+        run_kubectl_command(kube_cmd, capture_output=not debug)
+    except CalledProcessError:
+        print("WARNING: deleting knative-serving secret failed")
 
     # For Kata and containerd, all configuration is reversible, so we only
     # need to sop the container image
