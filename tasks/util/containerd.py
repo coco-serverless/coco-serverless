@@ -1,7 +1,6 @@
 from json import loads as json_loads
 from os.path import exists
-from socket import AF_UNIX, SOCK_STREAM, error as socket_error, socket
-from subprocess import run
+from subprocess import CalledProcessError, run
 from time import sleep, time
 
 
@@ -10,14 +9,29 @@ def wait_for_containerd_socket():
     interval = 1
     socket_path = "/run/containerd/containerd.sock"
 
+    # Socket is root-owned, so we need to be careful when probing it
+    socket_test_script = f"""
+import socket
+try:
+    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
+        s.connect('{socket_path}')
+except Exception as e:
+    exit(1)
+exit(0)
+"""
+
     start_time = time()
     while time() - start_time < timeout:
         if exists(socket_path):
             try:
-                with socket(AF_UNIX, SOCK_STREAM) as s:
-                    s.connect(socket_path)
+                run(
+                    f'sudo python3 -c "{socket_test_script}"',
+                    shell=True,
+                    check=True,
+                )
+
                 return
-            except socket_error:
+            except CalledProcessError:
                 pass
 
         sleep(interval)
