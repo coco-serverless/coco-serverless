@@ -337,7 +337,13 @@ fn main() {
     let result = match args[1].as_str() {
         "foreground" => run_foreground(),
         "background" => run_background(),
+        "logs" => Ok(tail_log_file(false)),
         "prune" => prune_qemu_processes(),
+        "restart" => {
+            info!("restarting vm-cache process...");
+            stop_background_process().unwrap();
+            run_background()
+        },
         "stop" => stop_background_process(),
         _ => {
             error!("invalid mode: {}", args[1]);

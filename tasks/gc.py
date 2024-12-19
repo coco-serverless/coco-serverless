@@ -2,10 +2,11 @@ from invoke import task
 from os.path import join
 from subprocess import run
 from tasks.util.docker import is_ctr_running
-from tasks.util.env import PROJ_ROOT
+from tasks.util.env import GHCR_URL, GITHUB_ORG, PROJ_ROOT
+from tasks.util.versions import COCO_VERSION
 
 GC_CTR_NAME = "guest-components-workon"
-GC_IMAGE_TAG = "guest-components-build"
+GC_IMAGE_TAG = join(GHCR_URL, GITHUB_ORG, "guest-components") + f":{COCO_VERSION}"
 
 
 @task
@@ -20,7 +21,7 @@ def build(ctx):
 
 
 @task
-def cli(ctx):
+def cli(ctx, mount_path=join(PROJ_ROOT, "..", "guest-components")):
     """
     Get a working environment for guest components
     """
@@ -28,6 +29,9 @@ def cli(ctx):
         docker_cmd = [
             "docker run",
             "-d -it",
+            # The container path comes from the dockerfile in:
+            # ./docker/guest_components.dockerfile
+            f"-v {mount_path}:/usr/src/guest-components",
             "--name {}".format(GC_CTR_NAME),
             GC_IMAGE_TAG,
             "bash",

@@ -1,0 +1,21 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: helloworld-knative
+spec:
+  template:
+    metadata:
+      labels:
+        apps.sc2.io/name: helloworld-py
+    spec:
+      runtimeClassName: kata-${SC2_RUNTIME_CLASS}
+      # coco-knative: need to run user container as root
+      securityContext:
+        runAsUser: 1000
+      containers:
+        - image: sc2cr.io/applications/helloworld-py:unencrypted-nydus
+          ports:
+            - containerPort: 8080
+          env:
+            - name: TARGET
+              value: "World"

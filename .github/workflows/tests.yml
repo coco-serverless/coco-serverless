@@ -29,15 +29,15 @@ jobs:
       # Rust formatting checks
       - name: "Run cargo lints"
         run: |
-          for dir in "./vm-cache/" "./tools/check-kata-hashes" "./tools/tee-detect" "./tools/purge-containerd" "./tools/purge-k8s"; do
+          for dir in "./vm-cache/" "./tools/check-fork-hashes" "./tools/tee-detect" "./tools/purge-containerd" "./tools/purge-k8s"; do
             pushd ${dir} >> /dev/null
             cargo fmt --all -- --check
             cargo clippy -- -D warnings
             popd >> /dev/null
           done
-      - name: "Check Kata hashes match"
+      - name: "Check forked dependencies hashes match"
         run: cargo run --release
-        working-directory: ./tools/check-kata-hashes
+        working-directory: ./tools/check-fork-hashes
 
   integration-tests:
     if: github.event.pull_request.draft == false
@@ -106,6 +106,48 @@ jobs:
           done
         env:
           POD_LABEL: apps.sc2.io/name=helloworld-py
+
+      - name: "Run nydus lazy guest-pulling test"
+        run: |
+          export SC2_RUNTIME_CLASS=qemu-${{ matrix.tee }}-sc2
+          export POD_LABEL="apps.sc2.io/name=helloworld-py"
+
+          # ----- Python Test ----
+
+          echo "Running python test..."
+          envsubst < ./demo-apps/helloworld-py-nydus/deployment.yaml | ./bin/kubectl apply -f -
+
+          # Wait for pod to be ready
+          until [ "$(./bin/kubectl get pods -l ${POD_LABEL} -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}')" = "True" ]; do echo "Waiting for pod to be ready..."; sleep 2; done
+          sleep 1
+
+          # Get the pod's IP
+          service_ip=$(./bin/kubectl get services -o jsonpath='{.items[?(@.metadata.name=="coco-helloworld-py-node-port")].spec.clusterIP}')
+          [ "$(curl --retry 3 -X GET ${service_ip}:8080)" = "Hello World!" ]
+          envsubst < ./demo-apps/helloworld-py-nydus/deployment.yaml | ./bin/kubectl delete -f -
+
+          # Wait for pod to be deleted
+          ./bin/kubectl wait --for=delete -l ${POD_LABEL} pod --timeout=30s
+
+          # Extra cautionary sleep
+          sleep 5
+          echo "Python test succesful!"
+
+          # ----- Knative Test ----
+          envsubst < ./demo-apps/helloworld-knative-nydus/service.yaml | ./bin/kubectl apply -f -
+          sleep 1
+
+          # Get the service URL
+          service_url=$(./bin/kubectl get ksvc helloworld-knative  --output=custom-columns=URL:.status.url --no-headers)
+          [ "$(curl --retry 3 ${service_url})" = "Hello World!" ]
+
+          # Wait for pod to be deleted
+          envsubst < ./demo-apps/helloworld-knative-nydus/service.yaml | ./bin/kubectl delete -f -
+          ./bin/kubectl wait --for=delete -l ${POD_LABEL} pod --timeout=60s
+
+          # Extra cautionary sleep
+          sleep 5
+          echo "Knative test succesful!"
 
       - name: "Enable default-memory annotation"
         run: |

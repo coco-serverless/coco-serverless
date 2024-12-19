@@ -12,17 +12,14 @@ RUN apt update \
         gopls \
         make
 
-ENV GOPATH=/go
-ENV PATH=${PATH}:/usr/local/go/bin
-
 # Clone and build containerd
-ARG CONTAINERD_VERSION
+ARG CODE_DIR=/go/src/github.com/sc2-sys/containerd
 RUN git clone \
-        # -b v1.7.19 \
-        -b v${CONTAINERD_VERSION} \
-        https://github.com/containerd/containerd.git \
-        /go/src/github.com/containerd/containerd \
-    && cd /go/src/github.com/containerd/containerd \
+        -b sc2-main \
+        https://github.com/sc2-sys/containerd.git \
+        ${CODE_DIR} \
+    && git config --global --add safe.directory ${CODE_DIR} \
+    && cd ${CODE_DIR} \
     && make
 
-WORKDIR /go/src/github.com/containerd/containerd
+WORKDIR ${CODE_DIR}

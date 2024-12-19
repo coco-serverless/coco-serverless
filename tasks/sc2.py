@@ -180,6 +180,7 @@ def install_sc2_runtime(debug=False):
         "sudo -E target/release/vm-cache background > /dev/null 2>&1",
         cwd=vm_cache_dir,
         shell=True,
+        check=True,
     )
 
 
@@ -196,7 +197,7 @@ def deploy(ctx, debug=False, clean=False):
 
     if clean:
         # Remove all directories that we populate and modify
-        for nuked_dir in [COCO_ROOT, CONTAINERD_CONFIG_ROOT, HOST_CERT_DIR, KATA_ROOT]:
+        for nuked_dir in [COCO_ROOT, CONTAINERD_CONFIG_ROOT, HOST_CERT_DIR, KATA_ROOT, SC2_CONFIG_DIR]:
             if debug:
                 print(f"WARNING: nuking {nuked_dir}")
             run(f"sudo rm -rf {nuked_dir}", shell=True, check=True)
@@ -224,6 +225,10 @@ def deploy(ctx, debug=False, clean=False):
         assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
         if debug:
             print(result.stdout.decode("utf-8").strip())
+
+    # Create SC2 config dir
+    if not exists(SC2_CONFIG_DIR):
+        makedirs(SC2_CONFIG_DIR)
 
     # Disable swap
     run("sudo swapoff -a", shell=True, check=True)
@@ -277,8 +282,6 @@ def deploy(ctx, debug=False, clean=False):
     push_demo_apps_to_local_registry(ctx, debug=debug)
 
     # Finally, create a deployment file (right now, it is empty)
-    if not exists(SC2_CONFIG_DIR):
-        makedirs(SC2_CONFIG_DIR)
     result = run(f"touch {SC2_DEPLOYMENT_FILE}", shell=True, capture_output=True)
     assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
     if debug:

@@ -8,6 +8,8 @@ from tasks.util.env import (
     CONF_FILES_DIR,
     CONTAINERD_CONFIG_FILE,
     CONTAINERD_CONFIG_ROOT,
+    GHCR_URL,
+    GITHUB_ORG,
     PROJ_ROOT,
     print_dotted_line,
 )
@@ -15,13 +17,23 @@ from tasks.util.toml import update_toml
 from tasks.util.versions import CONTAINERD_VERSION
 
 CONTAINERD_CTR_NAME = "containerd-workon"
-CONTAINERD_IMAGE_TAG = "containerd-build"
+CONTAINERD_IMAGE_TAG = (
+    join(GHCR_URL, GITHUB_ORG, "containerd") + f":{CONTAINERD_VERSION}"
+)
+
+CONTAINERD_BINARY_NAMES = [
+    "containerd",
+    "containerd-shim",
+    "containerd-shim-runc-v1",
+    "containerd-shim-runc-v2",
+]
+CONTAINERD_CTR_BINPATH = "/go/src/github.com/sc2-sys/containerd/bin"
+CONTAINERD_HOST_BINPATH = "/usr/bin"
 
 
 def do_build(debug=False):
-    docker_cmd = "docker build -t {} --build-arg CONTAINERD_VERSION={} -f {} .".format(
+    docker_cmd = "docker build -t {} -f {} .".format(
         CONTAINERD_IMAGE_TAG,
-        CONTAINERD_VERSION,
         join(PROJ_ROOT, "docker", "containerd.dockerfile"),
     )
     result = run(docker_cmd, shell=True, capture_output=True, cwd=PROJ_ROOT)
@@ -39,7 +51,7 @@ def build(ctx):
 
 
 @task
-def cli(ctx):
+def cli(ctx, mount_path=join(PROJ_ROOT, "..", "containerd")):
     """
     Get a working environment for containerd
     """
@@ -47,6 +59,9 @@ def cli(ctx):
         docker_cmd = [
             "docker run",
             "-d -it",
+            # The container path comes from the dockerfile in:
+            # ./docker/containerd.dockerfile
+            f"-v {mount_path}:/go/src/github.com/sc2-sys/containerd",
             "--name {}".format(CONTAINERD_CTR_NAME),
             CONTAINERD_IMAGE_TAG,
             "bash",
@@ -83,6 +98,23 @@ def set_log_level(ctx, log_level):
 
 
 @task
+def hot_replace(ctx):
+    """
+    Replace containerd binaries from running workon container
+    """
+    if not is_ctr_running(CONTAINERD_CTR_NAME):
+        print("Must have the work-on container running to hot replace!")
+        print("Consider running: inv containerd.cli ")
+
+    for binary in CONTAINERD_BINARY_NAMES:
+        print(f"cp {CONTAINERD_CTR_NAME}:{CONTAINERD_CTR_BINPATH}/{binary} {CONTAINERD_HOST_BINPATH}/{binary}")
+        docker_cmd = f"sudo docker cp {CONTAINERD_CTR_NAME}:{CONTAINERD_CTR_BINPATH}/{binary} {CONTAINERD_HOST_BINPATH}/{binary}"
+        run(docker_cmd, shell=True, check=True)
+
+    restart_containerd()
+
+
+@task
 def install(ctx, debug=False, clean=False):
     """
     Install (and build) containerd from source
@@ -94,17 +126,11 @@ def install(ctx, debug=False, clean=False):
 
     do_build(debug=debug)
 
-    binary_names = [
-        "containerd",
-        "containerd-shim",
-        "containerd-shim-runc-v1",
-        "containerd-shim-runc-v2",
-    ]
-    ctr_base_path = "/go/src/github.com/containerd/containerd/bin"
+    ctr_base_path = "/go/src/github.com/sc2-sys/containerd/bin"
     host_base_path = "/usr/bin"
 
-    host_binaries = [join(host_base_path, binary) for binary in binary_names]
-    ctr_binaries = [join(ctr_base_path, binary) for binary in binary_names]
+    host_binaries = [join(host_base_path, binary) for binary in CONTAINERD_BINARY_NAMES]
+    ctr_binaries = [join(ctr_base_path, binary) for binary in CONTAINERD_BINARY_NAMES]
     copy_from_ctr_image(
         CONTAINERD_IMAGE_TAG, ctr_binaries, host_binaries, requires_sudo=True
     )
@@ -114,19 +140,21 @@ def install(ctx, debug=False, clean=False):
         run("sudo rm -rf /var/lib/containerd", shell=True, check=True)
 
     # Configure the CNI (see containerd/scripts/setup/install-cni)
-    cni_conf_file = "10-containerd-net.conflist"
-    cni_dir = "/etc/cni/net.d"
-    run(f"sudo mkdir -p {cni_dir}", shell=True, check=True)
-    cp_cmd = "sudo cp {} {}".format(
-        join(CONF_FILES_DIR, cni_conf_file), join(cni_dir, cni_conf_file)
-    )
-    run(cp_cmd, shell=True, check=True)
+    if clean:
+        cni_conf_file = "10-containerd-net.conflist"
+        cni_dir = "/etc/cni/net.d"
+        run(f"sudo mkdir -p {cni_dir}", shell=True, check=True)
+        cp_cmd = "sudo cp {} {}".format(
+            join(CONF_FILES_DIR, cni_conf_file), join(cni_dir, cni_conf_file)
+        )
+        run(cp_cmd, shell=True, check=True)
 
-    # Populate the default config gile
+    # Populate the default config file for a clean start
     run(f"sudo mkdir -p {CONTAINERD_CONFIG_ROOT}", shell=True, check=True)
-    config_cmd = "containerd config default > {}".format(CONTAINERD_CONFIG_FILE)
-    config_cmd = "sudo bash -c '{}'".format(config_cmd)
-    run(config_cmd, shell=True, check=True)
+    if clean:
+        config_cmd = "containerd config default > {}".format(CONTAINERD_CONFIG_FILE)
+        config_cmd = "sudo bash -c '{}'".format(config_cmd)
+        run(config_cmd, shell=True, check=True)
 
     # Restart containerd service
     run("sudo service containerd start", shell=True, check=True)
