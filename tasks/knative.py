@@ -106,8 +106,7 @@ def install_metallb(debug=False):
     )
 
 
-@task
-def install(ctx, skip_push=False, debug=False):
+def install(skip_push=False, debug=False):
     """
     Install Knative on a running K8s cluster
 
@@ -316,8 +315,7 @@ def install(ctx, skip_push=False, debug=False):
     print("Success!")
 
 
-@task
-def uninstall(ctx):
+def uninstall():
     """
     Uninstall a Knative Serving installation
 

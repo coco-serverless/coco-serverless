@@ -1,4 +1,3 @@
-from invoke import task
 from os import getegid, geteuid, makedirs
 from os.path import exists
 from shutil import rmtree
@@ -19,8 +18,7 @@ from tasks.util.versions import CALICO_VERSION, K8S_VERSION
 from time import sleep
 
 
-@task
-def create(ctx, debug=False):
+def create(debug=False):
     """
     Create a single-node k8s cluster
     """
@@ -121,8 +119,7 @@ def create(ctx, debug=False):
     print("Success!")
 
 
-@task
-def destroy(ctx, debug=False):
+def destroy(debug=False):
     """
     Destroy a k8s cluster initialised with `inv kubeadm.create`
     """

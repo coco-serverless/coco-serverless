@@ -1,4 +1,3 @@
-from invoke import task
 from os.path import join
 from os import makedirs
 from shutil import copy, rmtree
@@ -8,8 +7,7 @@ from tasks.util.network import symlink_global_bin
 from tasks.util.versions import K9S_VERSION
 
 
-@task
-def install(ctx, debug=False):
+def install(debug=False):
     """
     Install the K9s CLI
     """

@@ -1,4 +1,3 @@
-from invoke import task
 from os.path import join
 from tasks.util.env import CONTAINERD_CONFIG_FILE, KATA_CONFIG_DIR, print_dotted_line
 from tasks.util.kubeadm import (
@@ -13,7 +12,6 @@ OPERATOR_GITHUB_URL = "github.com/confidential-containers/operator"
 OPERATOR_NAMESPACE = "confidential-containers-system"
 
 
-@task
 def install(ctx, debug=False):
     """
     Install the cc-operator on the cluster
@@ -36,7 +34,6 @@ def install(ctx, debug=False):
     print("Success!")
 
 
-@task
 def install_cc_runtime(ctx, debug=False):
     """
     Install the CoCo runtime through the operator
@@ -118,7 +115,6 @@ def install_cc_runtime(ctx, debug=False):
     print("Success!")
 
 
-@task
 def uninstall(ctx):
     """
     Uninstall the operator
@@ -129,7 +125,6 @@ def uninstall(ctx):
     run_kubectl_command("delete -k {}".format(operator_url))
 
 
-@task
 def uninstall_cc_runtime(ctx):
     """
     Un-install the CoCo runtimes from the k8s cluster
