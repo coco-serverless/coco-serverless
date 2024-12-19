@@ -12,7 +12,7 @@ OPERATOR_GITHUB_URL = "github.com/confidential-containers/operator"
 OPERATOR_NAMESPACE = "confidential-containers-system"
 
 
-def install(ctx, debug=False):
+def install(debug=False):
     """
     Install the cc-operator on the cluster
     """
@@ -34,7 +34,7 @@ def install(ctx, debug=False):
     print("Success!")
 
 
-def install_cc_runtime(ctx, debug=False):
+def install_cc_runtime(debug=False):
     """
     Install the CoCo runtime through the operator
     """
@@ -115,7 +115,7 @@ def install_cc_runtime(ctx, debug=False):
     print("Success!")
 
 
-def uninstall(ctx):
+def uninstall():
     """
     Uninstall the operator
     """
@@ -125,7 +125,7 @@ def uninstall(ctx):
     run_kubectl_command("delete -k {}".format(operator_url))
 
 
-def uninstall_cc_runtime(ctx):
+def uninstall_cc_runtime():
     """
     Un-install the CoCo runtimes from the k8s cluster
     """
