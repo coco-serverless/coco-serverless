@@ -43,9 +43,6 @@ from tasks.util.toml import update_toml
 from tasks.util.versions import COCO_VERSION, KATA_VERSION
 from time import sleep
 
-# TODO: delete me
-from tasks.util.toml import read_value_from_toml
-
 
 def install_sc2_runtime(debug=False):
     """
@@ -110,8 +107,6 @@ def install_sc2_runtime(debug=False):
             runtime_name=sc2_runtime, conf_path=dst_conf_path
         )
         update_toml(CONTAINERD_CONFIG_FILE, updated_toml_str)
-
-    # run("sudo service containerd restart", shell=True, check=True)
 
     # Install runttime class on kubernetes
     if debug:
@@ -201,7 +196,7 @@ def deploy(ctx, debug=False, clean=False):
 
     if clean:
         # Remove all directories that we populate and modify
-        for nuked_dir in [COCO_ROOT, HOST_CERT_DIR, KATA_ROOT]:
+        for nuked_dir in [COCO_ROOT, CONTAINERD_CONFIG_ROOT, HOST_CERT_DIR, KATA_ROOT]:
             if debug:
                 print(f"WARNING: nuking {nuked_dir}")
             run(f"sudo rm -rf {nuked_dir}", shell=True, check=True)
@@ -274,17 +269,6 @@ def deploy(ctx, debug=False, clean=False):
     print_dotted_line(f"Installing SC2 (v{COCO_VERSION})")
     install_sc2_runtime(debug=debug)
     print("Success!")
-
-    # TODO: delete me
-    containerd_base_certs_dir = join(CONTAINERD_CONFIG_ROOT, "certs.d")
-    config_path_value = read_value_from_toml(
-        CONTAINERD_CONFIG_FILE,
-        'plugins."io.containerd.grpc.v1.cri".registry.config_path',
-    )
-    if config_path_value != containerd_base_certs_dir:
-        raise RuntimeError("Error populating contaienrd config path!")
-    elif debug:
-        print(f"Containerd registry config path: {config_path_value}")
 
     # Once we are done with installing components, restart containerd
     restart_containerd(debug=debug)

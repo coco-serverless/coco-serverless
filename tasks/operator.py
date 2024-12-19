@@ -86,8 +86,12 @@ def install_cc_runtime(ctx, debug=False):
             " "
         )
 
-    # We must also wait until we are done configuring the nydus snapshotter
-    sleep(10)
+    # The operator may report all runtime classes as created, but still be in
+    # the process of modifying the config files. If we make progress without
+    # the config files being ready, we will have a race condition on
+    # containerd's config file. Therefore here we wait until all runtime
+    # classes have been persisted to the config file.
+    # See: sc2-sys/deploy/pull/120
     for runtime in expected_runtime_classes[1:]:
         runtime_no_kata = runtime[5:]
         expected_config_path = (

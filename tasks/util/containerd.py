@@ -5,7 +5,7 @@ from subprocess import run
 from time import sleep, time
 
 
-def wait_for_socket():
+def wait_for_containerd_socket():
     timeout = 10
     interval = 1
     socket_path = "/run/containerd/containerd.sock"
@@ -16,11 +16,13 @@ def wait_for_socket():
             try:
                 with socket(AF_UNIX, SOCK_STREAM) as s:
                     s.connect(socket_path)
-                return True
+                return
             except socket_error:
                 pass
-        time.sleep(interval)
-    return False
+
+        sleep(interval)
+
+    raise RuntimeError("Error dialing containerd socket!")
 
 
 def is_containerd_active():
@@ -47,8 +49,7 @@ def restart_containerd(debug=False):
         sleep(2)
 
     # Then make sure we can dial the socket
-    if not wait_for_socket():
-        raise RuntimeError("Error dialing containerd socket!")
+    wait_for_containerd_socket()
 
 
 def get_journalctl_containerd_logs(timeout_mins=1):

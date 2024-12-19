@@ -12,7 +12,7 @@ from tasks.util.env import (
     print_dotted_line,
 )
 from tasks.util.kubeadm import run_kubectl_command
-from tasks.util.toml import read_value_from_toml, update_toml
+from tasks.util.toml import update_toml
 from tasks.util.versions import REGISTRY_VERSION
 
 REGISTRY_CERT_FILE = "domain.crt"
@@ -162,29 +162,9 @@ def start(debug=False, clean=False):
     )
     update_toml(CONTAINERD_CONFIG_FILE, updated_toml_str)
 
-    # TODO: delete me
-    config_path_value = read_value_from_toml(
-        CONTAINERD_CONFIG_FILE,
-        'plugins."io.containerd.grpc.v1.cri".registry.config_path',
-    )
-    if config_path_value != containerd_base_certs_dir:
-        raise RuntimeError("Error populating contaienrd config path!")
-    elif debug:
-        print(f"Containerd registry config path: {config_path_value}")
-
     # Add the correspnding configuration to containerd
     containerd_certs_dir = join(containerd_base_certs_dir, LOCAL_REGISTRY_URL)
     run(f"sudo mkdir -p {containerd_certs_dir}", shell=True, check=True)
-
-    # TODO: delete me
-    config_path_value = read_value_from_toml(
-        CONTAINERD_CONFIG_FILE,
-        'plugins."io.containerd.grpc.v1.cri".registry.config_path',
-    )
-    if config_path_value != containerd_base_certs_dir:
-        raise RuntimeError("Error populating contaienrd config path!")
-    elif debug:
-        print(f"Containerd registry config path: {config_path_value}")
 
     containerd_cert_path = join(containerd_certs_dir, "sc2_registry.crt")
     containerd_certs_file = """
@@ -207,31 +187,8 @@ def start(debug=False, clean=False):
     )
     run(cmd, shell=True, check=True)
 
-    # TODO: delete me
-    config_path_value = read_value_from_toml(
-        CONTAINERD_CONFIG_FILE,
-        'plugins."io.containerd.grpc.v1.cri".registry.config_path',
-    )
-    if config_path_value != containerd_base_certs_dir:
-        raise RuntimeError("Error populating contaienrd config path!")
-    elif debug:
-        print(f"Containerd registry config path: {config_path_value}")
-
     # Copy the certificate to the corresponding containerd directory
     run(f"sudo cp {HOST_CERT_PATH} {containerd_cert_path}", shell=True, check=True)
-
-    # TODO: delete me
-    config_path_value = read_value_from_toml(
-        CONTAINERD_CONFIG_FILE,
-        'plugins."io.containerd.grpc.v1.cri".registry.config_path',
-    )
-    if config_path_value != containerd_base_certs_dir:
-        raise RuntimeError("Error populating contaienrd config path!")
-    elif debug:
-        print(f"Containerd registry config path: {config_path_value}")
-
-    # Restart containerd to pick up the changes
-    # run("sudo service containerd restart", shell=True, check=True)
 
     # ----------
     # Kata config
@@ -255,16 +212,6 @@ def start(debug=False, clean=False):
     # be able to upload the side-car image there. To this extent, we defer
     # the configuration of Knative to the Knative install script.
     # ----------
-
-    # TODO: delete me
-    config_path_value = read_value_from_toml(
-        CONTAINERD_CONFIG_FILE,
-        'plugins."io.containerd.grpc.v1.cri".registry.config_path',
-    )
-    if config_path_value != containerd_base_certs_dir:
-        raise RuntimeError("Error populating contaienrd config path!")
-    elif debug:
-        print(f"Containerd registry config path: {config_path_value}")
 
     print("Success!")
 
