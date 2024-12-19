@@ -1,4 +1,3 @@
-from invoke import task
 from os import makedirs
 from os.path import exists, join
 from shutil import rmtree
@@ -145,8 +144,7 @@ def configure_kubelet_service(debug=False, clean=False):
         print(result.stdout.decode("utf-8").strip())
 
 
-@task
-def install(ctx, debug=False, clean=False):
+def install(debug=False, clean=False):
     """
     Install and configure all tools to deploy a single-node k8s cluster
     """

@@ -59,11 +59,7 @@ def build(ctx, app=None, nocache=False):
         run(docker_cmd, shell=True, check=True)
 
 
-@task
-def push_to_local_registry(ctx, debug=False):
-    """
-    Build an app for its usage with the project
-    """
+def do_push_to_local_registry(debug=False):
     print_dotted_line("Pushing {} demo apps to local regsitry".format(len(APP_LIST)))
 
     for app_name in APP_LIST:
@@ -92,3 +88,11 @@ def push_to_local_registry(ctx, debug=False):
             print(result.stdout.decode("utf-8").strip())
 
     print("Success!")
+
+
+@task
+def push_to_local_registry(ctx, debug=False):
+    """
+    Build an app for its usage with the project
+    """
+    do_push_to_local_registry(debug=debug)
