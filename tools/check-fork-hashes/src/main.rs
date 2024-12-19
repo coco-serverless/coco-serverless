@@ -93,10 +93,6 @@ fn get_local_hash(container: &str, path: &str, branch: &str) -> Result<String, S
 /// ones tracked in our build containers. We use containers to install our
 /// patched binaries.
 fn main() {
-    // I need:
-    // the container image name,
-    // the string to look for in the kata version
-    // the branches to check
     let forks = vec![
         {
             let mut dict = HashMap::new();

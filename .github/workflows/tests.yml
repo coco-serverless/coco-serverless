@@ -37,7 +37,7 @@ jobs:
           done
       - name: "Check forked dependencies hashes match"
         run: cargo run --release
-        working-directory: ./tools/check-hashes
+        working-directory: ./tools/check-fork-hashes
 
   integration-tests:
     if: github.event.pull_request.draft == false
