@@ -3,7 +3,9 @@ from os import makedirs
 from os.path import exists, join
 from subprocess import run
 from tasks.containerd import install as containerd_install
-from tasks.demo_apps import push_to_local_registry as push_demo_apps_to_local_registry
+from tasks.demo_apps import (
+    do_push_to_local_registry as push_demo_apps_to_local_registry,
+)
 from tasks.k8s import install as k8s_tooling_install
 from tasks.k9s import install as k9s_install
 from tasks.knative import install as knative_install
@@ -229,25 +231,25 @@ def deploy(ctx, debug=False, clean=False):
     run("sudo swapoff -a", shell=True, check=True)
 
     # Build and install containerd
-    containerd_install(ctx, debug=debug, clean=clean)
+    containerd_install(debug=debug, clean=clean)
 
     # Install k8s tooling (including k9s)
-    k8s_tooling_install(ctx, debug=debug, clean=clean)
-    k9s_install(ctx, debug=debug)
+    k8s_tooling_install(debug=debug, clean=clean)
+    k9s_install(debug=debug)
 
     # Create a single-node k8s cluster
-    k8s_create(ctx, debug=debug)
+    k8s_create(debug=debug)
 
     # Install the CoCo operator as well as the CC-runtimes
-    operator_install(ctx, debug=debug)
-    operator_install_cc_runtime(ctx, debug=debug)
+    operator_install(debug=debug)
+    operator_install_cc_runtime(debug=debug)
 
     # Start a local docker registry (must happen before knative installation,
     # as we rely on it to host our sidecar image)
     start_local_registry(debug=debug, clean=clean)
 
     # Install Knative
-    knative_install(ctx, debug=debug)
+    knative_install(debug=debug)
 
     # Apply general patches to the Kata Agent (and initrd), making sure we
     # have the latest patched version
@@ -274,7 +276,7 @@ def deploy(ctx, debug=False, clean=False):
     restart_containerd(debug=debug)
 
     # Push demo apps to local registry for easy testing
-    push_demo_apps_to_local_registry(ctx, debug=debug)
+    push_demo_apps_to_local_registry(debug=debug)
 
     # Finally, create a deployment file (right now, it is empty)
     if not exists(SC2_CONFIG_DIR):
@@ -308,7 +310,7 @@ def destroy(ctx, debug=False):
     stop_local_registry(debug=debug)
 
     # Destroy k8s cluster
-    k8s_destroy(ctx, debug=debug)
+    k8s_destroy(debug=debug)
 
     # Remove deployment file
     result = run(f"rm -f {SC2_DEPLOYMENT_FILE}", shell=True, capture_output=True)

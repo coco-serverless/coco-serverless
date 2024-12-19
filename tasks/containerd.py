@@ -82,8 +82,7 @@ def set_log_level(ctx, log_level):
     restart_containerd()
 
 
-@task
-def install(ctx, debug=False, clean=False):
+def install(debug=False, clean=False):
     """
     Install (and build) containerd from source
     """
