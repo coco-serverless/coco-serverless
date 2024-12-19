@@ -63,8 +63,8 @@ def stop_kata_workon_ctr():
 def copy_from_kata_workon_ctr(ctr_path, host_path, sudo=False, debug=False):
     ctr_started = run_kata_workon_ctr()
 
-    if not ctr_started and debug:
-        print("Copying agent from running container...")
+    if not ctr_started:
+        print("Copying files from running Kata container...")
 
     docker_cmd = "docker cp {}:{} {}".format(
         KATA_WORKON_CTR_NAME,

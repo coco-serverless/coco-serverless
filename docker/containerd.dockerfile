@@ -18,6 +18,7 @@ RUN git clone \
         -b sc2-main \
         https://github.com/sc2-sys/containerd.git \
         ${CODE_DIR} \
+    && git config --global --add safe.directory ${CODE_DIR} \
     && cd ${CODE_DIR} \
     && make
 

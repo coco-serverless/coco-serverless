@@ -83,7 +83,7 @@ def set_log_level(ctx, log_level):
 
     enable_debug = str(log_level == "debug").lower()
 
-    for runtime in KATA_RUNTIMES:
+    for runtime in KATA_RUNTIMES + SC2_RUNTIMES:
         conf_file_path = join(KATA_CONFIG_DIR, "configuration-{}.toml".format(runtime))
         updated_toml_str = """
         [hypervisor.qemu]

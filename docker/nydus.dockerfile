@@ -11,9 +11,6 @@ RUN apt-get update \
         gopls \
         make
 
-# ENV GOPATH=/go
-# ENV PATH=${PATH}:/usr/local/go/bin:/root/.cargo/bin
-
 # Build the daemon and other tools like nydusify
 ARG CODE_DIR=/go/src/github.com/sc2-sys/nydus
 RUN mkdir -p ${CODE_DIR} \
