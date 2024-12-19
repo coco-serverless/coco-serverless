@@ -16,13 +16,33 @@ def is_ctr_running(ctr_name):
     return False
 
 
-def copy_from_container(ctr_name, ctr_path, host_path):
-    docker_cmd = "docker cp {}:{} {}".format(
-        ctr_name,
-        ctr_path,
-        host_path,
+def copy_from_ctr_image(ctr_image, ctr_paths, host_paths, requires_sudo=False):
+    """
+    Copy from a container image without actually running the container
+    """
+    tmp_ctr_name = "tmp-build-ctr"
+    result = run(
+        f"docker create --name {tmp_ctr_name} {ctr_image}",
+        shell=True,
+        capture_output=True,
     )
-    run(docker_cmd, shell=True, check=True)
+    assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
+
+    for ctr_path, host_path in zip(ctr_paths, host_paths):
+        try:
+            prefix = "sudo " if requires_sudo else ""
+            result = run(
+                f"{prefix}docker cp {tmp_ctr_name}:{ctr_path} {host_path}",
+                shell=True,
+                capture_output=True,
+            )
+            assert result.returncode == 0
+        except AssertionError:
+            stderr = result.stderr.decode("utf-8").strip()
+            print(f"Error copying {ctr_image}:{ctr_path} to {host_path}: {stderr}")
+            break
+
+    result = run(f"docker rm -f {tmp_ctr_name}", shell=True, capture_output=True)
 
 
 def build_image(image_tag, dockerfile, build_args=None):

@@ -63,6 +63,7 @@ def stop_kata_workon_ctr():
     assert result.returncode == 0
 
 
+# TODO: differentiate between a hot-replace and a regular replace
 def copy_from_kata_workon_ctr(ctr_path, host_path, sudo=False, debug=False):
     ctr_started = run_kata_workon_ctr()
 
@@ -263,4 +264,3 @@ def replace_shim(
             runtime_name=runtime, ctrd_path=dst_shim_binary
         )
         update_toml(CONTAINERD_CONFIG_FILE, updated_toml_str)
-    run("sudo service containerd restart", shell=True, check=True)

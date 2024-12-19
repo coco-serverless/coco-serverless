@@ -1,6 +1,7 @@
 from invoke import task
 from os.path import abspath, join
 from subprocess import run
+from tasks.util.containerd import restart_containerd
 from tasks.util.env import (
     KATA_CONFIG_DIR,
     KATA_IMAGE_TAG,
@@ -132,3 +133,5 @@ def replace_shim(ctx, runtime="qemu-snp-sc2"):
         ),
         sc2=runtime in SC2_RUNTIMES,
     )
+
+    restart_containerd()

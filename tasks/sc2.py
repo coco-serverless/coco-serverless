@@ -12,14 +12,12 @@ from tasks.operator import (
     install as operator_install,
     install_cc_runtime as operator_install_cc_runtime,
 )
-from tasks.registry import (
-    start as start_local_registry,
-    stop as stop_local_registry,
-)
+from tasks.util.containerd import restart_containerd
 from tasks.util.env import (
     COCO_ROOT,
     CONF_FILES_DIR,
     CONTAINERD_CONFIG_FILE,
+    CONTAINERD_CONFIG_ROOT,
     KATA_CONFIG_DIR,
     KATA_ROOT,
     KATA_IMAGE_TAG,
@@ -36,7 +34,11 @@ from tasks.util.kata import (
     replace_shim as replace_kata_shim,
 )
 from tasks.util.kubeadm import run_kubectl_command
-from tasks.util.registry import HOST_CERT_DIR
+from tasks.util.registry import (
+    HOST_CERT_DIR,
+    start as start_local_registry,
+    stop as stop_local_registry,
+)
 from tasks.util.toml import update_toml
 from tasks.util.versions import COCO_VERSION, KATA_VERSION
 from time import sleep
@@ -58,7 +60,7 @@ def install_sc2_runtime(debug=False):
         # Update containerd to point the SC2 runtime to the right shim
         updated_toml_str = """
         [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.kata-{runtime_name}]
-        runtime_type = "io.containerd.kata-${runtime_name}.v2"
+        runtime_type = "io.containerd.kata-{runtime_name}.v2"
         privileged_without_host_devices = true
         pod_annotations = [ "io.katacontainers.*",]
         snapshotter = "nydus"
@@ -105,8 +107,6 @@ def install_sc2_runtime(debug=False):
             runtime_name=sc2_runtime, conf_path=dst_conf_path
         )
         update_toml(CONTAINERD_CONFIG_FILE, updated_toml_str)
-
-    run("sudo service containerd restart", shell=True, check=True)
 
     # Install runttime class on kubernetes
     if debug:
@@ -196,7 +196,7 @@ def deploy(ctx, debug=False, clean=False):
 
     if clean:
         # Remove all directories that we populate and modify
-        for nuked_dir in [COCO_ROOT, KATA_ROOT, HOST_CERT_DIR]:
+        for nuked_dir in [COCO_ROOT, CONTAINERD_CONFIG_ROOT, HOST_CERT_DIR, KATA_ROOT]:
             if debug:
                 print(f"WARNING: nuking {nuked_dir}")
             run(f"sudo rm -rf {nuked_dir}", shell=True, check=True)
@@ -206,6 +206,18 @@ def deploy(ctx, debug=False, clean=False):
         result = run(
             "sudo target/release/vm-cache prune",
             cwd=vm_cache_dir,
+            shell=True,
+            capture_output=True,
+        )
+        assert result.returncode == 0, print(result.stderr.decode("utf-8").strip())
+        if debug:
+            print(result.stdout.decode("utf-8").strip())
+
+        # Purge containerd for a very-clean start
+        purge_containerd_dir = join(PROJ_ROOT, "tools", "purge-containerd")
+        result = run(
+            "cargo build --release && sudo target/release/purge-containerd",
+            cwd=purge_containerd_dir,
             shell=True,
             capture_output=True,
         )
@@ -232,7 +244,7 @@ def deploy(ctx, debug=False, clean=False):
 
     # Start a local docker registry (must happen before knative installation,
     # as we rely on it to host our sidecar image)
-    start_local_registry(ctx, debug=debug, clean=clean)
+    start_local_registry(debug=debug, clean=clean)
 
     # Install Knative
     knative_install(ctx, debug=debug)
@@ -257,6 +269,9 @@ def deploy(ctx, debug=False, clean=False):
     print_dotted_line(f"Installing SC2 (v{COCO_VERSION})")
     install_sc2_runtime(debug=debug)
     print("Success!")
+
+    # Once we are done with installing components, restart containerd
+    restart_containerd(debug=debug)
 
     # Push demo apps to local registry for easy testing
     push_demo_apps_to_local_registry(ctx, debug=debug)
@@ -290,7 +305,7 @@ def destroy(ctx, debug=False):
 
     # Stop docker registry (must happen before k8s_destroy, as we need to
     # delete secrets from the cluster)
-    stop_local_registry(ctx, debug=debug)
+    stop_local_registry(debug=debug)
 
     # Destroy k8s cluster
     k8s_destroy(ctx, debug=debug)

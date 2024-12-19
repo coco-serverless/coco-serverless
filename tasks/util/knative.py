@@ -5,6 +5,7 @@ from tasks.util.env import CONF_FILES_DIR, LOCAL_REGISTRY_URL, TEMPLATED_FILES_D
 from tasks.util.k8s import template_k8s_file
 from tasks.util.kubeadm import run_kubectl_command
 from tasks.util.registry import K8S_SECRET_NAME
+from time import sleep
 
 # Knative Serving Side-Car Tag
 KNATIVE_SIDECAR_IMAGE_TAG = "gcr.io/knative-releases/knative.dev/serving/cmd/"
@@ -51,7 +52,19 @@ def replace_sidecar(
 
     if not skip_push:
         docker_cmd = "docker push {}".format(new_image_url)
-        do_run(docker_cmd, quiet)
+
+        # Retry a few times, as the registry may be booting up
+        num_retries = 3
+        for i in range(num_retries):
+            try:
+                do_run(docker_cmd, quiet)
+                break
+            except AssertionError:
+                sleep(3)
+
+            # Error if we have not managed to break
+            if i == num_retries - 1:
+                raise RuntimeError("Error pushing image to registry")
 
     # Get the digest for the recently pulled image, and use it to update
     # Knative's deployment configmap

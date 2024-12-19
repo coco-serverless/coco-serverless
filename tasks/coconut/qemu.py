@@ -2,7 +2,7 @@ from invoke import task
 from os.path import join
 from subprocess import run
 from tasks.util.env import BIN_DIR, PROJ_ROOT, KATA_ROOT
-from tasks.util.docker import copy_from_container, build_image_and_run, stop_container
+from tasks.util.docker import copy_from_ctr_image, build_image_and_run
 
 # refer to
 # https://github.com/coconut-svsm/svsm/blob/main/Documentation/docs/installation/INSTALL.md
@@ -15,6 +15,7 @@ DATA_DIR = join(KATA_ROOT, "coconut", "qemu-svsm", "share")
 def build(ctx):
     tmp_ctr_name = "tmp-qemu-igvm-run"
 
+    # TODO: fix me
     build_image_and_run(
         QEMU_IMAGE_TAG,
         join(PROJ_ROOT, "docker", "coconut", "qemu.dockerfile"),
@@ -22,14 +23,12 @@ def build(ctx):
         {"QEMU_DATADIR": DATA_DIR},
     )
 
-    copy_from_container(
-        tmp_ctr_name,
+    copy_from_ctr_image(
+        QEMU_IMAGE_TAG,
         "/root/bin/qemu-svsm/bin/qemu-system-x86_64",
         join(BIN_DIR, "qemu-system-x86_64-igvm"),
     )
-    copy_from_container(tmp_ctr_name, f"{DATA_DIR}/.", DATA_DIR)
-
-    stop_container(tmp_ctr_name)
+    # copy_from_container(tmp_ctr_name, f"{DATA_DIR}/.", DATA_DIR)
 
 
 @task

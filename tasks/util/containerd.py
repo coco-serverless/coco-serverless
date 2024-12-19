@@ -1,8 +1,68 @@
 from json import loads as json_loads
-from subprocess import run
-from tasks.util.env import CONTAINERD_CONFIG_FILE
-from tasks.util.toml import update_toml
-from time import sleep
+from os.path import exists
+from subprocess import CalledProcessError, run
+from time import sleep, time
+
+
+def wait_for_containerd_socket():
+    timeout = 10
+    interval = 1
+    socket_path = "/run/containerd/containerd.sock"
+
+    # Socket is root-owned, so we need to be careful when probing it
+    socket_test_script = f"""
+import socket
+try:
+    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
+        s.connect('{socket_path}')
+except Exception as e:
+    exit(1)
+exit(0)
+"""
+
+    start_time = time()
+    while time() - start_time < timeout:
+        if exists(socket_path):
+            try:
+                run(
+                    f'sudo python3 -c "{socket_test_script}"',
+                    shell=True,
+                    check=True,
+                )
+
+                return
+            except CalledProcessError:
+                pass
+
+        sleep(interval)
+
+    raise RuntimeError("Error dialing containerd socket!")
+
+
+def is_containerd_active():
+    out = (
+        run("sudo systemctl is-active containerd", shell=True, capture_output=True)
+        .stdout.decode("utf-8")
+        .strip()
+    )
+    return out == "active"
+
+
+def restart_containerd(debug=False):
+    """
+    Utility function to gracefully restart the containerd service
+    """
+    run("sudo service containerd restart", shell=True, check=True)
+
+    # First wait for systemd to report containerd as active
+    while not is_containerd_active():
+        if debug:
+            print("Waiting for containerd to be active...")
+
+        sleep(2)
+
+    # Then make sure we can dial the socket
+    wait_for_containerd_socket()
 
 
 def get_journalctl_containerd_logs(timeout_mins=1):
@@ -188,18 +248,3 @@ def get_all_events_in_between(
             events_json.append(o_json)
 
     return events_json
-
-
-def set_cri_handler(runtime_class, cri_handler):
-    """
-    Set the CRI handler for a given runtime class
-    """
-    updated_toml_str = """
-    [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.{runtime_class}]
-    cri_handler = "{cri_handler}"
-    """.format(
-        runtime_class=runtime_class, cri_handler=cri_handler
-    )
-    update_toml(CONTAINERD_CONFIG_FILE, updated_toml_str)
-
-    run("sudo service containerd restart", shell=True, check=True)

@@ -29,7 +29,7 @@ jobs:
       # Rust formatting checks
       - name: "Run cargo lints"
         run: |
-          for dir in "./vm-cache/" "./tools/check-kata-hashes" "./tools/tee-detect"; do
+          for dir in "./vm-cache/" "./tools/check-kata-hashes" "./tools/tee-detect" "./tools/purge-containerd" "./tools/purge-k8s"; do
             pushd ${dir} >> /dev/null
             cargo fmt --all -- --check
             cargo clippy -- -D warnings
