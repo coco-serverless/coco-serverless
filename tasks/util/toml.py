@@ -33,7 +33,6 @@ def merge_dicts_recursively(dict_a, dict_b):
                 # If dict_a[k] is not a dict, it means we have reached a leaf
                 # of A, shared with B. In this case we always copy the subtree
                 # from B (irrespective of whether it is a subtree or not)
-                print(f"Overwritting key: {k}, with value:", dict_b[k])
                 dict_a[k] = dict_b[k]
             else:
                 # This situation should be unreachable
@@ -41,7 +40,6 @@ def merge_dicts_recursively(dict_a, dict_b):
         else:
             # If the key is not in the to-be merged dict, we want to copy all
             # the sub-tree
-            print(f"Adding new key: {k}, with value:", dict_b[k])
             dict_a[k] = dict_b[k]
 
 

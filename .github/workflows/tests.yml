@@ -57,7 +57,7 @@ jobs:
       - name: "Checkout code"
         uses: actions/checkout@v4
       - name: "Install SC2"
-        run: ./bin/inv_wrapper.sh sc2.deploy --clean --debug
+        run: ./bin/inv_wrapper.sh sc2.deploy --clean
 
       - name: "Run python hello world"
         run: |

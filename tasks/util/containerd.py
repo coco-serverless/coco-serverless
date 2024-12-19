@@ -45,7 +45,6 @@ def is_containerd_active():
         .stdout.decode("utf-8")
         .strip()
     )
-    print(f"DEBUG: containerd status: {out}")
     return out == "active"
 
 
